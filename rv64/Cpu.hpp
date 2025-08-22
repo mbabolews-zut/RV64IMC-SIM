@@ -11,6 +11,8 @@ namespace rv64 {
         static constexpr size_t INT_REG_CNT = 32;
         static constexpr size_t FP_REG_CNT = 32;
 
+        void on_error_stop();
+
         void set_pc(uint64_t pc);
 
         int64_t get_pc() const;

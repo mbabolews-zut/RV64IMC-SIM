@@ -1,7 +1,18 @@
 #pragma once
 #include <cmath>
 #include <cstdint>
+#include <iostream>
+#include <ostream>
+#include <string_view>
 #include <type_traits>
+
+/// TODO: move somewhere else
+
+namespace gui {
+    inline void display_error(std::string_view msg) {
+        std::cerr << msg << std::endl;
+    }
+}
 
 template<typename T = int64_t>
 constexpr T pow_of_2(int64_t n) {

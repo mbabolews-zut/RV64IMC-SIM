@@ -2,6 +2,8 @@
 #include <rv64/InstructionSets/IBase.hpp>
 #include <rv64/InstructionSets/IExtM.hpp>
 
+#include "Memory.hpp"
+
 namespace rv64 {
     class Cpu;
 
@@ -73,16 +75,16 @@ public:
     void sra(IntReg &rd, const IntReg &rs1, const IntReg &rs2) override;
 
     /// @copydoc is::IBase::jal
-    void jal(IntReg &rd, int20 imm20) override;
+    void jal(IntReg &rd, int imm20) override;
 
     /// @copydoc is::IBase::jalr
     void jalr(IntReg &rd, const IntReg &rs, int12 imm12) override;
 
     /// @copydoc is::IBase::beq
-    void beq(const IntReg &rs1, const IntReg &rs2, int12 imm12) override;
+    void beq(const IntReg &rs1, const IntReg &rs2, int imm12) override;
 
     /// @copydoc is::IBase::bne
-    void bne(const IntReg &rs1, const IntReg &rs2, int12 imm12) override;
+    void bne(const IntReg &rs1, const IntReg &rs2, int imm12) override;
 
     /// @copydoc is::IBase::blt
     void blt(const IntReg &rs1, const IntReg &rs2, int12 imm12) override;
@@ -207,6 +209,12 @@ public:
     ~InterpreterRV64IM() override;
 
 private:
+    template<typename T>
+    void load_instruction_tmpl(IntReg &rd, const IntReg &rs, int12 imm12);
+
+    void handle_error(MemErr err) const;
+
     Cpu &m_cpu;
 };
+
 }

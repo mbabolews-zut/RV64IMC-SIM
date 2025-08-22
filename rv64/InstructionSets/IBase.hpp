@@ -94,8 +94,8 @@ namespace rv64::is {
         virtual void sra(IntReg &rd, const IntReg &rs1, const IntReg &rs2) = 0;
 
         /// @brief jump and link.
-        /// <br> rd = pc + 4; pc += imm20 << 1
-        virtual void jal(IntReg &rd, int20 imm20) = 0;
+        /// <br> rd = pc + 4; goto pc + imm20
+        virtual void jal(IntReg &rd, int imm20) = 0;
 
         /// @brief jump and link register.
         /// <br> rd = pc + 4; pc = rs + imm12
@@ -103,11 +103,11 @@ namespace rv64::is {
 
         /// @brief branch if equal.
         /// <br> pc += (rs1 == rs2) ? (imm12 << 1) : 4
-        virtual void beq(const IntReg &rs1, const IntReg &rs2, int12 imm12) = 0;
+        virtual void beq(const IntReg &rs1, const IntReg &rs2, int imm12) = 0;
 
         /// @brief branch if not equal.
         /// <br> pc += (rs1 != rs2) ? (imm12 << 1) : 4
-        virtual void bne(const IntReg &rs1, const IntReg &rs2, int12 imm12) = 0;
+        virtual void bne(const IntReg &rs1, const IntReg &rs2, int imm12) = 0;
 
         /// @brief branch if less than (signed).
         /// <br> pc += (rs1 < rs2) ? (imm12 << 1) : 4
@@ -134,7 +134,7 @@ namespace rv64::is {
         virtual void lh(IntReg &rd, const IntReg &rs, int12 imm12) = 0;
 
         /// @brief load 16-bit halfword from memory and zero-extend it to 64-bit.
-        /// <br> rd = ((i16*)mem)[rs + imm12]
+        /// <br> rd = ((u16*)mem)[rs + imm12]
         virtual void lhu(IntReg &rd, const IntReg &rs, int12 imm12) = 0;
 
         /// @brief load 8-bit byte from memory and sign-extend it to 64-bit.
@@ -142,7 +142,7 @@ namespace rv64::is {
         virtual void lb(IntReg &rd, const IntReg &rs, int12 imm12) = 0;
 
         /// @brief load 8-bit byte from memory and zero-extend it to 64-bit.
-        /// <br> rd = ((i8*)mem)[rs + imm12]
+        /// <br> rd = ((u8*)mem)[rs + imm12]
         virtual void lbu(IntReg &rd, const IntReg &rs, int12 imm12) = 0;
 
         /// @brief store 32-bit word to memory.
