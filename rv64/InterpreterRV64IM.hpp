@@ -2,7 +2,11 @@
 #include <rv64/InstructionSets/IBase.hpp>
 #include <rv64/InstructionSets/IExtM.hpp>
 
-#include "Memory.hpp"
+#include <rv64/Memory.hpp>
+
+namespace rv64 {
+    class VM;
+}
 
 namespace rv64 {
     class Cpu;
@@ -126,6 +130,14 @@ public:
     void fence() override;
 
     /// @copydoc is::IBase::ecall
+    /// @brief ecall codes compatible with Venus simulator
+    /// https://github.com/kvakil/venus/wiki/Environmental-Calls
+    /// <br> a0 = 1 -> print_int - prints integer in a1.
+    /// <br> a0 = 4 -> print_str - prints null-terminated string at address in a1.
+    /// <br> a0 = 9 -> allocates a1 bytes on the heap, returns pointer to start in a0.
+    /// <br> a0 = 10 -> exits program with return code 0.
+    /// <br> a0 = 11 -> prints ASCII character in a1.
+    /// <br> a0 = 17 -> exits program with return code in a1
     void ecall() override;
 
     /// @copydoc is::IBase::ebreak
@@ -165,7 +177,7 @@ public:
     void lwu(IntReg &rd, const IntReg &rs, int12 imm12) override;
 
     /// @copydoc is::IBase::sd
-    void sd(const IntReg &rs, const IntReg &rs2, int12 imm12) override;
+    void sd(const IntReg &rs1, const IntReg &rs2, int12 imm12) override;
 
     /// @copydoc is::IExtM::mul
     void mul(IntReg &rd, const IntReg &rs1, const IntReg &rs2) override;
@@ -206,15 +218,25 @@ public:
     /// @copydoc is::IExtM::remuw
     void remuw(IntReg &rd, const IntReg &rs1, const IntReg &rs2) override;
 
-    ~InterpreterRV64IM() override;
+    ~InterpreterRV64IM() override = default;
 
 private:
     template<typename T>
     void load_instruction_tmpl(IntReg &rd, const IntReg &rs, int12 imm12);
 
+    template<typename T>
+    void store_instruction_tmpl(const IntReg &rs, const IntReg &rs2, int12 imm12);
+
+    template<bool Rem = false, typename T>
+    [[nodiscard]] static int64_t div_rem_tmpl(T lhs, T rhs);
+
     void handle_error(MemErr err) const;
 
-    Cpu &m_cpu;
+    static uint64_t mul64x64_128high(uint64_t a, uint64_t b);
+
+
+private:
+    VM &m_vm;
 };
 
 }

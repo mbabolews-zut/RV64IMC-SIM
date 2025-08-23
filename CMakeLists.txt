@@ -14,4 +14,6 @@ add_executable(RV64_SIM main.cpp
         rv64/InterpreterRV64IM.cpp
         rv64/InterpreterRV64IM.hpp
         rv64/Memory.cpp
-        rv64/Memory.hpp)
+        rv64/Memory.hpp
+        rv64/VM.cpp
+        rv64/VM.hpp)

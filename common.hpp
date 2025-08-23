@@ -7,10 +7,15 @@
 #include <type_traits>
 
 /// TODO: move somewhere else
-
 namespace gui {
     inline void display_error(std::string_view msg) {
-        std::cerr << msg << std::endl;
+        std::cerr << "[ERROR] " << msg << std::endl;
+    }
+    inline void print_output(std::string_view msg) {
+        std::cout << "[OUTPUT] " << msg << std::endl;
+    }
+    inline void print_warning(std::string_view msg) {
+        std::cout << "[WARNING] " << msg << std::endl;
     }
 }
 
@@ -23,8 +28,11 @@ constexpr T pow_of_2(int64_t n) {
 
 template<size_t NBits>
 struct intN {
-    constexpr intN(int64_t v) : m_val(v & (pow_of_2(NBits - 1) - 1)) { // NOLINT(*-explicit-constructor)
-        m_val = (v & pow_of_2(NBits - 1)) ? m_val : m_val * -1;
+    constexpr intN(int64_t v) : m_val(0) { // NOLINT(*-explicit-constructor)
+        m_val = (v & pow_of_2(NBits - 1)) ? v : -1;
+        if (m_val == v) return;
+        m_val <<= NBits;
+        m_val |= v;
     }
 
     constexpr operator int64_t() const { // NOLINT(*-explicit-constructor)
@@ -32,7 +40,7 @@ struct intN {
     }
 
     constexpr uint64_t raw() {
-        return std::abs(m_val) | (m_val < 0 ? pow_of_2(NBits - 1) : 0);
+        return m_val & (pow_of_2(NBits) - 1);
     }
 
 private:
