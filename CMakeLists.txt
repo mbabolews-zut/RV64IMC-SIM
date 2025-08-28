@@ -5,6 +5,9 @@ set(CMAKE_CXX_STANDARD 20)
 
 include_directories(.)
 
+
+find_package(Catch2 REQUIRED)
+
 add_executable(RV64_SIM main.cpp
         rv64/Cpu.cpp
         rv64/Cpu.hpp
@@ -17,3 +20,7 @@ add_executable(RV64_SIM main.cpp
         rv64/Memory.hpp
         rv64/VM.cpp
         rv64/VM.hpp)
+
+include(CTest)
+include(Catch)
+catch_discover_tests(RV64_SIM)
