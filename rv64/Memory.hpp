@@ -37,8 +37,8 @@ private:
     std::vector<uint8_t> m_data{};
 
     uint64_t m_program_addr;
-    uint64_t m_heap_address;
-    uint64_t m_stack_address;
+    uint64_t m_heap_addr;
+    uint64_t m_stack_addr;
 
     size_t m_stack_size;
 

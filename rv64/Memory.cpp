@@ -10,21 +10,25 @@ static const auto &vmsett_c = [](const void *vm_settings) {
     return *(rv64::VM::Settings *) vm_settings;
 };
 
+std::string Memory::load_string(uint64_t address, MemErr &err) {
+
+}
+
 Memory::Memory(const void *vm_settings, size_t static_data_size)
     : m_program_addr(vmsett_c(vm_settings).program_start_address),
-      m_heap_address(m_program_addr + static_data_size),
-      m_stack_address(vmsett_c(vm_settings).stack_start_address),
+      m_heap_addr(m_program_addr + static_data_size),
+      m_stack_addr(vmsett_c(vm_settings).stack_start_address),
       m_stack_size(vmsett_c(vm_settings).stack_size),
       m_vm_settings(vm_settings) {
     // reserve some space in vectors
     m_stack.reserve(VEC_INIT_CAPACITY);
     m_data.reserve(VEC_INIT_CAPACITY);
 
-    if (m_stack_address < m_stack_size) {
+    if (m_stack_addr < m_stack_size) {
         throw std::invalid_argument("Memory: stack address is too small");
     }
 
-    auto stack_bottom = m_stack_address - m_stack_size;
+    auto stack_bottom = m_stack_addr - m_stack_size;
 
     if (stack_bottom >= m_program_addr && stack_bottom < m_program_addr + PROGRAM_MEM_LIMIT)
         throw std::invalid_argument("Memory: stack and program memory overlap");
@@ -47,8 +51,23 @@ std::string Memory::err_to_string(MemErr err) {
     }
 }
 
+uint64_t Memory::sbrk(int64_t increment, MemErr &err) {
+    if (increment > m_data.size() - (m_heap_addr - m_program_addr)) {
+        err = MemErr::NegativeSizeOfHeap;
+        return 0;
+    }
+    try {
+        m_data.resize(m_data.size() + increment);
+    } catch (const std::exception &) {
+        err = MemErr::OutOfMemory;
+        return 0;
+    }
+    err = MemErr::None;
+    return m_program_addr + m_data.size() - increment;
+}
+
 bool Memory::address_in_stack(uint64_t address) const noexcept {
-    return address >= m_stack_address && address < m_stack_address + m_stack_size;
+    return address >= m_stack_addr && address < m_stack_addr + m_stack_size;
 }
 
 bool Memory::address_in_data(uint64_t address) const noexcept {
@@ -59,16 +78,16 @@ template<typename T>
 T Memory::load(uint64_t address, MemErr &err) const {
     if (address_in_stack(address + sizeof(T))) {
         // uninitialized stack memory access
-        if (address + sizeof(T) - m_stack_address > m_stack.size()) {
+        if (address + sizeof(T) - m_stack_addr > m_stack.size()) {
             T value = 0;
-            if (address - m_stack_address < m_stack.size()) {
-                size_t available = m_stack.size() - (address - m_stack_address);
-                std::copy_n(m_stack.data() + (address - m_stack_address), available, &value);
+            if (address - m_stack_addr < m_stack.size()) {
+                size_t available = m_stack.size() - (address - m_stack_addr);
+                std::copy_n(m_stack.data() + (address - m_stack_addr), available, &value);
             }
             return value;
         }
 
-        return *reinterpret_cast<const T*>(m_stack.data() + (address - m_stack_address));
+        return *reinterpret_cast<const T*>(m_stack.data() + (address - m_stack_addr));
     }
     if (address_in_data(address + sizeof(T)))
         return *reinterpret_cast<const T*>(m_data.data() + (address - m_program_addr));
@@ -80,14 +99,14 @@ T Memory::load(uint64_t address, MemErr &err) const {
 template<typename T>
 MemErr Memory::store(uint64_t address, T value) {
     if (address_in_stack(address + sizeof(T))) {
-        if (address + sizeof(T) - m_stack_address > m_stack.size()) {
+        if (address + sizeof(T) - m_stack_addr > m_stack.size()) {
             try {
-                m_stack.resize(address + sizeof(T) - m_stack_address);
+                m_stack.resize(address + sizeof(T) - m_stack_addr);
             } catch (const std::exception &) {
                 return MemErr::OutOfMemory;
             }
         }
-        *reinterpret_cast<T*>(m_stack.data() + (address - m_stack_address)) = value;
+        *reinterpret_cast<T*>(m_stack.data() + (address - m_stack_addr)) = value;
         return MemErr::None;
     }
     if (address_in_data(address + sizeof(T))) {
