@@ -29,6 +29,10 @@ public:
     uint64_t sbrk(int64_t increment, MemErr &err);
 
 private:
+    bool address_in_stack(uint64_t address) const noexcept;
+
+    bool address_in_data(uint64_t address) const noexcept;
+
     std::vector<uint8_t> m_stack{};
     std::vector<uint8_t> m_data{};
 
@@ -40,24 +44,3 @@ private:
 
     const void *m_vm_settings;
 };
-
-template<typename T>
-T Memory::load(uint64_t address, MemErr &err) const {
-    if (address >= m_stack_address && address + sizeof(T) < m_stack_address + m_stack_size) {
-        return *reinterpret_cast<const T*>(m_stack.data() + (address - m_stack_address));
-    }
-    if (address >= m_program_addr && address + sizeof(T) < m_data.size() + m_program_addr) {
-        return *reinterpret_cast<const T*>(m_data.data() + (address - m_program_addr));
-    }
-    err = MemErr::SegFault;
-    return 0;
-}
-
-template uint8_t Memory::load<uint8_t>(uint64_t address, MemErr &err) const;
-template uint16_t Memory::load<uint16_t>(uint64_t address, MemErr &err) const;
-template uint32_t Memory::load<uint32_t>(uint64_t address, MemErr &err) const;
-template uint64_t Memory::load<uint64_t>(uint64_t address, MemErr &err) const;
-template int8_t Memory::load<int8_t>(uint64_t address, MemErr &err) const;
-template int16_t Memory::load<int16_t>(uint64_t address, MemErr &err) const;
-template int32_t Memory::load<int32_t>(uint64_t address, MemErr &err) const;
-template int64_t Memory::load<int64_t>(uint64_t address, MemErr &err) const;
