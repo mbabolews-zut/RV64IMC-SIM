@@ -4,22 +4,38 @@
 
 #include <rv64/VM.hpp>
 #include <stdexcept>
+#include <cstring>
 
 // helper to cast vm_settings
 static const auto &vmsett_c = [](const void *vm_settings) {
     return *(rv64::VM::Settings *) vm_settings;
 };
 
-std::string Memory::load_string(uint64_t address, MemErr &err) {
+std::string Memory::load_string(uint64_t address, MemErr &err) const {
+    size_t len = 0;
+    size_t max_len = 0;
+    const char *str_ptr = nullptr;
 
+    if (address_in_data(address)) {
+        str_ptr = reinterpret_cast<const char *>(m_data.data() + (address - m_program_addr));
+        max_len = m_data.size() - (address - m_program_addr);
+    } else if (address_in_stack(address)) {
+        str_ptr = reinterpret_cast<const char *>(m_stack.data() + (address - m_stack_addr));
+        max_len = m_stack_size - (address - m_stack_addr);
+    } else {
+        err = MemErr::SegFault;
+        return "";
+    }
+    len = strnlen(str_ptr, max_len);
+    err = (len == max_len) ? MemErr::NotTermStr : MemErr::None;
+    return {str_ptr, len};
 }
 
 Memory::Memory(const void *vm_settings, size_t static_data_size)
     : m_program_addr(vmsett_c(vm_settings).program_start_address),
       m_heap_addr(m_program_addr + static_data_size),
       m_stack_addr(vmsett_c(vm_settings).stack_start_address),
-      m_stack_size(vmsett_c(vm_settings).stack_size),
-      m_vm_settings(vm_settings) {
+      m_stack_size(vmsett_c(vm_settings).stack_size) {
     // reserve some space in vectors
     m_stack.reserve(VEC_INIT_CAPACITY);
     m_data.reserve(VEC_INIT_CAPACITY);
@@ -87,10 +103,10 @@ T Memory::load(uint64_t address, MemErr &err) const {
             return value;
         }
 
-        return *reinterpret_cast<const T*>(m_stack.data() + (address - m_stack_addr));
+        return *reinterpret_cast<const T *>(m_stack.data() + (address - m_stack_addr));
     }
     if (address_in_data(address + sizeof(T)))
-        return *reinterpret_cast<const T*>(m_data.data() + (address - m_program_addr));
+        return *reinterpret_cast<const T *>(m_data.data() + (address - m_program_addr));
 
     err = MemErr::SegFault;
     return 0;
@@ -106,11 +122,11 @@ MemErr Memory::store(uint64_t address, T value) {
                 return MemErr::OutOfMemory;
             }
         }
-        *reinterpret_cast<T*>(m_stack.data() + (address - m_stack_addr)) = value;
+        *reinterpret_cast<T *>(m_stack.data() + (address - m_stack_addr)) = value;
         return MemErr::None;
     }
     if (address_in_data(address + sizeof(T))) {
-        *reinterpret_cast<T*>(m_data.data() + (address - m_program_addr)) = value;
+        *reinterpret_cast<T *>(m_data.data() + (address - m_program_addr)) = value;
         return MemErr::None;
     }
     return MemErr::SegFault;

@@ -21,7 +21,7 @@ public:
     template<typename T>
     [[nodiscard]] MemErr store(uint64_t address, T value);
 
-    std::string load_string(uint64_t address, MemErr &err);
+    std::string load_string(uint64_t address, MemErr &err) const;
 
     Memory(const void *vm_settings, size_t static_data_size);
     static std::string err_to_string(MemErr err);
@@ -41,6 +41,4 @@ private:
     uint64_t m_stack_addr;
 
     size_t m_stack_size;
-
-    const void *m_vm_settings;
 };
