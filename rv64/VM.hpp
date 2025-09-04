@@ -8,7 +8,8 @@ namespace rv64 {
         Running,
         Stopped,
         Error,
-        Breakpoint
+        Breakpoint,
+        Finished
     };
 
     class VM {

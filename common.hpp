@@ -17,6 +17,9 @@ namespace gui {
     inline void print_warning(std::string_view msg) {
         std::cout << "[WARNING] " << msg << std::endl;
     }
+    inline void print_info(std::string_view msg) {
+        std::cout << "[INFO] " << msg << std::endl;
+    }
 }
 
 template<typename T = int64_t>
