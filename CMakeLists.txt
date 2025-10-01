@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.31)
 project(RV64_SIM)
+project(RV64_SIM_tests)
 
 set(CMAKE_CXX_STANDARD 20)
 
@@ -8,7 +9,7 @@ include_directories(.)
 
 find_package(Catch2 REQUIRED)
 
-add_executable(RV64_SIM main.cpp
+set(source
         rv64/Cpu.cpp
         rv64/Cpu.hpp
         common.hpp
@@ -19,7 +20,17 @@ add_executable(RV64_SIM main.cpp
         rv64/Memory.cpp
         rv64/Memory.hpp
         rv64/VM.cpp
-        rv64/VM.hpp)
+        rv64/VM.hpp
+)
+
+add_executable(RV64_SIM ${source} main.cpp)
+
+add_executable(RV64_SIM_tests
+        ${source}
+        tests/memory_test.cpp
+)
+
+target_link_libraries(RV64_SIM_tests Catch2::Catch2WithMain)
 
 include(CTest)
 include(Catch)

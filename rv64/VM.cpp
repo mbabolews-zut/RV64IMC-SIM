@@ -5,6 +5,13 @@
 #include "common.hpp"
 
 namespace rv64 {
+
+    VM::VM() {
+        assert(state == VMState::Initializing);
+        state = VMState::Initializing;
+        m_memory.init(settings, 20);
+    }
+
     void VM::terminate(int exit_code) {
         state = VMState::Finished;
         gui::print_info(std::format("Program terminated with exit code {}", exit_code));
@@ -26,5 +33,9 @@ namespace rv64 {
     void VM::set_stack_start_address(uint64_t addr) {
         assert(state == VMState::Initializing);
         settings.stack_start_address = addr;
+    }
+
+    const VM::Settings & VM::get_settings() const noexcept {
+        return settings;
     }
 } // rv64

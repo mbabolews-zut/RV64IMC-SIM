@@ -14,6 +14,8 @@ namespace rv64 {
 
     class VM {
     public:
+        VM();
+
         void terminate(int exit_code);
 
         void error_stop();
@@ -27,15 +29,17 @@ namespace rv64 {
         struct Settings {
             uint64_t program_start_address = 0x400000;
             uint64_t stack_start_address = 0x7FFFFFF0;
-            size_t stack_size = 1024 * 1024 * 8; // 8 MiB
+            size_t stack_size = 1024 * 64; // 64 KiB
         };
+
+        const Settings& get_settings() const noexcept;
 
     public:
         Memory m_memory;
-        Cpu m_cpu;
+        Cpu m_cpu{};
 
     private:
-        Settings settings{};
+        Settings settings;
         VMState state = VMState::Initializing;
     };
 
