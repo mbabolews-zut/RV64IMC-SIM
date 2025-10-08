@@ -11,10 +11,12 @@ namespace rv64 {
 namespace rv64 {
     class Cpu;
 
-class InterpreterRV64IM final
+class Interpreter final
         : public is::IBase,
           public is::IExtM {
 public:
+    Interpreter(VM &vm) : m_vm(vm) {}
+
     /// @copydoc is::IBase::addi
     void addi(IntReg &rd, const IntReg &rs, int12 imm12) override;
 
@@ -22,7 +24,7 @@ public:
     void slti(IntReg &rd, const IntReg &rs, int12 imm12) override;
 
     /// @copydoc is::IBase::sltiu
-    void sltiu(IntReg &rd, const IntReg &rs, uint12 imm12) override;
+    void sltiu(IntReg &rd, const IntReg &rs, int12 imm12) override;
 
     /// @copydoc is::IBase::andi
     void andi(IntReg &rd, const IntReg &rs, int12 imm12) override;
@@ -31,16 +33,16 @@ public:
     void ori(IntReg &rd, const IntReg &rs, int12 imm12) override;
 
     /// @copydoc is::IBase::xori
-    void xori(IntReg &rd, const IntReg &rs, uint12 imm12) override;
+    void xori(IntReg &rd, const IntReg &rs, int12 imm12) override;
 
     /// @copydoc is::IBase::slli
-    void slli(IntReg &rd, const IntReg &rs, uint12 imm12) override;
+    void slli(IntReg &rd, const IntReg &rs, uint6 uimm6) override;
 
     /// @copydoc is::IBase::srli
-    void srli(IntReg &rd, const IntReg &rs, uint12 imm12) override;
+    void srli(IntReg &rd, const IntReg &rs, uint6 uimm6) override;
 
     /// @copydoc is::IBase::srai
-    void srai(IntReg &rd, const IntReg &rs, uint12 imm12) override;
+    void srai(IntReg &rd, const IntReg &rs, uint6 uimm6) override;
 
     /// @copydoc is::IBase::lui
     void lui(IntReg &rd, int20 imm20) override;
@@ -79,16 +81,16 @@ public:
     void sra(IntReg &rd, const IntReg &rs1, const IntReg &rs2) override;
 
     /// @copydoc is::IBase::jal
-    void jal(IntReg &rd, int imm20) override;
+    void jal(IntReg &rd, int20 imm20) override;
 
     /// @copydoc is::IBase::jalr
     void jalr(IntReg &rd, const IntReg &rs, int12 imm12) override;
 
     /// @copydoc is::IBase::beq
-    void beq(const IntReg &rs1, const IntReg &rs2, int imm12) override;
+    void beq(const IntReg &rs1, const IntReg &rs2, int12 imm12) override;
 
     /// @copydoc is::IBase::bne
-    void bne(const IntReg &rs1, const IntReg &rs2, int imm12) override;
+    void bne(const IntReg &rs1, const IntReg &rs2, int12 imm12) override;
 
     /// @copydoc is::IBase::blt
     void blt(const IntReg &rs1, const IntReg &rs2, int12 imm12) override;
@@ -218,7 +220,7 @@ public:
     /// @copydoc is::IExtM::remuw
     void remuw(IntReg &rd, const IntReg &rs1, const IntReg &rs2) override;
 
-    ~InterpreterRV64IM() override = default;
+    ~Interpreter() override = default;
 
 private:
     template<typename T>

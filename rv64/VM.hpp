@@ -16,6 +16,10 @@ namespace rv64 {
     public:
         VM();
 
+        void run_step();
+
+        void run_until_stop();
+
         void terminate(int exit_code);
 
         void error_stop();
@@ -27,9 +31,11 @@ namespace rv64 {
         void set_stack_start_address(uint64_t addr);
 
         struct Settings {
-            uint64_t program_start_address = 0x400000;
+            uint64_t prog_start_address = 0x400000;
             uint64_t stack_start_address = 0x7FFFFFF0;
-            size_t stack_size = 1024 * 64; // 64 KiB
+            size_t stack_size = 1024 * 1024; // 1 MiB
+            bool ascending_stack = false;
+            bool big_endian = false;
         };
 
         const Settings& get_settings() const noexcept;

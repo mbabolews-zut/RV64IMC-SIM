@@ -10,12 +10,12 @@ TEST_CASE("Memory basic tests", "[memory]") {
 
     // Store to data segment
     SECTION("Storing to data segment") {
-        err = mem.store(settings.program_start_address + 5, 0x12345678);
+        err = mem.store(settings.prog_start_address + 5, 0x12345678);
         INFO(Memory::err_to_string(err));
         REQUIRE(err == MemErr::None);
 
         // Edge cases
-        err = mem.store(settings.program_start_address, 0xdeadbeef);
+        err = mem.store(settings.prog_start_address, 0xdeadbeef);
         INFO(Memory::err_to_string(err));
         REQUIRE(err == MemErr::None);
 
@@ -24,22 +24,22 @@ TEST_CASE("Memory basic tests", "[memory]") {
         REQUIRE(err == MemErr::None);
 
         // Error cases
-        err = mem.store<uint16_t>(settings.program_start_address - 1, 0xbeef);
+        err = mem.store<uint16_t>(settings.prog_start_address - 1, 0xbeef);
         INFO(Memory::err_to_string(err));
         REQUIRE(err == MemErr::SegFault);
 
-        err = mem.store<int8_t>(settings.program_start_address + Memory::PROGRAM_MEM_LIMIT - 4, 0x20);
+        err = mem.store<int8_t>(settings.prog_start_address + Memory::PROGRAM_MEM_LIMIT - 4, 0x20);
         INFO(Memory::err_to_string(err));
         REQUIRE(err == MemErr::SegFault);
 
         // Load to data segment
         SECTION("Loading from data segment") {
-            auto val = mem.load<uint32_t>(settings.program_start_address + 5, err);
+            auto val = mem.load<uint32_t>(settings.prog_start_address + 5, err);
             INFO(Memory::err_to_string(err));
             REQUIRE(err == MemErr::None);
             REQUIRE(val == 0x12345678);
 
-            val = mem.load<uint32_t>(settings.program_start_address, err);
+            val = mem.load<uint32_t>(settings.prog_start_address, err);
             INFO(Memory::err_to_string(err));
             REQUIRE(err == MemErr::None);
             REQUIRE(val == 0xdeadbeef);
@@ -50,11 +50,11 @@ TEST_CASE("Memory basic tests", "[memory]") {
             REQUIRE(val == 0xabcdef01);
 
             // Error cases
-            mem.load<uint16_t>(settings.program_start_address - 1, err);
+            mem.load<uint16_t>(settings.prog_start_address - 1, err);
             INFO(Memory::err_to_string(err));
             REQUIRE(err == MemErr::SegFault);
 
-            mem.load<uint16_t>(settings.program_start_address + Memory::PROGRAM_MEM_LIMIT - 4, err);
+            mem.load<uint16_t>(settings.prog_start_address + Memory::PROGRAM_MEM_LIMIT - 4, err);
             INFO(Memory::err_to_string(err));
             REQUIRE(err == MemErr::SegFault);
 

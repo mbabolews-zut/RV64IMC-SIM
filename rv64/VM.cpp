@@ -9,7 +9,7 @@ namespace rv64 {
     VM::VM() {
         assert(state == VMState::Initializing);
         state = VMState::Initializing;
-        m_memory.init(settings, 20);
+        m_memory.init();
     }
 
     void VM::terminate(int exit_code) {
@@ -27,7 +27,7 @@ namespace rv64 {
 
     void VM::set_program_start_address(uint64_t addr) {
         assert(state == VMState::Initializing);
-        settings.program_start_address = addr;
+        settings.prog_start_address = addr;
     }
 
     void VM::set_stack_start_address(uint64_t addr) {

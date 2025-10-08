@@ -28,7 +28,6 @@ namespace rv64 {
     class Cpu {
     public:
         static constexpr size_t INT_REG_CNT = 32;
-        static constexpr size_t FP_REG_CNT = 32;
 
         void set_pc(uint64_t pc);
 
@@ -49,7 +48,6 @@ namespace rv64 {
 
     private:
         std::array<IntReg, 32> m_int_regs;
-        double m_fp_regs[FP_REG_CNT]{};
         uint64_t m_pc = 0;
     };
 

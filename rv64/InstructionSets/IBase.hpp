@@ -1,5 +1,7 @@
 #pragma once
 #include <common.hpp>
+#include <Instruction.hpp>
+
 
 namespace rv64 {
     class IntReg;
@@ -19,7 +21,7 @@ namespace rv64::is {
 
         /// @brief set less than immediate (unsigned).
         /// <br> rd = rs < imm ? 1 : 0
-        virtual void sltiu(IntReg &rd, const IntReg &rs, uint12 imm12) = 0;
+        virtual void sltiu(IntReg &rd, const IntReg &rs, int12 imm12) = 0;
 
         /// @brief logical AND immediate
         /// <br> rd = rs & imm12
@@ -31,19 +33,19 @@ namespace rv64::is {
 
         /// @brief logical XOR immediate
         /// <br> rd = rs ^ imm12
-        virtual void xori(IntReg &rd, const IntReg &rs, uint12 imm12) = 0;
+        virtual void xori(IntReg &rd, const IntReg &rs, int12 imm12) = 0;
 
         /// @brief shift left logical immediate
         /// <br> rd = rs << imm12
-        virtual void slli(IntReg &rd, const IntReg &rs, uint12 imm12) = 0;
+        virtual void slli(IntReg &rd, const IntReg &rs, uint6 imm12) = 0;
 
         /// @brief shift right logical immediate
         /// <br> rd = rs >> imm12
-        virtual void srli(IntReg &rd, const IntReg &rs, uint12 imm12) = 0;
+        virtual void srli(IntReg &rd, const IntReg &rs, uint6 uimm6) = 0;
 
         /// @brief shift right arithmetic immediate (the original sign bit is copied into the vacated upper bits).
         /// <br> rd = signed(rs) >> imm12
-        virtual void srai(IntReg &rd, const IntReg &rs, uint12 imm12) = 0;
+        virtual void srai(IntReg &rd, const IntReg &rs, uint6 uimm6) = 0;
 
         /// @brief load upper immediate
         /// <br> rd = sign_extend<i64>(imm20 << 12)
@@ -95,7 +97,7 @@ namespace rv64::is {
 
         /// @brief jump and link.
         /// <br> rd = pc + 4; goto pc + imm20
-        virtual void jal(IntReg &rd, int imm20) = 0;
+        virtual void jal(IntReg &rd, int20 imm20) = 0;
 
         /// @brief jump and link register.
         /// <br> rd = pc + 4; pc = rs + imm12
@@ -103,11 +105,11 @@ namespace rv64::is {
 
         /// @brief branch if equal.
         /// <br> pc += (rs1 == rs2) ? (imm12 << 1) : 4
-        virtual void beq(const IntReg &rs1, const IntReg &rs2, int imm12) = 0;
+        virtual void beq(const IntReg &rs1, const IntReg &rs2, int12 imm12) = 0;
 
         /// @brief branch if not equal.
         /// <br> pc += (rs1 != rs2) ? (imm12 << 1) : 4
-        virtual void bne(const IntReg &rs1, const IntReg &rs2, int imm12) = 0;
+        virtual void bne(const IntReg &rs1, const IntReg &rs2, int12 imm12) = 0;
 
         /// @brief branch if less than (signed).
         /// <br> pc += (rs1 < rs2) ? (imm12 << 1) : 4
@@ -219,6 +221,66 @@ namespace rv64::is {
         /// <br> ((u64*)mem)[rs + imm12] = rs2
         virtual void sd(const IntReg &rs, const IntReg &rs2, int12 imm12) = 0;
 
+        static constexpr std::array<const Instruction, 52> list_inst() {
+            const auto ireg = InstArgType::IntReg;
+            const auto imm12 = InstArgType::Imm12;
+            const auto uimm12 = InstArgType::UImm12;
+            const auto imm20 = InstArgType::Imm20;
+            const auto uimm20 = InstArgType::UImm20;
+            return {{
+                {"addi"sv, {ireg, ireg, imm12}},
+                {"slt"sv, {ireg, ireg, ireg}},
+                {"slti"sv, {ireg, ireg, imm12}},
+                {"sltiu"sv, {ireg, ireg, uimm12}},
+                {"andi"sv, {ireg, ireg, imm12}},
+                {"ori"sv, {ireg, ireg, imm12}},
+                {"xori"sv, {ireg, ireg, imm12}},
+                {"slli"sv, {ireg, ireg, uimm12}},
+                {"srli"sv, {ireg, ireg, uimm12}},
+                {"srai"sv, {ireg, ireg, uimm12}},
+                {"lui"sv, {ireg, uimm20}},
+                {"auipc"sv, {ireg, uimm20}},
+                {"add"sv, {ireg, ireg, ireg}},
+                {"sub"sv, {ireg, ireg, ireg}},
+                {"and"sv, {ireg, ireg, ireg}},
+                {"or"sv, {ireg, ireg, ireg}},
+                {"xor"sv, {ireg, ireg, ireg}},
+                {"sll"sv, {ireg, ireg, ireg}},
+                {"srl"sv, {ireg, ireg, ireg}},
+                {"sra"sv, {ireg, ireg, ireg}},
+                {"jal"sv, {ireg, uimm20}},
+                {"jalr"sv, {ireg, ireg, imm12}},
+                {"beq"sv, {ireg, ireg, imm12}},
+                {"bne"sv, {ireg, ireg, imm12}},
+                {"blt"sv, {ireg, ireg, imm12}},
+                {"bge"sv, {ireg, ireg, imm12}},
+                {"bltu"sv, {ireg, ireg, imm12}},
+                {"bgeu"sv, {ireg, ireg, imm12}},
+                {"lw"sv, {ireg, ireg, imm12}},
+                {"lh"sv, {ireg, ireg, imm12}},
+                {"lhu"sv, {ireg, ireg, imm12}},
+                {"lb"sv, {ireg, ireg, imm12}},
+                {"lbu"sv, {ireg, ireg, imm12}},
+                {"sw"sv, {ireg, ireg, imm12}},
+                {"sh"sv, {ireg, ireg, imm12}},
+                {"sb"sv, {ireg, ireg, imm12}},
+                {"fence"sv, {}},
+                {"ecall"sv, {}},
+                {"ebreak"sv, {}},
+                {"addiw"sv, {ireg, ireg, imm12}},
+                {"slliw"sv, {ireg, ireg, imm12}},
+                {"srliw"sv, {ireg, ireg, imm12}},
+                {"sraiw"sv, {ireg, ireg, imm12}},
+                {"sllw"sv, {ireg, ireg, ireg}},
+                {"srlw"sv, {ireg, ireg, ireg}},
+                {"sraw"sv, {ireg, ireg, ireg}},
+                {"addw"sv, {ireg, ireg, ireg}},
+                {"subw"sv, {ireg, ireg, ireg}},
+                {"ld"sv, {ireg, ireg, imm12}},
+                {"lwu"sv, {ireg, ireg, imm12}},
+                {"sd"sv, {ireg, ireg, imm12}},
+            }};
+        }
 
         virtual ~IBase() = default;
     };

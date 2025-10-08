@@ -63,5 +63,25 @@ namespace rv64::is {
         /// @brief remainder 32-bit registers and zero-extend the result to 64 bits. (unsigned registers)
         /// <br> rd = sign_extend<i64>(rs1[31:0] % rs2[31:0])
         virtual void remuw(IntReg &rd, const IntReg &rs1, const IntReg &rs2) = 0;
+
+
+        static constexpr std::array<Instruction, 13> list_inst() {
+            const auto ireg = InstArgType::IntReg;
+            return {{
+                {"mul"sv, {ireg, ireg, ireg}},
+                {"mulh"sv, {ireg, ireg, ireg}},
+                {"mulhu"sv, {ireg, ireg, ireg}},
+                {"mulhsu"sv, {ireg, ireg, ireg}},
+                {"mulw"sv, {ireg, ireg, ireg}},
+                {"div"sv, {ireg, ireg, ireg}},
+                {"divu"sv, {ireg, ireg, ireg}},
+                {"rem"sv, {ireg, ireg, ireg}},
+                {"remu"sv, {ireg, ireg, ireg}},
+                {"divw"sv, {ireg, ireg, ireg}},
+                {"divuw"sv, {ireg, ireg, ireg}},
+                {"remw"sv, {ireg, ireg, ireg}},
+                {"remuw"sv, {ireg, ireg, ireg}},
+                }};
+        }
     };
 }

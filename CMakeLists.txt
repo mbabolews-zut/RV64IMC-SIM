@@ -15,15 +15,17 @@ set(source
         common.hpp
         rv64/InstructionSets/IBase.hpp
         rv64/InstructionSets/IExtM.hpp
-        rv64/InterpreterRV64IM.cpp
-        rv64/InterpreterRV64IM.hpp
+        rv64/Interpreter.cpp
+        rv64/Interpreter.hpp
         rv64/Memory.cpp
         rv64/Memory.hpp
         rv64/VM.cpp
         rv64/VM.hpp
+        Instruction.hpp
 )
 
-add_executable(RV64_SIM ${source} main.cpp)
+add_executable(RV64_SIM ${source} main.cpp
+        )
 
 add_executable(RV64_SIM_tests
         ${source}

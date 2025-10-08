@@ -4,7 +4,7 @@
 
 namespace rv64 {
     int32_t IntReg::as_i32() const {
-        return std::bit_cast<int32_t>(static_cast<uint32_t>(val()));
+        return std::bit_cast<int32_t>(as_u32());
     }
 
     uint32_t IntReg::as_u32() const {
@@ -29,7 +29,7 @@ namespace rv64 {
 
 
     void Cpu::set_pc(uint64_t pc) {
-        m_pc = pc;
+        m_pc = pc & ~UINT64_C(1); // ensure LSB is 0
     }
 
     IntReg &Cpu::get_int_reg(size_t i) noexcept {
@@ -43,6 +43,7 @@ namespace rv64 {
     }
 
     uint64_t Cpu::get_pc() const {
+        assert(m_pc % 2 == 0);
         return m_pc;
     }
 
