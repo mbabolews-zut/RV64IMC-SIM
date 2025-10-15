@@ -107,10 +107,22 @@ std::string Memory::err_to_string(MemErr err) {
 
 uint64_t Memory::sbrk(int64_t inc, MemErr &err) {
     assert(m_initialized);
-    if (inc + m_data.size() - (m_heap_addr - m_config.data_addr) < 0) {
+    uint64_t old_brk = get_brk();
+
+    if (inc == 0)
+        return old_brk;
+
+    auto heap_off = m_heap_addr - m_config.data_addr;
+    if (inc + m_data.size() < heap_off) {
         err = MemErr::NegativeSizeOfHeap;
         return 0;
     }
+
+    if (inc + m_data.size() > PROGRAM_MEM_LIMIT) {
+        err = MemErr::OutOfMemory;
+        return 0;
+    }
+
     try {
         m_data.resize(m_data.size() + inc);
     } catch (const std::exception &) {
@@ -118,7 +130,7 @@ uint64_t Memory::sbrk(int64_t inc, MemErr &err) {
         return 0;
     }
     err = MemErr::None;
-    return m_config.data_addr + m_data.size() - inc;
+    return old_brk;
 }
 
 uint64_t Memory::get_brk() const {
@@ -129,12 +141,16 @@ size_t Memory::get_program_space_size() const {
     return m_data.size();
 }
 
+const Memory::Config & Memory::get_conf() const {
+    return m_config;
+}
+
 bool Memory::addr_in_stack(uint64_t address, size_t obj_size) const noexcept {
-    return address >= m_stack_bottom && address + obj_size < stack_end();
+    return address >= m_stack_bottom && address + obj_size <= stack_end();
 }
 
 bool Memory::addr_in_data(uint64_t address, size_t obj_size) const noexcept {
-    return address >= m_config.data_addr && address + obj_size < m_data.size() + m_config.data_addr;
+    return address >= m_config.data_addr && address + obj_size <= m_data.size() + m_config.data_addr;
 }
 
 uint64_t Memory::stack_addr_to_offset(uint64_t address) const noexcept {
@@ -183,7 +199,7 @@ MemErr Memory::store(uint64_t address, T value) {
         // expand stack if needed
         if (offset + sizeof(T)> m_stack.size()) {
             try {
-                m_stack.resize(m_stack.size() + sizeof(T));
+                m_stack.resize(offset + sizeof(T));
             } catch (const std::exception &) {
                 return MemErr::OutOfMemory;
             }

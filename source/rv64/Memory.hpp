@@ -5,7 +5,7 @@
 #include <span>
 
 enum class MemErr {
-    None = 0, SegFault = 1, NotTermStr = 2, OutOfMemory = 3, NegativeSizeOfHeap = 4
+    None = 0, SegFault = 1, NotTermStr = 2, OutOfMemory = 3, NegativeSizeOfHeap = 4,
 };
 
 class Memory {
@@ -47,6 +47,8 @@ public:
     uint64_t get_brk() const;
 
     size_t get_program_space_size() const;
+
+    const Config &get_conf() const;
 
 private:
     [[nodiscard]] bool addr_in_stack(uint64_t address, size_t obj_size = 0) const noexcept;

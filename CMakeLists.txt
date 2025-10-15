@@ -1,39 +1,30 @@
-cmake_minimum_required(VERSION 3.31)
-project(RV64_SIM)
-project(RV64_SIM_tests)
+cmake_minimum_required(VERSION 3.16)
+project(RV64_SIM LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-include_directories(.)
-
-
-find_package(Catch2 REQUIRED)
-
-set(source
-        rv64/Cpu.cpp
-        rv64/Cpu.hpp
-        common.hpp
-        rv64/InstructionSets/IBase.hpp
-        rv64/InstructionSets/IExtM.hpp
-        rv64/Interpreter.cpp
-        rv64/Interpreter.hpp
-        rv64/Memory.cpp
-        rv64/Memory.hpp
-        rv64/VM.cpp
-        rv64/VM.hpp
-        Instruction.hpp
+# ---- Sources ----
+set(SOURCE_FILES
+        source/rv64/Cpu.cpp
+        source/rv64/Cpu.hpp
+        source/rv64/Interpreter.cpp
+        source/rv64/Interpreter.hpp
+        source/rv64/Memory.cpp
+        source/rv64/Memory.hpp
+        source/rv64/VM.cpp
+        source/rv64/VM.hpp
+        source/rv64/InstructionSets/IBase.hpp
+        source/rv64/InstructionSets/IExtM.hpp
+        source/Instruction.hpp
+        source/common.hpp
 )
 
-add_executable(RV64_SIM ${source} main.cpp
-        )
+# ---- Main executable ----
+add_executable(RV64_SIM ${SOURCE_FILES} source/main.cpp)
 
-add_executable(RV64_SIM_tests
-        ${source}
-        tests/memory_test.cpp
-)
+target_include_directories(RV64_SIM PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
-target_link_libraries(RV64_SIM_tests Catch2::Catch2WithMain)
-
-include(CTest)
-include(Catch)
-catch_discover_tests(RV64_SIM)
+# ---- Testing ----
+enable_testing()
+add_subdirectory(tests)

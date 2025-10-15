@@ -2,14 +2,15 @@
 #include <cassert>
 #include <format>
 
-#include "common.hpp"
+#include "../common.hpp"
 
 namespace rv64 {
 
     VM::VM() {
         assert(state == VMState::Initializing);
         state = VMState::Initializing;
-        m_memory.init();
+        std::array<uint8_t, 4> empty_prog{};
+        m_memory.init(empty_prog);
     }
 
     void VM::terminate(int exit_code) {
