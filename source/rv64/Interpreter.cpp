@@ -31,7 +31,7 @@ namespace rv64 {
     }
 
     void Interpreter::sltiu(IntReg &rd, const IntReg &rs, int12 imm12) {
-        rd = rs.val() < std::bit_cast<uint64_t>((int64_t)imm12) ? 1 : 0;
+        rd = rs.val() < std::bit_cast<uint64_t>((int64_t) imm12) ? 1 : 0;
     }
 
     void Interpreter::andi(IntReg &rd, const IntReg &rs, int12 imm12) {
@@ -419,5 +419,172 @@ namespace rv64 {
         if (lhs == std::numeric_limits<T>::min() && rhs == -1)
             return Rem ? 0 : lhs;
         return lhs / rhs;
+    }
+
+    void Interpreter::exec_instruction(const Instruction &inst, InstArg arg0, InstArg arg1, InstArg arg2) {
+        auto arg0_reg = std::get<IntReg *>(arg0);
+        auto arg1_reg = std::get<IntReg *>(arg1);
+        auto arg2_reg = std::get<IntReg *>(arg2);
+
+        switch (inst.id) {
+            case (int) IBase::InstId::addi:
+                addi(*arg0_reg, *arg1_reg, std::get<int12>(arg2));
+                break;
+            case (int) IBase::InstId::slt:
+                slt(*arg0_reg, *arg1_reg, *arg2_reg);
+                break;
+            case (int) IBase::InstId::slti:
+                slti(*arg0_reg, *arg1_reg, std::get<int12>(arg2));
+                break;
+            case (int) IBase::InstId::sltiu:
+                sltiu(*arg0_reg, *arg1_reg, std::get<int12>(arg2));
+                break;
+            case (int) IBase::InstId::andi:
+                andi(*arg0_reg, *arg1_reg, std::get<int12>(arg2));
+                break;
+            case (int) IBase::InstId::ori:
+                ori(*arg0_reg, *arg1_reg, std::get<int12>(arg2));
+                break;
+            case (int) IBase::InstId::xori:
+                xori(*arg0_reg, *arg1_reg, std::get<int12>(arg2));
+                break;
+            case (int) IBase::InstId::slli:
+                slli(*arg0_reg, *arg1_reg, std::get<uint6>(arg2));
+                break;
+            case (int) IBase::InstId::srli:
+                srli(*arg0_reg, *arg1_reg, std::get<uint6>(arg2));
+                break;
+            case (int) IBase::InstId::srai:
+                srai(*arg0_reg, *arg1_reg, std::get<uint6>(arg2));
+                break;
+            case (int) IBase::InstId::lui:
+                lui(*arg0_reg, std::get<int20>(arg1));
+                break;
+            case (int) IBase::InstId::auipc:
+                auipc(*arg0_reg, std::get<int20>(arg1));
+                break;
+            case (int) IBase::InstId::add:
+                add(*arg0_reg, *arg1_reg, *arg2_reg);
+                break;
+            case (int) IBase::InstId::sub:
+                sub(*arg0_reg, *arg1_reg, *arg2_reg);
+                break;
+            case (int) IBase::InstId::and_:
+                and_(*arg0_reg, *arg1_reg, *arg2_reg);
+                break;
+            case (int) IBase::InstId::or_:
+                or_(*arg0_reg, *arg1_reg, *arg2_reg);
+                break;
+            case (int) IBase::InstId::xor_:
+                xor_(*arg0_reg, *arg1_reg, *arg2_reg);
+                break;
+            case (int) IBase::InstId::sll:
+                sll(*arg0_reg, *arg1_reg, *arg2_reg);
+                break;
+            case (int) IBase::InstId::srl:
+                srl(*arg0_reg, *arg1_reg, *arg2_reg);
+                break;
+            case (int) IBase::InstId::sra:
+                sra(*arg0_reg, *arg1_reg, *arg2_reg);
+                break;
+            case (int) IBase::InstId::jal:
+                jal(*arg0_reg, std::get<int20>(arg1));
+                break;
+            case (int) IBase::InstId::jalr:
+                jalr(*arg0_reg, *arg1_reg, std::get<int12>(arg2));
+                break;
+            case (int) IBase::InstId::beq:
+                beq(*arg0_reg, *arg1_reg, std::get<int12>(arg2));
+                break;
+            case (int) IBase::InstId::bne:
+                bne(*arg0_reg, *arg1_reg, std::get<int12>(arg2));
+                break;
+            case (int) IBase::InstId::blt:
+                blt(*arg0_reg, *arg1_reg, std::get<int12>(arg2));
+                break;
+            case (int) IBase::InstId::bge:
+                bge(*arg0_reg, *arg1_reg, std::get<int12>(arg2));
+                break;
+            case (int) IBase::InstId::bltu:
+                bltu(*arg0_reg, *arg1_reg, std::get<int12>(arg2));
+                break;
+            case (int) IBase::InstId::bgeu:
+                bgeu(*arg0_reg, *arg1_reg, std::get<int12>(arg2));
+                break;
+            case (int) IBase::InstId::lw:
+                lw(*arg0_reg, *arg1_reg, std::get<int12>(arg2));
+                break;
+            case (int) IBase::InstId::lh:
+                lh(*arg0_reg, *arg1_reg, std::get<int12>(arg2));
+                break;
+            case (int) IBase::InstId::lhu:
+                lhu(*arg0_reg, *arg1_reg, std::get<int12>(arg2));
+                break;
+            case (int) IBase::InstId::lb:
+                lb(*arg0_reg, *arg1_reg, std::get<int12>(arg2));
+                break;
+            case (int) IBase::InstId::lbu:
+                lbu(*arg0_reg, *arg1_reg, std::get<int12>(arg2));
+                break;
+            case (int) IBase::InstId::sw:
+                sw(*arg0_reg, *arg1_reg, std::get<int12>(arg2));
+                break;
+            case (int) IBase::InstId::sh:
+                sh(*arg0_reg, *arg1_reg, std::get<int12>(arg2));
+                break;
+            case (int) IBase::InstId::sb:
+                sb(*arg0_reg, *arg1_reg, std::get<int12>(arg2));
+                break;
+            case (int) IBase::InstId::fence:
+                fence();
+                break;
+            case (int) IBase::InstId::ecall:
+                ecall();
+                break;
+            case (int) IBase::InstId::ebreak:
+                ebreak();
+                break;
+            case (int) IExtM::InstId::mul:
+                mul(*arg0_reg, *arg1_reg, *arg2_reg);
+                break;
+            case (int) IExtM::InstId::mulh:
+                mulh(*arg0_reg, *arg1_reg, *arg2_reg);
+                break;
+            case (int) IExtM::InstId::mulhu:
+                mulhu(*arg0_reg, *arg1_reg, *arg2_reg);
+                break;
+            case (int) IExtM::InstId::mulhsu:
+                mulhsu(*arg0_reg, *arg1_reg, *arg2_reg);
+                break;
+            case (int) IExtM::InstId::mulw:
+                mulw(*arg0_reg, *arg1_reg, *arg2_reg);
+                break;
+            case (int) IExtM::InstId::div:
+                div(*arg0_reg, *arg1_reg, *arg2_reg);
+                break;
+            case (int) IExtM::InstId::divu:
+                divu(*arg0_reg, *arg1_reg, *arg2_reg);
+                break;
+            case (int) IExtM::InstId::rem:
+                rem(*arg0_reg, *arg1_reg, *arg2_reg);
+                break;
+            case (int) IExtM::InstId::remu:
+                remu(*arg0_reg, *arg1_reg, *arg2_reg);
+                break;
+            case (int) IExtM::InstId::divw:
+                divw(*arg0_reg, *arg1_reg, *arg2_reg);
+                break;
+            case (int) IExtM::InstId::divuw:
+                divuw(*arg0_reg, *arg1_reg, *arg2_reg);
+                break;
+            case (int) IExtM::InstId::remw:
+                remw(*arg0_reg, *arg1_reg, *arg2_reg);
+                break;
+            case (int) IExtM::InstId::remuw:
+                remuw(*arg0_reg, *arg1_reg, *arg2_reg);
+                break;
+            default:
+                throw std::runtime_error(std::format("Unknown instruction ID: {}", inst.id));
+        }
     }
 }

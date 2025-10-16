@@ -7,6 +7,8 @@ set(TEST_SOURCES
         ${CMAKE_SOURCE_DIR}/source/rv64/Interpreter.cpp
         ${CMAKE_SOURCE_DIR}/source/rv64/Memory.cpp
         ${CMAKE_SOURCE_DIR}/source/rv64/VM.cpp
+        ../source/LexicalAnalyzer.cpp
+        ../source/LexicalAnalyzer.hpp
         # Add others if needed
 )
 

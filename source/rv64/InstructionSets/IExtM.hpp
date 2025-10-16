@@ -1,4 +1,5 @@
 #pragma once
+#define IEXTM_ID_BASE 200
 
 namespace rv64 {
     class IntReg;
@@ -68,20 +69,37 @@ namespace rv64::is {
         static constexpr std::array<Instruction, 13> list_inst() {
             const auto ireg = InstArgType::IntReg;
             return {{
-                {"mul"sv, {ireg, ireg, ireg}},
-                {"mulh"sv, {ireg, ireg, ireg}},
-                {"mulhu"sv, {ireg, ireg, ireg}},
-                {"mulhsu"sv, {ireg, ireg, ireg}},
-                {"mulw"sv, {ireg, ireg, ireg}},
-                {"div"sv, {ireg, ireg, ireg}},
-                {"divu"sv, {ireg, ireg, ireg}},
-                {"rem"sv, {ireg, ireg, ireg}},
-                {"remu"sv, {ireg, ireg, ireg}},
-                {"divw"sv, {ireg, ireg, ireg}},
-                {"divuw"sv, {ireg, ireg, ireg}},
-                {"remw"sv, {ireg, ireg, ireg}},
-                {"remuw"sv, {ireg, ireg, ireg}},
+                {"mul"sv, {ireg, ireg, ireg}, (int)InstId::mul},
+                {"mulh"sv, {ireg, ireg, ireg}, (int)InstId::mulh},
+                {"mulhu"sv, {ireg, ireg, ireg}, (int)InstId::mulhu},
+                {"mulhsu"sv, {ireg, ireg, ireg}, (int)InstId::mulhsu},
+                {"mulw"sv, {ireg, ireg, ireg}, (int)InstId::mulw},
+                {"div"sv, {ireg, ireg, ireg}, (int)InstId::div},
+                {"divu"sv, {ireg, ireg, ireg}, (int)InstId::divu},
+                {"rem"sv, {ireg, ireg, ireg}, (int)InstId::rem},
+                {"remu"sv, {ireg, ireg, ireg}, (int)InstId::remu},
+                {"divw"sv, {ireg, ireg, ireg}, (int)InstId::divw},
+                {"divuw"sv, {ireg, ireg, ireg}, (int)InstId::divuw},
+                {"remw"sv, {ireg, ireg, ireg}, (int)InstId::remw},
+                {"remuw"sv, {ireg, ireg, ireg}, (int)InstId::remuw},
                 }};
         }
+
+        enum class InstId {
+            mul = IEXTM_ID_BASE,
+            mulh,
+            mulhu,
+            mulhsu,
+            mulw,
+            div,
+            divu,
+            rem,
+            remu,
+            divw,
+            divuw,
+            remw,
+            remuw
+        };
+
     };
 }

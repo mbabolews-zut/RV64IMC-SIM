@@ -21,7 +21,9 @@ enum class InstArgType {
 
 using InstArg = std::variant<std::monostate, rv64::IntReg*, int12, int20, uint12, uint5, uint6>;
 
+
 struct Instruction {
     const std::string_view name;
     const std::array<InstArgType, 3> args;
+    const int id;
 };

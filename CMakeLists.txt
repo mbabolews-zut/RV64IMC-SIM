@@ -18,6 +18,8 @@ set(SOURCE_FILES
         source/rv64/InstructionSets/IExtM.hpp
         source/Instruction.hpp
         source/common.hpp
+        source/LexicalAnalyzer.cpp
+        source/LexicalAnalyzer.hpp
 )
 
 # ---- Main executable ----
