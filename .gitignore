@@ -1,0 +1,6 @@
+.idea
+cmake-build-debug
+cmake-build-release
+source/parser/lex.yy.cc
+source/parser/parser.tab.cc
+source/parser/parser.tab.hh
