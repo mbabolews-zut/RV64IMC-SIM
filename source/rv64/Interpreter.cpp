@@ -421,7 +421,7 @@ namespace rv64 {
         return lhs / rhs;
     }
 
-    void Interpreter::exec_instruction(const Instruction &inst, InstArg arg0, InstArg arg1, InstArg arg2) {
+    void Interpreter::exec_instruction(const InstProto &inst, InstArg arg0, InstArg arg1, InstArg arg2) {
         auto arg0_reg = std::get<IntReg *>(arg0);
         auto arg1_reg = std::get<IntReg *>(arg1);
         auto arg2_reg = std::get<IntReg *>(arg2);

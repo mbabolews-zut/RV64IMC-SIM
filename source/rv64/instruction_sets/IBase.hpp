@@ -2,8 +2,6 @@
 #include <common.hpp>
 #include <Instruction.hpp>
 
-#define IBASE_ID_BASE 100
-
 namespace rv64 {
     class IntReg;
 }
@@ -11,6 +9,7 @@ namespace rv64 {
 namespace rv64::is {
     class IBase {
     public:
+        static constexpr int BASE_ID = 100;
         /// @brief add immediate.
         /// <br> rd = rs + imm12
         virtual void addi(IntReg &rd, const IntReg &rs, int12 imm12) = 0;
@@ -221,7 +220,7 @@ namespace rv64::is {
         /// <br> ((u64*)mem)[rs + imm12] = rs2
         virtual void sd(const IntReg &rs, const IntReg &rs2, int12 imm12) = 0;
 
-        static constexpr std::array<Instruction, 51> list_inst() {
+        static constexpr std::array<InstProto, 51> list_inst() {
             const auto ireg = InstArgType::IntReg;
             const auto imm12 = InstArgType::Imm12;
             const auto uimm12 = InstArgType::UImm12;
@@ -229,113 +228,70 @@ namespace rv64::is {
             const auto imm20 = InstArgType::Imm20;
             return {
                 {
-                    {"addi"sv, {ireg, ireg, imm12}, (int)InstId::addi},
-                    {"slt"sv, {ireg, ireg, ireg}, (int)InstId::slt},
-                    {"slti"sv, {ireg, ireg, imm12}, (int)InstId::slti},
-                    {"sltiu"sv, {ireg, ireg, uimm12}, (int)InstId::sltiu},
-                    {"andi"sv, {ireg, ireg, imm12}, (int)InstId::andi},
-                    {"ori"sv, {ireg, ireg, imm12}, (int)InstId::ori},
-                    {"xori"sv, {ireg, ireg, imm12}, (int)InstId::xori},
-                    {"slli"sv, {ireg, ireg, uimm12}, (int)InstId::slli},
-                    {"srli"sv, {ireg, ireg, uimm12}, (int)InstId::srli},
-                    {"srai"sv, {ireg, ireg, uimm12}, (int)InstId::srai},
-                    {"lui"sv, {ireg, uimm20}, (int)InstId::lui},
-                    {"auipc"sv, {ireg, uimm20}, (int)InstId::auipc},
-                    {"add"sv, {ireg, ireg, ireg}, (int)InstId::add},
-                    {"sub"sv, {ireg, ireg, ireg}, (int)InstId::sub},
-                    {"and"sv, {ireg, ireg, ireg}, (int)InstId::and_},
-                    {"or"sv, {ireg, ireg, ireg}, (int)InstId::or_},
-                    {"xor"sv, {ireg, ireg, ireg}, (int)InstId::xor_},
-                    {"sll"sv, {ireg, ireg, ireg}, (int)InstId::sll},
-                    {"srl"sv, {ireg, ireg, ireg}, (int)InstId::srl},
-                    {"sra"sv, {ireg, ireg, ireg}, (int)InstId::sra},
-                    {"jal"sv, {ireg, imm20}, (int)InstId::jal},
-                    {"jalr"sv, {ireg, ireg, imm12}, (int)InstId::jalr},
-                    {"beq"sv, {ireg, ireg, imm12}, (int)InstId::beq},
-                    {"bne"sv, {ireg, ireg, imm12}, (int)InstId::bne},
-                    {"blt"sv, {ireg, ireg, imm12}, (int)InstId::blt},
-                    {"bge"sv, {ireg, ireg, imm12}, (int)InstId::bge},
-                    {"bltu"sv, {ireg, ireg, imm12}, (int)InstId::bltu},
-                    {"bgeu"sv, {ireg, ireg, imm12}, (int)InstId::bgeu},
-                    {"lw"sv, {ireg, ireg, imm12}, (int)InstId::lw},
-                    {"lh"sv, {ireg, ireg, imm12}, (int)InstId::lh},
-                    {"lhu"sv, {ireg, ireg, imm12}, (int)InstId::lhu},
-                    {"lb"sv, {ireg, ireg, imm12}, (int)InstId::lb},
-                    {"lbu"sv, {ireg, ireg, imm12}, (int)InstId::lbu},
-                    {"sw"sv, {ireg, ireg, imm12}, (int)InstId::sw},
-                    {"sh"sv, {ireg, ireg, imm12}, (int)InstId::sh},
-                    {"sb"sv, {ireg, ireg, imm12}, (int)InstId::sb},
-                    {"fence"sv, {}, (int)InstId::fence},
-                    {"ecall"sv, {}, (int)InstId::ecall},
-                    {"ebreak"sv, {}, (int)InstId::ebreak},
-                    {"addiw"sv, {ireg, ireg, imm12}, (int)InstId::addiw},
-                    {"slliw"sv, {ireg, ireg, imm12}, (int)InstId::slliw},
-                    {"srliw"sv, {ireg, ireg, imm12}, (int)InstId::srliw},
-                    {"sraiw"sv, {ireg, ireg, imm12}, (int)InstId::sraiw},
-                    {"sllw"sv, {ireg, ireg, ireg}, (int)InstId::sllw},
-                    {"srlw"sv, {ireg, ireg, ireg}, (int)InstId::srlw},
-                    {"sraw"sv, {ireg, ireg, ireg}, (int)InstId::sraw},
-                    {"addw"sv, {ireg, ireg, ireg}, (int)InstId::addw},
-                    {"subw"sv, {ireg, ireg, ireg}, (int)InstId::subw},
-                    {"ld"sv, {ireg, ireg, imm12}, (int)InstId::ld},
-                    {"lwu"sv, {ireg, ireg, imm12}, (int)InstId::lwu},
-                    {"sd"sv, {ireg, ireg, imm12}, (int)InstId::sd}
+                    {"addi"sv, {ireg, ireg, imm12}, (int) InstId::addi},
+                    {"slt"sv, {ireg, ireg, ireg}, (int) InstId::slt},
+                    {"slti"sv, {ireg, ireg, imm12}, (int) InstId::slti},
+                    {"sltiu"sv, {ireg, ireg, uimm12}, (int) InstId::sltiu},
+                    {"andi"sv, {ireg, ireg, imm12}, (int) InstId::andi},
+                    {"ori"sv, {ireg, ireg, imm12}, (int) InstId::ori},
+                    {"xori"sv, {ireg, ireg, imm12}, (int) InstId::xori},
+                    {"slli"sv, {ireg, ireg, uimm12}, (int) InstId::slli},
+                    {"srli"sv, {ireg, ireg, uimm12}, (int) InstId::srli},
+                    {"srai"sv, {ireg, ireg, uimm12}, (int) InstId::srai},
+                    {"lui"sv, {ireg, uimm20}, (int) InstId::lui},
+                    {"auipc"sv, {ireg, uimm20}, (int) InstId::auipc},
+                    {"add"sv, {ireg, ireg, ireg}, (int) InstId::add},
+                    {"sub"sv, {ireg, ireg, ireg}, (int) InstId::sub},
+                    {"and"sv, {ireg, ireg, ireg}, (int) InstId::and_},
+                    {"or"sv, {ireg, ireg, ireg}, (int) InstId::or_},
+                    {"xor"sv, {ireg, ireg, ireg}, (int) InstId::xor_},
+                    {"sll"sv, {ireg, ireg, ireg}, (int) InstId::sll},
+                    {"srl"sv, {ireg, ireg, ireg}, (int) InstId::srl},
+                    {"sra"sv, {ireg, ireg, ireg}, (int) InstId::sra},
+                    {"jal"sv, {ireg, imm20}, (int) InstId::jal},
+                    {"jalr"sv, {ireg, ireg, imm12}, (int) InstId::jalr},
+                    {"beq"sv, {ireg, ireg, imm12}, (int) InstId::beq},
+                    {"bne"sv, {ireg, ireg, imm12}, (int) InstId::bne},
+                    {"blt"sv, {ireg, ireg, imm12}, (int) InstId::blt},
+                    {"bge"sv, {ireg, ireg, imm12}, (int) InstId::bge},
+                    {"bltu"sv, {ireg, ireg, imm12}, (int) InstId::bltu},
+                    {"bgeu"sv, {ireg, ireg, imm12}, (int) InstId::bgeu},
+                    {"lw"sv, {ireg, ireg, imm12}, (int) InstId::lw},
+                    {"lh"sv, {ireg, ireg, imm12}, (int) InstId::lh},
+                    {"lhu"sv, {ireg, ireg, imm12}, (int) InstId::lhu},
+                    {"lb"sv, {ireg, ireg, imm12}, (int) InstId::lb},
+                    {"lbu"sv, {ireg, ireg, imm12}, (int) InstId::lbu},
+                    {"sw"sv, {ireg, ireg, imm12}, (int) InstId::sw},
+                    {"sh"sv, {ireg, ireg, imm12}, (int) InstId::sh},
+                    {"sb"sv, {ireg, ireg, imm12}, (int) InstId::sb},
+                    {"fence"sv, {}, (int) InstId::fence},
+                    {"ecall"sv, {}, (int) InstId::ecall},
+                    {"ebreak"sv, {}, (int) InstId::ebreak},
+                    {"addiw"sv, {ireg, ireg, imm12}, (int) InstId::addiw},
+                    {"slliw"sv, {ireg, ireg, imm12}, (int) InstId::slliw},
+                    {"srliw"sv, {ireg, ireg, imm12}, (int) InstId::srliw},
+                    {"sraiw"sv, {ireg, ireg, imm12}, (int) InstId::sraiw},
+                    {"sllw"sv, {ireg, ireg, ireg}, (int) InstId::sllw},
+                    {"srlw"sv, {ireg, ireg, ireg}, (int) InstId::srlw},
+                    {"sraw"sv, {ireg, ireg, ireg}, (int) InstId::sraw},
+                    {"addw"sv, {ireg, ireg, ireg}, (int) InstId::addw},
+                    {"subw"sv, {ireg, ireg, ireg}, (int) InstId::subw},
+                    {"ld"sv, {ireg, ireg, imm12}, (int) InstId::ld},
+                    {"lwu"sv, {ireg, ireg, imm12}, (int) InstId::lwu},
+                    {"sd"sv, {ireg, ireg, imm12}, (int) InstId::sd}
                 }
             };
         }
 
+        static_assert(BASE_ID > 0);
+
         enum class InstId : int {
-            addi = IBASE_ID_BASE,
-            slt,
-            slti,
-            sltiu,
-            andi,
-            ori,
-            xori,
-            slli,
-            srli,
-            srai,
-            lui,
-            auipc,
-            add,
-            sub,
-            and_,
-            or_,
-            xor_,
-            sll,
-            srl,
-            sra,
-            jal,
-            jalr,
-            beq,
-            bne,
-            blt,
-            bge,
-            bltu,
-            bgeu,
-            lw,
-            lh,
-            lhu,
-            lb,
-            lbu,
-            sw,
-            sh,
-            sb,
-            fence,
-            ecall,
-            ebreak,
-            addiw,
-            slliw,
-            srliw,
-            sraiw,
-            sllw,
-            srlw,
-            sraw,
-            addw,
-            subw,
-            ld,
-            lwu,
-            sd,
+            addi = BASE_ID,
+            slt, slti, sltiu, andi, ori, xori, slli, srli, srai,
+            lui, auipc, add, sub, and_, or_, xor_, sll, srl, sra,
+            jal, jalr, beq, bne, blt, bge, bltu, bgeu, lw, lh, lhu,
+            lb, lbu, sw, sh, sb, fence, ecall, ebreak, addiw, slliw,
+            srliw, sraiw, sllw, srlw, sraw, addw, subw, ld, lwu, sd,
         };
 
         virtual ~IBase() = default;

@@ -14,18 +14,21 @@ set(SOURCE_FILES
         source/rv64/Memory.hpp
         source/rv64/VM.cpp
         source/rv64/VM.hpp
-        source/rv64/InstructionSets/IBase.hpp
-        source/rv64/InstructionSets/IExtM.hpp
+        source/rv64/instruction_sets/IBase.hpp
+        source/rv64/instruction_sets/IExtM.hpp
         source/Instruction.hpp
         source/common.hpp
-        source/LexicalAnalyzer.cpp
-        source/LexicalAnalyzer.hpp
+        source/Instruction.cpp
+        source/rv64/instruction_sets/Rv64IMC.hpp
+        source/rv64/IntReg.cpp
+        source/rv64/IntReg.hpp
 )
 
 # ---- Main executable ----
 add_executable(RV64_SIM ${SOURCE_FILES} source/main.cpp)
+message(${CMAKE_CURRENT_SOURCE_DIR})
 
-target_include_directories(RV64_SIM PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(RV64_SIM PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/source)
 
 # ---- Testing ----
 enable_testing()

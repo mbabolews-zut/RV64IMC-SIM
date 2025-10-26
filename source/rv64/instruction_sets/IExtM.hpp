@@ -1,5 +1,4 @@
 #pragma once
-#define IEXTM_ID_BASE 200
 
 namespace rv64 {
     class IntReg;
@@ -8,6 +7,8 @@ namespace rv64 {
 namespace rv64::is {
     class IExtM {
     public:
+        static constexpr int BASE_ID = 200;
+
         /// @brief multiply
         /// <br> rd = rs1 * rs2
         virtual void mul(IntReg &rd, const IntReg &rs1, const IntReg &rs2) = 0;
@@ -30,8 +31,6 @@ namespace rv64::is {
         /// @brief multiply 32-bit registers and sign-extend the result to 64 bits.
         /// <br> rd = sign_extend<i64>(rs1[31:0] * rs2[31:0])
         virtual void mulw(IntReg &rd, const IntReg &rs1, const IntReg &rs2) = 0;
-
-        // TODO: Division by 0
 
         /// @brief divide (signed registers)
         /// <br> rd = rs1 / rs2
@@ -66,7 +65,7 @@ namespace rv64::is {
         virtual void remuw(IntReg &rd, const IntReg &rs1, const IntReg &rs2) = 0;
 
 
-        static constexpr std::array<Instruction, 13> list_inst() {
+        static constexpr std::array<InstProto, 13> list_inst() {
             const auto ireg = InstArgType::IntReg;
             return {{
                 {"mul"sv, {ireg, ireg, ireg}, (int)InstId::mul},
@@ -85,20 +84,10 @@ namespace rv64::is {
                 }};
         }
 
+        static_assert(BASE_ID > 0);
         enum class InstId {
-            mul = IEXTM_ID_BASE,
-            mulh,
-            mulhu,
-            mulhsu,
-            mulw,
-            div,
-            divu,
-            rem,
-            remu,
-            divw,
-            divuw,
-            remw,
-            remuw
+            mul = BASE_ID, mulh, mulhu, mulhsu, mulw, div,
+            divu, rem, remu, divw, divuw, remw, remuw
         };
 
     };

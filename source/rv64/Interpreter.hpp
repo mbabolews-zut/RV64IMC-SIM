@@ -1,9 +1,9 @@
 #pragma once
-#include <rv64/InstructionSets/IBase.hpp>
-#include <rv64/InstructionSets/IExtM.hpp>
-#include <unordered_map>
 
+#include <unordered_map>
 #include <rv64/Memory.hpp>
+#include <rv64/instruction_sets/Rv64IMC.hpp>
+
 
 namespace rv64 {
     class VM;
@@ -13,11 +13,9 @@ namespace rv64 {
     class Cpu;
 
 class Interpreter final
-        : public is::IBase,
-          public is::IExtM {
+        : public is::Rv64IMC {
 public:
-    Interpreter(VM &vm) : m_vm(vm) {}
-
+    explicit Interpreter(VM &vm) : m_vm(vm) {}
 
     /// @copydoc is::IBase::addi
     void addi(IntReg &rd, const IntReg &rs, int12 imm12) override;
@@ -225,7 +223,7 @@ public:
     ~Interpreter() override = default;
 
 private:
-    void exec_instruction(const Instruction &inst, InstArg arg0, InstArg arg1, InstArg arg2);
+    void exec_instruction(const InstProto &inst, InstArg arg0, InstArg arg1, InstArg arg2);
 
     template<typename T>
     void load_instruction_tmpl(IntReg &rd, const IntReg &rs, int12 imm12);
@@ -241,7 +239,6 @@ private:
     static uint64_t mul64x64_128high(uint64_t a, uint64_t b);
 
 private:
-
     VM &m_vm;
 };
 
