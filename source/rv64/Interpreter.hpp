@@ -4,7 +4,6 @@
 #include <rv64/Memory.hpp>
 #include <rv64/instruction_sets/Rv64IMC.hpp>
 
-
 namespace rv64 {
     class VM;
 }
@@ -18,115 +17,115 @@ public:
     explicit Interpreter(VM &vm) : m_vm(vm) {}
 
     /// @copydoc is::IBase::addi
-    void addi(IntReg &rd, const IntReg &rs, int12 imm12) override;
+    void addi(GPIntReg &rd, const GPIntReg &rs, int12 imm12) override;
 
     /// @copydoc is::IBase::slti
-    void slti(IntReg &rd, const IntReg &rs, int12 imm12) override;
+    void slti(GPIntReg &rd, const GPIntReg &rs, int12 imm12) override;
 
     /// @copydoc is::IBase::sltiu
-    void sltiu(IntReg &rd, const IntReg &rs, int12 imm12) override;
+    void sltiu(GPIntReg &rd, const GPIntReg &rs, int12 imm12) override;
 
     /// @copydoc is::IBase::andi
-    void andi(IntReg &rd, const IntReg &rs, int12 imm12) override;
+    void andi(GPIntReg &rd, const GPIntReg &rs, int12 imm12) override;
 
     /// @copydoc is::IBase::ori
-    void ori(IntReg &rd, const IntReg &rs, int12 imm12) override;
+    void ori(GPIntReg &rd, const GPIntReg &rs, int12 imm12) override;
 
     /// @copydoc is::IBase::xori
-    void xori(IntReg &rd, const IntReg &rs, int12 imm12) override;
+    void xori(GPIntReg &rd, const GPIntReg &rs, int12 imm12) override;
 
     /// @copydoc is::IBase::slli
-    void slli(IntReg &rd, const IntReg &rs, uint6 uimm6) override;
+    void slli(GPIntReg &rd, const GPIntReg &rs, uint6 uimm6) override;
 
     /// @copydoc is::IBase::srli
-    void srli(IntReg &rd, const IntReg &rs, uint6 uimm6) override;
+    void srli(GPIntReg &rd, const GPIntReg &rs, uint6 uimm6) override;
 
     /// @copydoc is::IBase::srai
-    void srai(IntReg &rd, const IntReg &rs, uint6 uimm6) override;
+    void srai(GPIntReg &rd, const GPIntReg &rs, uint6 uimm6) override;
 
     /// @copydoc is::IBase::lui
-    void lui(IntReg &rd, int20 imm20) override;
+    void lui(GPIntReg &rd, int20 imm20) override;
 
     /// @copydoc is::IBase::auipc
-    void auipc(IntReg &rd, int20 imm20) override;
+    void auipc(GPIntReg &rd, int20 imm20) override;
 
     /// @copydoc is::IBase::add
-    void add(IntReg &rd, const IntReg &rs1, const IntReg &rs2) override;
+    void add(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) override;
 
     /// @copydoc is::IBase::sub
-    void sub(IntReg &rd, const IntReg &rs1, const IntReg &rs2) override;
+    void sub(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) override;
 
     /// @copydoc is::IBase::slt
-    void slt(IntReg &rd, const IntReg &rs1, const IntReg &rs2) override;
+    void slt(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) override;
 
     /// @copydoc is::IBase::sltu
-    void sltu(IntReg &rd, const IntReg &rs1, const IntReg &rs2) override;
+    void sltu(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) override;
 
     /// @copydoc is::IBase::and_
-    void and_(IntReg &rd, const IntReg &rs1, const IntReg &rs2) override;
+    void and_(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) override;
 
     /// @copydoc is::IBase::or_
-    void or_(IntReg &rd, const IntReg &rs1, const IntReg &rs2) override;
+    void or_(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) override;
 
     /// @copydoc is::IBase::xor_
-    void xor_(IntReg &rd, const IntReg &rs1, const IntReg &rs2) override;
+    void xor_(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) override;
 
     /// @copydoc is::IBase::sll
-    void sll(IntReg &rd, const IntReg &rs1, const IntReg &rs2) override;
+    void sll(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) override;
 
     /// @copydoc is::IBase::srl
-    void srl(IntReg &rd, const IntReg &rs1, const IntReg &rs2) override;
+    void srl(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) override;
 
     /// @copydoc is::IBase::sra
-    void sra(IntReg &rd, const IntReg &rs1, const IntReg &rs2) override;
+    void sra(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) override;
 
     /// @copydoc is::IBase::jal
-    void jal(IntReg &rd, int20 imm20) override;
+    void jal(GPIntReg &rd, int20 imm20) override;
 
     /// @copydoc is::IBase::jalr
-    void jalr(IntReg &rd, const IntReg &rs, int12 imm12) override;
+    void jalr(GPIntReg &rd, const GPIntReg &rs, int12 imm12) override;
 
     /// @copydoc is::IBase::beq
-    void beq(const IntReg &rs1, const IntReg &rs2, int12 imm12) override;
+    void beq(const GPIntReg &rs1, const GPIntReg &rs2, int12 imm12) override;
 
     /// @copydoc is::IBase::bne
-    void bne(const IntReg &rs1, const IntReg &rs2, int12 imm12) override;
+    void bne(const GPIntReg &rs1, const GPIntReg &rs2, int12 imm12) override;
 
     /// @copydoc is::IBase::blt
-    void blt(const IntReg &rs1, const IntReg &rs2, int12 imm12) override;
+    void blt(const GPIntReg &rs1, const GPIntReg &rs2, int12 imm12) override;
 
     /// @copydoc is::IBase::bltu
-    void bltu(const IntReg &rs1, const IntReg &rs2, int12 imm12) override;
+    void bltu(const GPIntReg &rs1, const GPIntReg &rs2, int12 imm12) override;
 
     /// @copydoc is::IBase::bge
-    void bge(const IntReg &rs1, const IntReg &rs2, int12 imm12) override;
+    void bge(const GPIntReg &rs1, const GPIntReg &rs2, int12 imm12) override;
 
     /// @copydoc is::IBase::bgeu
-    void bgeu(const IntReg &rs1, const IntReg &rs2, int12 imm12) override;
+    void bgeu(const GPIntReg &rs1, const GPIntReg &rs2, int12 imm12) override;
 
     /// @copydoc is::IBase::lw
-    void lw(IntReg &rd, const IntReg &rs, int12 imm12) override;
+    void lw(GPIntReg &rd, const GPIntReg &rs, int12 imm12) override;
 
     /// @copydoc is::IBase::lh
-    void lh(IntReg &rd, const IntReg &rs, int12 imm12) override;
+    void lh(GPIntReg &rd, const GPIntReg &rs, int12 imm12) override;
 
     /// @copydoc is::IBase::lhu
-    void lhu(IntReg &rd, const IntReg &rs, int12 imm12) override;
+    void lhu(GPIntReg &rd, const GPIntReg &rs, int12 imm12) override;
 
     /// @copydoc is::IBase::lb
-    void lb(IntReg &rd, const IntReg &rs, int12 imm12) override;
+    void lb(GPIntReg &rd, const GPIntReg &rs, int12 imm12) override;
 
     /// @copydoc is::IBase::lbu
-    void lbu(IntReg &rd, const IntReg &rs, int12 imm12) override;
+    void lbu(GPIntReg &rd, const GPIntReg &rs, int12 imm12) override;
 
     /// @copydoc is::IBase::sw
-    void sw(const IntReg &rs, const IntReg &rs2, int12 imm12) override;
+    void sw(const GPIntReg &rs, const GPIntReg &rs2, int12 imm12) override;
 
     /// @copydoc is::IBase::sh
-    void sh(const IntReg &rs, const IntReg &rs2, int12 imm12) override;
+    void sh(const GPIntReg &rs, const GPIntReg &rs2, int12 imm12) override;
 
     /// @copydoc is::IBase::sb
-    void sb(const IntReg &rs, const IntReg &rs2, int12 imm12) override;
+    void sb(const GPIntReg &rs, const GPIntReg &rs2, int12 imm12) override;
 
     /// @copydoc is::IBase::fence
     void fence() override;
@@ -146,90 +145,90 @@ public:
     void ebreak() override;
 
     /// @copydoc is::IBase::addiw
-    void addiw(IntReg &rd, const IntReg &rs, int12 imm12) override;
+    void addiw(GPIntReg &rd, const GPIntReg &rs, int12 imm12) override;
 
     /// @copydoc is::IBase::slliw
-    void slliw(IntReg &rd, const IntReg &rs, uint5 imm5) override;
+    void slliw(GPIntReg &rd, const GPIntReg &rs, uint5 imm5) override;
 
     /// @copydoc is::IBase::srliw
-    void srliw(IntReg &rd, const IntReg &rs, uint5 imm5) override;
+    void srliw(GPIntReg &rd, const GPIntReg &rs, uint5 imm5) override;
 
     /// @copydoc is::IBase::sraiw
-    void sraiw(IntReg &rd, const IntReg &rs, uint5 imm5) override;
+    void sraiw(GPIntReg &rd, const GPIntReg &rs, uint5 imm5) override;
 
     /// @copydoc is::IBase::sllw
-    void sllw(IntReg &rd, const IntReg &rs1, const IntReg &rs2) override;
+    void sllw(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) override;
 
     /// @copydoc is::IBase::srlw
-    void srlw(IntReg &rd, const IntReg &rs1, const IntReg &rs2) override;
+    void srlw(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) override;
 
     /// @copydoc is::IBase::sraw
-    void sraw(IntReg &rd, const IntReg &rs1, const IntReg &rs2) override;
+    void sraw(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) override;
 
     /// @copydoc is::IBase::addw
-    void addw(IntReg &rd, const IntReg &rs1, const IntReg &rs2) override;
+    void addw(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) override;
 
     /// @copydoc is::IBase::subw
-    void subw(IntReg &rd, const IntReg &rs1, const IntReg &rs2) override;
+    void subw(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) override;
 
     /// @copydoc is::IBase::ld
-    void ld(IntReg &rd, const IntReg &rs, int12 imm12) override;
+    void ld(GPIntReg &rd, const GPIntReg &rs, int12 imm12) override;
 
     /// @copydoc is::IBase::lwu
-    void lwu(IntReg &rd, const IntReg &rs, int12 imm12) override;
+    void lwu(GPIntReg &rd, const GPIntReg &rs, int12 imm12) override;
 
     /// @copydoc is::IBase::sd
-    void sd(const IntReg &rs1, const IntReg &rs2, int12 imm12) override;
+    void sd(const GPIntReg &rs1, const GPIntReg &rs2, int12 imm12) override;
 
     /// @copydoc is::IExtM::mul
-    void mul(IntReg &rd, const IntReg &rs1, const IntReg &rs2) override;
+    void mul(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) override;
 
     /// @copydoc is::IExtM::mulh
-    void mulh(IntReg &rd, const IntReg &rs1, const IntReg &rs2) override;
+    void mulh(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) override;
 
     /// @copydoc is::IExtM::mulhu
-    void mulhu(IntReg &rd, const IntReg &rs1, const IntReg &rs2) override;
+    void mulhu(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) override;
 
     /// @copydoc is::IExtM::mulhsu
-    void mulhsu(IntReg &rd, const IntReg &rs1, const IntReg &rs2) override;
+    void mulhsu(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) override;
 
     /// @copydoc is::IExtM::mulw
-    void mulw(IntReg &rd, const IntReg &rs1, const IntReg &rs2) override;
+    void mulw(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) override;
 
     /// @copydoc is::IExtM::div
-    void div(IntReg &rd, const IntReg &rs1, const IntReg &rs2) override;
+    void div(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) override;
 
     /// @copydoc is::IExtM::divu
-    void divu(IntReg &rd, const IntReg &rs1, const IntReg &rs2) override;
+    void divu(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) override;
 
     /// @copydoc is::IExtM::rem
-    void rem(IntReg &rd, const IntReg &rs1, const IntReg &rs2) override;
+    void rem(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) override;
 
     /// @copydoc is::IExtM::remu
-    void remu(IntReg &rd, const IntReg &rs1, const IntReg &rs2) override;
+    void remu(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) override;
 
     /// @copydoc is::IExtM::divw
-    void divw(IntReg &rd, const IntReg &rs1, const IntReg &rs2) override;
+    void divw(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) override;
 
     /// @copydoc is::IExtM::divuw
-    void divuw(IntReg &rd, const IntReg &rs1, const IntReg &rs2) override;
+    void divuw(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) override;
 
     /// @copydoc is::IExtM::remw
-    void remw(IntReg &rd, const IntReg &rs1, const IntReg &rs2) override;
+    void remw(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) override;
 
     /// @copydoc is::IExtM::remuw
-    void remuw(IntReg &rd, const IntReg &rs1, const IntReg &rs2) override;
+    void remuw(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) override;
 
     ~Interpreter() override = default;
 
 private:
-    void exec_instruction(const InstProto &inst, InstArg arg0, InstArg arg1, InstArg arg2);
+    void exec_instruction(const Instruction &in);
 
     template<typename T>
-    void load_instruction_tmpl(IntReg &rd, const IntReg &rs, int12 imm12);
+    void load_instruction_tmpl(GPIntReg &rd, const GPIntReg &rs, int12 imm12);
 
     template<typename T>
-    void store_instruction_tmpl(const IntReg &rs, const IntReg &rs2, int12 imm12);
+    void store_instruction_tmpl(const GPIntReg &rs, const GPIntReg &rs2, int12 imm12);
 
     template<bool Rem = false, typename T>
     [[nodiscard]] static int64_t div_rem_tmpl(T lhs, T rhs);

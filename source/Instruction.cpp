@@ -8,7 +8,7 @@ template<typename T>
 concept HasMIN = requires { T::MIN; };
 
 template<typename T>
-static bool in_range(const std::string& value) {
+static bool in_range(const std::string &value) {
     if constexpr (!HasMIN<T>)
         return T::MAX >= std::stoull(value);
 
@@ -16,44 +16,60 @@ static bool in_range(const std::string& value) {
            && T::MIN <= std::stoll(value);
 }
 
-Instruction::Instruction(rv64::Cpu &cpu, std::string_view mnemonic, const std::array<std::string_view, 3> &args) {
+bool InstProto::is_valid() const {
+    return id != -1;
+}
+
+InstProto::operator bool() const { return is_valid(); }
+
+Instruction::Instruction(std::string_view mnemonic, const std::array<std::string_view, 3> &args) noexcept {
     auto proto = rv64::is::Rv64IMC::get_inst_proto(std::string(mnemonic));
     if (!proto) return;
 
-    for (int i = 0; i < 3; ++i){
-        std::string arg = std::string(args[i]);
-        proto_id = -i - 1; // invalid by default
+    // parse arguments
+    for (int i = 0; i < 3; ++i) {
+        auto arg = std::string(args[i]);
+        m_proto_id = -i - 1; // invalid by default
 
         if (proto.args[i] == InstArgType::None) break;
+        // register argument
         if (proto.args[i] == InstArgType::IntReg) {
-            auto reg_idx = rv64::IntReg::name_to_idx(arg);
-            if (reg_idx == -1)
-                return;
-            this->args[i] = &cpu.get_int_reg(static_cast<size_t>(reg_idx));
+            rv64::Reg reg(arg);
+
+            if (!reg.is_valid()) return;
+            this->m_args[i] = reg;
             continue;
         }
+        // immediate argument
         if (proto.args[i] == InstArgType::Imm12) {
             if (!in_range<int12>(arg)) return;
-            this->args[i] = int12(std::stoll(arg));
-        }
-        else if (proto.args[i] == InstArgType::Imm20) {
+            this->m_args[i] = int12(std::stoll(arg));
+        } else if (proto.args[i] == InstArgType::Imm20) {
             if (!in_range<int20>(arg)) return;
-            this->args[i] = int20(std::stoll(arg));
-        }
-        else if (proto.args[i] == InstArgType::UImm5) {
+            this->m_args[i] = int20(std::stoll(arg));
+        } else if (proto.args[i] == InstArgType::UImm5) {
             if (!in_range<uint5>(arg)) return;
-            this->args[i] = uint5(std::stoull(arg));
-        }
-        else if (proto.args[i] == InstArgType::UImm6) {
+            this->m_args[i] = uint5(std::stoull(arg));
+        } else if (proto.args[i] == InstArgType::UImm6) {
             if (!in_range<uint6>(arg)) return;
-            this->args[i] = uint6(std::stoull(arg));
-        }
-        else if (proto.args[i] == InstArgType::UImm12) {
+            this->m_args[i] = uint6(std::stoull(arg));
+        } else if (proto.args[i] == InstArgType::UImm12) {
             if (!in_range<uint12>(arg)) return;
-            this->args[i] = uint12(std::stoull(arg));
-        }
-        else assert(false && "unreachable");
+            this->m_args[i] = uint12(std::stoull(arg));
+        } else
+            assert(false && "unreachable");
     }
-    proto_id = proto.id;
+    m_proto_id = proto.id;
 }
 
+bool Instruction::is_valid() const { return m_proto_id > 0; }
+
+Instruction::operator bool() const { return is_valid(); }
+
+const std::array<InstArg, 3> &Instruction::get_args() const noexcept {
+    return m_args;
+}
+
+InstProto Instruction::get_prototype() const noexcept {
+    return rv64::is::Rv64IMC::get_inst_proto(m_proto_id);
+}

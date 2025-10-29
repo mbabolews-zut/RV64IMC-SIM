@@ -16,10 +16,10 @@ namespace rv64::is {
                 instructions.reserve(b.size() + m.size());
 
                 for (const auto &inst: b) {
-                    instructions.emplace(std::string(inst.name), inst);
+                    instructions.emplace(std::string(inst.mnemonic), inst);
                 }
                 for (const auto &inst: m) {
-                    instructions.emplace(std::string(inst.name), inst);
+                    instructions.emplace(std::string(inst.mnemonic), inst);
                 }
                 //TODO: C extension
             }
@@ -43,6 +43,6 @@ namespace rv64::is {
         }
 
     protected:
-        static std::unordered_map<std::string, InstProto> instructions;
+        inline static std::unordered_map<std::string, InstProto> instructions;
     };
 }

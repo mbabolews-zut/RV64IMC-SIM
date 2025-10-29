@@ -1,8 +1,9 @@
-#include "IntReg.hpp"
-#include "Cpu.hpp"
-#include <cassert>
+#include "Reg.hpp"
 #include <format>
+#include <cassert>
 #include <unordered_map>
+
+#include "Cpu.hpp"
 
 static const std::unordered_map<std::string, int> sym_name_map = {
     {"zero", 0}, {"ra", 1},   {"sp", 2},   {"gp", 3},   {"tp", 4},
@@ -21,51 +22,11 @@ static const std::unordered_map<std::string, int> sym_name_map = {
 };
 
 namespace rv64 {
-    int32_t IntReg::as_i32() const {
-        return std::bit_cast<int32_t>(as_u32());
-    }
-
-    uint32_t IntReg::as_u32() const {
-        return static_cast<uint32_t>(val());
-    }
-
-    uint64_t IntReg::val() const {
-        return m_value;
-    }
-
-    uint64_t &IntReg::val() {
-        return m_value;
-    }
-
-    int64_t IntReg::sval() const {
-        return std::bit_cast<int64_t>(m_value);
-    }
-
-    int64_t &IntReg::sval() {
-        return reinterpret_cast<int64_t &>(m_value);
-    }
-
-
-    void Cpu::set_pc(uint64_t pc) {
-        m_pc = pc & ~UINT64_C(1); // ensure LSB is 0
-    }
-
-    IntReg &Cpu::get_int_reg(size_t i) noexcept {
-        assert(i < INT_REG_CNT);
-        return m_int_regs[i];
-    }
-
-    const IntReg &Cpu::get_int_reg(size_t i) const noexcept {
-        assert(i < INT_REG_CNT);
-        return m_int_regs[i];
-    }
-
-
-    std::string IntReg::get_name() const {
+    std::string Reg::get_name() const {
         return std::format("x{}", m_idx);
     }
 
-    std::string IntReg::get_sym_name() const {
+    std::string Reg::get_sym_name() const {
         switch (m_idx) {
             case 0: return "zero";
             case 1: return "ra";
@@ -88,31 +49,28 @@ namespace rv64 {
         }
     }
 
-    IntReg &IntReg::operator=(uint64_t val) {
-        if (m_idx != 0)
-            m_value = val;
-        return *this;
-    }
-
-    IntReg &IntReg::operator=(int64_t val) {
-        if (m_idx != 0)
-            m_value = std::bit_cast<uint64_t>(val);
-        return *this;
-    }
-
-    IntReg &IntReg::operator=(int32_t val) {
-        if (m_idx != 0)
-            m_value = std::bit_cast<uint64_t>(static_cast<int64_t>(val));
-        return *this;
-    }
-
-    IntReg::IntReg(size_t idx, bool owned_by_cpu) : m_idx(idx), m_owned_by_cpu(owned_by_cpu) {
+    Reg::Reg(int idx) : m_idx(idx) {
         assert(idx < Cpu::INT_REG_CNT);
     }
 
-    int IntReg::name_to_idx(const std::string &name) {
+    Reg::Reg(std::string_view name) : m_idx(name_to_idx(std::string(name))) {
+    }
+
+    int Reg::name_to_idx(const std::string &name) {
         auto it = sym_name_map.find(name);
         if (it == sym_name_map.end()) return -1;
         return it->second;
+    }
+
+    int Reg::get_idx() const {
+        return m_idx;
+    }
+
+    bool Reg::is_valid() const {
+        return m_idx != -1;
+    }
+
+    Reg::operator bool() const {
+        return is_valid();
     }
 }

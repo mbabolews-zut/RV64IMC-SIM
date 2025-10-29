@@ -1,5 +1,6 @@
 #include "Interpreter.hpp"
 
+#include <any>
 #include <cassert>
 #include <format>
 #include <rv64/Cpu.hpp>
@@ -14,173 +15,173 @@
 #endif
 
 namespace rv64 {
-    template void Interpreter::load_instruction_tmpl<int64_t>(IntReg &rd, const IntReg &rs, int12 imm12);
-    template void Interpreter::load_instruction_tmpl<uint32_t>(IntReg &rd, const IntReg &rs, int12 imm12);
-    template void Interpreter::load_instruction_tmpl<uint16_t>(IntReg &rd, const IntReg &rs, int12 imm12);
-    template void Interpreter::load_instruction_tmpl<int16_t>(IntReg &rd, const IntReg &rs, int12 imm12);
-    template void Interpreter::load_instruction_tmpl<uint8_t>(IntReg &rd, const IntReg &rs, int12 imm12);
-    template void Interpreter::load_instruction_tmpl<int8_t>(IntReg &rd, const IntReg &rs, int12 imm12);
+    template void Interpreter::load_instruction_tmpl<int64_t>(GPIntReg &rd, const GPIntReg &rs, int12 imm12);
+    template void Interpreter::load_instruction_tmpl<uint32_t>(GPIntReg &rd, const GPIntReg &rs, int12 imm12);
+    template void Interpreter::load_instruction_tmpl<uint16_t>(GPIntReg &rd, const GPIntReg &rs, int12 imm12);
+    template void Interpreter::load_instruction_tmpl<int16_t>(GPIntReg &rd, const GPIntReg &rs, int12 imm12);
+    template void Interpreter::load_instruction_tmpl<uint8_t>(GPIntReg &rd, const GPIntReg &rs, int12 imm12);
+    template void Interpreter::load_instruction_tmpl<int8_t>(GPIntReg &rd, const GPIntReg &rs, int12 imm12);
 
 
-    void Interpreter::addi(IntReg &rd, const IntReg &rs, int12 imm12) {
+    void Interpreter::addi(GPIntReg &rd, const GPIntReg &rs, int12 imm12) {
         rd = rs.sval() + imm12;
     }
 
-    void Interpreter::slti(IntReg &rd, const IntReg &rs, int12 imm12) {
+    void Interpreter::slti(GPIntReg &rd, const GPIntReg &rs, int12 imm12) {
         rd = rs.sval() < imm12 ? 1 : 0;
     }
 
-    void Interpreter::sltiu(IntReg &rd, const IntReg &rs, int12 imm12) {
+    void Interpreter::sltiu(GPIntReg &rd, const GPIntReg &rs, int12 imm12) {
         rd = rs.val() < std::bit_cast<uint64_t>((int64_t) imm12) ? 1 : 0;
     }
 
-    void Interpreter::andi(IntReg &rd, const IntReg &rs, int12 imm12) {
+    void Interpreter::andi(GPIntReg &rd, const GPIntReg &rs, int12 imm12) {
         rd = rs.sval() & imm12;
     }
 
-    void Interpreter::ori(IntReg &rd, const IntReg &rs, int12 imm12) {
+    void Interpreter::ori(GPIntReg &rd, const GPIntReg &rs, int12 imm12) {
         rd = rs.sval() | imm12;
     }
 
-    void Interpreter::xori(IntReg &rd, const IntReg &rs, int12 imm12) {
+    void Interpreter::xori(GPIntReg &rd, const GPIntReg &rs, int12 imm12) {
         rd = rs.sval() ^ imm12;
     }
 
-    void Interpreter::slli(IntReg &rd, const IntReg &rs, uint6 uimm6) {
+    void Interpreter::slli(GPIntReg &rd, const GPIntReg &rs, uint6 uimm6) {
         rd = rs.val() << uimm6;
     }
 
-    void Interpreter::srli(IntReg &rd, const IntReg &rs, uint6 uimm6) {
+    void Interpreter::srli(GPIntReg &rd, const GPIntReg &rs, uint6 uimm6) {
         rd = rs.val() >> uimm6;
     }
 
-    void Interpreter::srai(IntReg &rd, const IntReg &rs, uint6 uimm6) {
+    void Interpreter::srai(GPIntReg &rd, const GPIntReg &rs, uint6 uimm6) {
         rd = rs.sval() >> uimm6; // C++ 20 defined behaviour
     }
 
-    void Interpreter::lui(IntReg &rd, int20 imm20) {
+    void Interpreter::lui(GPIntReg &rd, int20 imm20) {
         rd = imm20 << 12;
     }
 
-    void Interpreter::auipc(IntReg &rd, int20 imm20) {
+    void Interpreter::auipc(GPIntReg &rd, int20 imm20) {
         rd = m_vm.m_cpu.get_pc() + (imm20 << 12);
     }
 
-    void Interpreter::add(IntReg &rd, const IntReg &rs1, const IntReg &rs2) {
+    void Interpreter::add(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) {
         rd = rs1.sval() + rs2.sval();
     }
 
-    void Interpreter::sub(IntReg &rd, const IntReg &rs1, const IntReg &rs2) {
+    void Interpreter::sub(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) {
         rd = rs1.sval() - rs2.sval();
     }
 
-    void Interpreter::slt(IntReg &rd, const IntReg &rs1, const IntReg &rs2) {
+    void Interpreter::slt(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) {
         rd = rs1.sval() < rs2.sval() ? 1 : 0;
     }
 
-    void Interpreter::sltu(IntReg &rd, const IntReg &rs1, const IntReg &rs2) {
+    void Interpreter::sltu(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) {
         rd = rs1.val() < rs2.val() ? 1 : 0;
     }
 
-    void Interpreter::and_(IntReg &rd, const IntReg &rs1, const IntReg &rs2) {
+    void Interpreter::and_(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) {
         rd = rs1.val() & rs2.val();
     }
 
-    void Interpreter::or_(IntReg &rd, const IntReg &rs1, const IntReg &rs2) {
+    void Interpreter::or_(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) {
         rd = rs1.val() | rs2.val();
     }
 
-    void Interpreter::xor_(IntReg &rd, const IntReg &rs1, const IntReg &rs2) {
+    void Interpreter::xor_(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) {
         rd = rs1.val() ^ rs2.val();
     }
 
-    void Interpreter::sll(IntReg &rd, const IntReg &rs1, const IntReg &rs2) {
+    void Interpreter::sll(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) {
         rd = rs1.val() << (rs2.val() & 0x3F);
     }
 
-    void Interpreter::srl(IntReg &rd, const IntReg &rs1, const IntReg &rs2) {
+    void Interpreter::srl(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) {
         rd = rs1.val() >> (rs2.val() & 0x3F);
     }
 
-    void Interpreter::sra(IntReg &rd, const IntReg &rs1, const IntReg &rs2) {
+    void Interpreter::sra(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) {
         rd = rs1.sval() >> (rs2.val() & 0x3F); // C++ 20 defined behaviour
     }
 
-    void Interpreter::jal(IntReg &rd, int20 imm20) {
+    void Interpreter::jal(GPIntReg &rd, int20 imm20) {
         rd = m_vm.m_cpu.get_pc() + 4;
         m_vm.m_cpu.set_pc(rd.val() + imm20 * 2 - 4);
     }
 
-    void Interpreter::jalr(IntReg &rd, const IntReg &rs, int12 imm12) {
+    void Interpreter::jalr(GPIntReg &rd, const GPIntReg &rs, int12 imm12) {
         rd = m_vm.m_cpu.get_pc() + 4;
         m_vm.m_cpu.set_pc(rs.sval() + imm12 * 2 - 4);
     }
 
-    void Interpreter::beq(const IntReg &rs1, const IntReg &rs2, int12 imm12) {
+    void Interpreter::beq(const GPIntReg &rs1, const GPIntReg &rs2, int12 imm12) {
         if (rs1.sval() == rs2.sval()) {
             m_vm.m_cpu.set_pc(m_vm.m_cpu.get_pc() + (imm12 * 2) - 4);
         }
     }
 
-    void Interpreter::bne(const IntReg &rs1, const IntReg &rs2, int12 imm12) {
+    void Interpreter::bne(const GPIntReg &rs1, const GPIntReg &rs2, int12 imm12) {
         if (rs1.sval() != rs2.sval()) {
             m_vm.m_cpu.set_pc(m_vm.m_cpu.get_pc() + (imm12 * 2) - 4);
         }
     }
 
-    void Interpreter::blt(const IntReg &rs1, const IntReg &rs2, int12 imm12) {
+    void Interpreter::blt(const GPIntReg &rs1, const GPIntReg &rs2, int12 imm12) {
         if (rs1.sval() < rs2.sval()) {
             m_vm.m_cpu.set_pc(m_vm.m_cpu.get_pc() + (imm12 * 2) - 4);
         }
     }
 
-    void Interpreter::bltu(const IntReg &rs1, const IntReg &rs2, int12 imm12) {
+    void Interpreter::bltu(const GPIntReg &rs1, const GPIntReg &rs2, int12 imm12) {
         if (rs1.val() < rs2.val()) {
             m_vm.m_cpu.set_pc(m_vm.m_cpu.get_pc() + imm12 * 2 - 4);
         }
     }
 
-    void Interpreter::bge(const IntReg &rs1, const IntReg &rs2, int12 imm12) {
+    void Interpreter::bge(const GPIntReg &rs1, const GPIntReg &rs2, int12 imm12) {
         if (rs1.sval() >= rs2.sval()) {
             m_vm.m_cpu.set_pc(m_vm.m_cpu.get_pc() + imm12 * 2 - 4);
         }
     }
 
-    void Interpreter::bgeu(const IntReg &rs1, const IntReg &rs2, int12 imm12) {
+    void Interpreter::bgeu(const GPIntReg &rs1, const GPIntReg &rs2, int12 imm12) {
         if (rs1.val() >= rs2.val()) {
             m_vm.m_cpu.set_pc(m_vm.m_cpu.get_pc() + imm12 * 2 - 4);
         }
     }
 
-    void Interpreter::lw(IntReg &rd, const IntReg &rs, int12 imm12) {
+    void Interpreter::lw(GPIntReg &rd, const GPIntReg &rs, int12 imm12) {
         load_instruction_tmpl<int32_t>(rd, rs, imm12);
     }
 
-    void Interpreter::lh(IntReg &rd, const IntReg &rs, int12 imm12) {
+    void Interpreter::lh(GPIntReg &rd, const GPIntReg &rs, int12 imm12) {
         load_instruction_tmpl<int16_t>(rd, rs, imm12);
     }
 
-    void Interpreter::lhu(IntReg &rd, const IntReg &rs, int12 imm12) {
+    void Interpreter::lhu(GPIntReg &rd, const GPIntReg &rs, int12 imm12) {
         load_instruction_tmpl<uint16_t>(rd, rs, imm12);
     }
 
-    void Interpreter::lb(IntReg &rd, const IntReg &rs, int12 imm12) {
+    void Interpreter::lb(GPIntReg &rd, const GPIntReg &rs, int12 imm12) {
         load_instruction_tmpl<int8_t>(rd, rs, imm12);
     }
 
-    void Interpreter::lbu(IntReg &rd, const IntReg &rs, int12 imm12) {
+    void Interpreter::lbu(GPIntReg &rd, const GPIntReg &rs, int12 imm12) {
         load_instruction_tmpl<uint8_t>(rd, rs, imm12);
     }
 
-    void Interpreter::sw(const IntReg &rs, const IntReg &rs2, int12 imm12) {
+    void Interpreter::sw(const GPIntReg &rs, const GPIntReg &rs2, int12 imm12) {
         store_instruction_tmpl<uint32_t>(rs, rs2, imm12);
     }
 
-    void Interpreter::sh(const IntReg &rs, const IntReg &rs2, int12 imm12) {
+    void Interpreter::sh(const GPIntReg &rs, const GPIntReg &rs2, int12 imm12) {
         store_instruction_tmpl<uint16_t>(rs, rs2, imm12);
     }
 
-    void Interpreter::sb(const IntReg &rs, const IntReg &rs2, int12 imm12) {
+    void Interpreter::sb(const GPIntReg &rs, const GPIntReg &rs2, int12 imm12) {
         store_instruction_tmpl<uint8_t>(rs, rs2, imm12);
     }
 
@@ -189,8 +190,8 @@ namespace rv64 {
     }
 
     void Interpreter::ecall() {
-        auto &a0 = m_vm.m_cpu.get_int_reg(10);
-        const auto &a1 = m_vm.m_cpu.get_int_reg(11);
+        auto &a0 = m_vm.m_cpu.get_reg(10);
+        const auto &a1 = m_vm.m_cpu.get_reg(11);
         MemErr err{};
         switch (a0.sval()) {
             case 1:
@@ -223,59 +224,59 @@ namespace rv64 {
         m_vm.breakpoint_hit();
     }
 
-    void Interpreter::addiw(IntReg &rd, const IntReg &rs, int12 imm12) {
+    void Interpreter::addiw(GPIntReg &rd, const GPIntReg &rs, int12 imm12) {
         rd = rs.as_i32() + imm12;
     }
 
-    void Interpreter::slliw(IntReg &rd, const IntReg &rs, uint5 imm5) {
+    void Interpreter::slliw(GPIntReg &rd, const GPIntReg &rs, uint5 imm5) {
         rd = rs.as_i32() << imm5;
     }
 
-    void Interpreter::srliw(IntReg &rd, const IntReg &rs, uint5 imm5) {
+    void Interpreter::srliw(GPIntReg &rd, const GPIntReg &rs, uint5 imm5) {
         rd = std::bit_cast<int32_t>(rs.as_u32() >> imm5);
     }
 
-    void Interpreter::sraiw(IntReg &rd, const IntReg &rs, uint5 imm5) {
+    void Interpreter::sraiw(GPIntReg &rd, const GPIntReg &rs, uint5 imm5) {
         rd = rs.as_i32() >> imm5;
     }
 
-    void Interpreter::sllw(IntReg &rd, const IntReg &rs1, const IntReg &rs2) {
+    void Interpreter::sllw(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) {
         rd = rs1.as_i32() << (rs2.val() & 0x1F);
     }
 
-    void Interpreter::srlw(IntReg &rd, const IntReg &rs1, const IntReg &rs2) {
+    void Interpreter::srlw(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) {
         rd = std::bit_cast<int32_t>(rs1.as_u32() >> (rs2.val() & 0x1F));
     }
 
-    void Interpreter::sraw(IntReg &rd, const IntReg &rs1, const IntReg &rs2) {
+    void Interpreter::sraw(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) {
         rd = rs1.as_i32() >> (rs2.val() & 0x1F);
     }
 
-    void Interpreter::addw(IntReg &rd, const IntReg &rs1, const IntReg &rs2) {
+    void Interpreter::addw(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) {
         rd = rs1.as_i32() + rs2.as_i32();
     }
 
-    void Interpreter::subw(IntReg &rd, const IntReg &rs1, const IntReg &rs2) {
+    void Interpreter::subw(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) {
         rd = rs1.as_i32() - rs2.as_i32();
     }
 
-    void Interpreter::ld(IntReg &rd, const IntReg &rs, int12 imm12) {
+    void Interpreter::ld(GPIntReg &rd, const GPIntReg &rs, int12 imm12) {
         load_instruction_tmpl<int64_t>(rd, rs, imm12);
     }
 
-    void Interpreter::lwu(IntReg &rd, const IntReg &rs, int12 imm12) {
+    void Interpreter::lwu(GPIntReg &rd, const GPIntReg &rs, int12 imm12) {
         load_instruction_tmpl<uint32_t>(rd, rs, imm12);
     }
 
-    void Interpreter::sd(const IntReg &rs1, const IntReg &rs2, int12 imm12) {
+    void Interpreter::sd(const GPIntReg &rs1, const GPIntReg &rs2, int12 imm12) {
         store_instruction_tmpl<int64_t>(rs1, rs2, imm12);
     }
 
-    void Interpreter::mul(IntReg &rd, const IntReg &rs1, const IntReg &rs2) {
+    void Interpreter::mul(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) {
         rd = rs1.sval() * rs2.sval();
     }
 
-    void Interpreter::mulh(IntReg &rd, const IntReg &rs1, const IntReg &rs2) {
+    void Interpreter::mulh(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) {
         // TODO: TEST ALL VARIANTS
 #   ifdef __SIZEOF_INT128__
         rd = int64_t(__int128_t(rs1.sval()) * __int128_t(rs2.sval()) >> 64);
@@ -293,7 +294,7 @@ namespace rv64 {
 #   endif
     }
 
-    void Interpreter::mulhu(IntReg &rd, const IntReg &rs1, const IntReg &rs2) {
+    void Interpreter::mulhu(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) {
 #   ifdef __SIZEOF_INT128__
         rd.val() = __uint128_t(rs1.val()) * __uint128_t(rs2.val()) >> 64;
 #   elif defined(_MSC_VER) && defined(_M_X64)
@@ -303,7 +304,7 @@ namespace rv64 {
 #   endif
     }
 
-    void Interpreter::mulhsu(IntReg &rd, const IntReg &rs1, const IntReg &rs2) {
+    void Interpreter::mulhsu(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) {
 #   ifdef __SIZEOF_INT128__
         rd = int64_t(__int128_t(rs1.val()) * __uint128_t(rs2.val()) >> 64);
 #   else
@@ -324,23 +325,23 @@ namespace rv64 {
 #   endif
     }
 
-    void Interpreter::mulw(IntReg &rd, const IntReg &rs1, const IntReg &rs2) {
+    void Interpreter::mulw(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) {
         rd = rs1.as_i32() * rs2.as_i32();
     }
 
-    void Interpreter::div(IntReg &rd, const IntReg &rs1, const IntReg &rs2) {
+    void Interpreter::div(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) {
         rd = rs1.sval() / rs2.sval();
     }
 
-    void Interpreter::divu(IntReg &rd, const IntReg &rs1, const IntReg &rs2) {
+    void Interpreter::divu(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) {
         rd = rs1.val() / rs2.val();
     }
 
-    void Interpreter::rem(IntReg &rd, const IntReg &rs1, const IntReg &rs2) {
+    void Interpreter::rem(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) {
         rd = div_rem_tmpl<true>(rs1.sval(), rs2.sval());
     }
 
-    void Interpreter::remu(IntReg &rd, const IntReg &rs1, const IntReg &rs2) {
+    void Interpreter::remu(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) {
         if (rs2.sval() == 0) {
             rd = rs1.val();
             return;
@@ -348,11 +349,11 @@ namespace rv64 {
         rd = rs1.val() % rs2.val();
     }
 
-    void Interpreter::divw(IntReg &rd, const IntReg &rs1, const IntReg &rs2) {
+    void Interpreter::divw(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) {
         rd = div_rem_tmpl(rs1.as_i32(), rs2.as_i32());
     }
 
-    void Interpreter::divuw(IntReg &rd, const IntReg &rs1, const IntReg &rs2) {
+    void Interpreter::divuw(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) {
         if (rs2.as_i32() == 0) {
             rd = -1;
             return;
@@ -360,11 +361,11 @@ namespace rv64 {
         rd = std::bit_cast<int32_t>(rs1.as_u32() / rs2.as_u32());
     }
 
-    void Interpreter::remw(IntReg &rd, const IntReg &rs1, const IntReg &rs2) {
+    void Interpreter::remw(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) {
         rd = div_rem_tmpl<true>(rs1.as_i32(), rs2.as_i32());
     }
 
-    void Interpreter::remuw(IntReg &rd, const IntReg &rs1, const IntReg &rs2) {
+    void Interpreter::remuw(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) {
         if (rs2.as_i32() == 0) {
             rd = rs1.as_i32();
             return;
@@ -393,7 +394,7 @@ namespace rv64 {
     }
 
     template<typename T>
-    void Interpreter::load_instruction_tmpl(IntReg &rd, const IntReg &rs, int12 imm12) {
+    void Interpreter::load_instruction_tmpl(GPIntReg &rd, const GPIntReg &rs, int12 imm12) {
         MemErr err;
         if constexpr (std::is_same_v<T, uint64_t>) {
             rd = m_vm.m_memory.load<T>(rs.sval() + imm12, err);
@@ -405,7 +406,7 @@ namespace rv64 {
     }
 
     template<typename T>
-    void Interpreter::store_instruction_tmpl(const IntReg &rs, const IntReg &rs2, int12 imm12) {
+    void Interpreter::store_instruction_tmpl(const GPIntReg &rs, const GPIntReg &rs2, int12 imm12) {
         auto err = m_vm.m_memory.store<T>(rs.sval() + imm12, static_cast<T>(rs2.val()));
         if (err != MemErr::None)
             handle_error(err);
@@ -421,120 +422,138 @@ namespace rv64 {
         return lhs / rhs;
     }
 
-    void Interpreter::exec_instruction(const InstProto &inst, InstArg arg0, InstArg arg1, InstArg arg2) {
-        auto arg0_reg = std::get<IntReg *>(arg0);
-        auto arg1_reg = std::get<IntReg *>(arg1);
-        auto arg2_reg = std::get<IntReg *>(arg2);
+    void Interpreter::exec_instruction(const Instruction &in) {
+        assert(in.is_valid()); // assure that arguments are valid
+        auto args = in.get_args();
 
-        switch (inst.id) {
+        auto get_reg = [this](InstArg arg) -> GPIntReg& {
+            return m_vm.m_cpu.get_int_reg(std::get<Reg>(arg));
+        };
+
+        switch (in.get_prototype().id) {
+            // --- Immediate arithmetic ---
             case (int) IBase::InstId::addi:
-                addi(*arg0_reg, *arg1_reg, std::get<int12>(arg2));
-                break;
-            case (int) IBase::InstId::slt:
-                slt(*arg0_reg, *arg1_reg, *arg2_reg);
+                addi(get_reg(args[0]), get_reg(args[1]), std::get<int12>(args[2]));
                 break;
             case (int) IBase::InstId::slti:
-                slti(*arg0_reg, *arg1_reg, std::get<int12>(arg2));
+                slti(get_reg(args[0]), get_reg(args[1]), std::get<int12>(args[2]));
                 break;
             case (int) IBase::InstId::sltiu:
-                sltiu(*arg0_reg, *arg1_reg, std::get<int12>(arg2));
+                sltiu(get_reg(args[0]), get_reg(args[1]), std::get<int12>(args[2]));
                 break;
             case (int) IBase::InstId::andi:
-                andi(*arg0_reg, *arg1_reg, std::get<int12>(arg2));
+                andi(get_reg(args[0]), get_reg(args[1]), std::get<int12>(args[2]));
                 break;
             case (int) IBase::InstId::ori:
-                ori(*arg0_reg, *arg1_reg, std::get<int12>(arg2));
+                ori(get_reg(args[0]), get_reg(args[1]), std::get<int12>(args[2]));
                 break;
             case (int) IBase::InstId::xori:
-                xori(*arg0_reg, *arg1_reg, std::get<int12>(arg2));
+                xori(get_reg(args[0]), get_reg(args[1]), std::get<int12>(args[2]));
                 break;
+
+            // --- Shift immediate ---
             case (int) IBase::InstId::slli:
-                slli(*arg0_reg, *arg1_reg, std::get<uint6>(arg2));
+                slli(get_reg(args[0]), get_reg(args[1]), std::get<uint6>(args[2]));
                 break;
             case (int) IBase::InstId::srli:
-                srli(*arg0_reg, *arg1_reg, std::get<uint6>(arg2));
+                srli(get_reg(args[0]), get_reg(args[1]), std::get<uint6>(args[2]));
                 break;
             case (int) IBase::InstId::srai:
-                srai(*arg0_reg, *arg1_reg, std::get<uint6>(arg2));
+                srai(get_reg(args[0]), get_reg(args[1]), std::get<uint6>(args[2]));
                 break;
+
+            // --- U-type ---
             case (int) IBase::InstId::lui:
-                lui(*arg0_reg, std::get<int20>(arg1));
+                lui(get_reg(args[0]), std::get<int20>(args[1]));
                 break;
             case (int) IBase::InstId::auipc:
-                auipc(*arg0_reg, std::get<int20>(arg1));
+                auipc(get_reg(args[0]), std::get<int20>(args[1]));
                 break;
+
+            // --- R-type arithmetic ---
             case (int) IBase::InstId::add:
-                add(*arg0_reg, *arg1_reg, *arg2_reg);
+                add(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
                 break;
             case (int) IBase::InstId::sub:
-                sub(*arg0_reg, *arg1_reg, *arg2_reg);
-                break;
-            case (int) IBase::InstId::and_:
-                and_(*arg0_reg, *arg1_reg, *arg2_reg);
-                break;
-            case (int) IBase::InstId::or_:
-                or_(*arg0_reg, *arg1_reg, *arg2_reg);
-                break;
-            case (int) IBase::InstId::xor_:
-                xor_(*arg0_reg, *arg1_reg, *arg2_reg);
+                sub(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
                 break;
             case (int) IBase::InstId::sll:
-                sll(*arg0_reg, *arg1_reg, *arg2_reg);
+                sll(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
                 break;
-            case (int) IBase::InstId::srl:
-                srl(*arg0_reg, *arg1_reg, *arg2_reg);
+            case (int) IBase::InstId::slt:
+                slt(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
                 break;
             case (int) IBase::InstId::sra:
-                sra(*arg0_reg, *arg1_reg, *arg2_reg);
+                sra(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
                 break;
-            case (int) IBase::InstId::jal:
-                jal(*arg0_reg, std::get<int20>(arg1));
+            case (int) IBase::InstId::srl:
+                srl(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
                 break;
-            case (int) IBase::InstId::jalr:
-                jalr(*arg0_reg, *arg1_reg, std::get<int12>(arg2));
+            case (int) IBase::InstId::and_:
+                and_(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
                 break;
+            case (int) IBase::InstId::or_:
+                or_(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
+                break;
+            case (int) IBase::InstId::xor_:
+                xor_(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
+                break;
+
+            // --- Branches ---
             case (int) IBase::InstId::beq:
-                beq(*arg0_reg, *arg1_reg, std::get<int12>(arg2));
+                beq(get_reg(args[0]), get_reg(args[1]), std::get<int12>(args[2]));
                 break;
             case (int) IBase::InstId::bne:
-                bne(*arg0_reg, *arg1_reg, std::get<int12>(arg2));
+                bne(get_reg(args[0]), get_reg(args[1]), std::get<int12>(args[2]));
                 break;
             case (int) IBase::InstId::blt:
-                blt(*arg0_reg, *arg1_reg, std::get<int12>(arg2));
+                blt(get_reg(args[0]), get_reg(args[1]), std::get<int12>(args[2]));
                 break;
             case (int) IBase::InstId::bge:
-                bge(*arg0_reg, *arg1_reg, std::get<int12>(arg2));
+                bge(get_reg(args[0]), get_reg(args[1]), std::get<int12>(args[2]));
                 break;
             case (int) IBase::InstId::bltu:
-                bltu(*arg0_reg, *arg1_reg, std::get<int12>(arg2));
+                bltu(get_reg(args[0]), get_reg(args[1]), std::get<int12>(args[2]));
                 break;
             case (int) IBase::InstId::bgeu:
-                bgeu(*arg0_reg, *arg1_reg, std::get<int12>(arg2));
+                bgeu(get_reg(args[0]), get_reg(args[1]), std::get<int12>(args[2]));
                 break;
+
+            // --- Jumps ---
+            case (int) IBase::InstId::jal:
+                jal(get_reg(args[0]), std::get<int20>(args[1]));
+                break;
+            case (int) IBase::InstId::jalr:
+                jalr(get_reg(args[0]), get_reg(args[1]), std::get<int12>(args[2]));
+                break;
+
+            // --- Memory ---
             case (int) IBase::InstId::lw:
-                lw(*arg0_reg, *arg1_reg, std::get<int12>(arg2));
+                lw(get_reg(args[0]), get_reg(args[1]), std::get<int12>(args[2]));
                 break;
             case (int) IBase::InstId::lh:
-                lh(*arg0_reg, *arg1_reg, std::get<int12>(arg2));
+                lh(get_reg(args[0]), get_reg(args[1]), std::get<int12>(args[2]));
                 break;
             case (int) IBase::InstId::lhu:
-                lhu(*arg0_reg, *arg1_reg, std::get<int12>(arg2));
+                lhu(get_reg(args[0]), get_reg(args[1]), std::get<int12>(args[2]));
                 break;
             case (int) IBase::InstId::lb:
-                lb(*arg0_reg, *arg1_reg, std::get<int12>(arg2));
+                lb(get_reg(args[0]), get_reg(args[1]), std::get<int12>(args[2]));
                 break;
             case (int) IBase::InstId::lbu:
-                lbu(*arg0_reg, *arg1_reg, std::get<int12>(arg2));
+                lbu(get_reg(args[0]), get_reg(args[1]), std::get<int12>(args[2]));
                 break;
             case (int) IBase::InstId::sw:
-                sw(*arg0_reg, *arg1_reg, std::get<int12>(arg2));
+                sw(get_reg(args[0]), get_reg(args[1]), std::get<int12>(args[2]));
                 break;
             case (int) IBase::InstId::sh:
-                sh(*arg0_reg, *arg1_reg, std::get<int12>(arg2));
+                sh(get_reg(args[0]), get_reg(args[1]), std::get<int12>(args[2]));
                 break;
             case (int) IBase::InstId::sb:
-                sb(*arg0_reg, *arg1_reg, std::get<int12>(arg2));
+                sb(get_reg(args[0]), get_reg(args[1]), std::get<int12>(args[2]));
                 break;
+
+            // --- System ---
             case (int) IBase::InstId::fence:
                 fence();
                 break;
@@ -544,47 +563,51 @@ namespace rv64 {
             case (int) IBase::InstId::ebreak:
                 ebreak();
                 break;
+
+            // --- M-extension ---
             case (int) IExtM::InstId::mul:
-                mul(*arg0_reg, *arg1_reg, *arg2_reg);
+                mul(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
                 break;
             case (int) IExtM::InstId::mulh:
-                mulh(*arg0_reg, *arg1_reg, *arg2_reg);
+                mulh(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
                 break;
             case (int) IExtM::InstId::mulhu:
-                mulhu(*arg0_reg, *arg1_reg, *arg2_reg);
+                mulhu(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
                 break;
             case (int) IExtM::InstId::mulhsu:
-                mulhsu(*arg0_reg, *arg1_reg, *arg2_reg);
+                mulhsu(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
                 break;
             case (int) IExtM::InstId::mulw:
-                mulw(*arg0_reg, *arg1_reg, *arg2_reg);
+                mulw(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
                 break;
             case (int) IExtM::InstId::div:
-                div(*arg0_reg, *arg1_reg, *arg2_reg);
+                div(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
                 break;
             case (int) IExtM::InstId::divu:
-                divu(*arg0_reg, *arg1_reg, *arg2_reg);
+                divu(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
                 break;
             case (int) IExtM::InstId::rem:
-                rem(*arg0_reg, *arg1_reg, *arg2_reg);
+                rem(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
                 break;
             case (int) IExtM::InstId::remu:
-                remu(*arg0_reg, *arg1_reg, *arg2_reg);
+                remu(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
                 break;
             case (int) IExtM::InstId::divw:
-                divw(*arg0_reg, *arg1_reg, *arg2_reg);
+                divw(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
                 break;
             case (int) IExtM::InstId::divuw:
-                divuw(*arg0_reg, *arg1_reg, *arg2_reg);
+                divuw(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
                 break;
             case (int) IExtM::InstId::remw:
-                remw(*arg0_reg, *arg1_reg, *arg2_reg);
+                remw(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
                 break;
             case (int) IExtM::InstId::remuw:
-                remuw(*arg0_reg, *arg1_reg, *arg2_reg);
+                remuw(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
                 break;
+
             default:
-                throw std::runtime_error(std::format("Unknown instruction ID: {}", inst.id));
+                throw std::runtime_error(std::format("Unknown instruction ID: {}", in.get_prototype().id));
         }
+        assert(m_vm.m_cpu.get_reg(0) == 0); // x0 is always zero
     }
 }

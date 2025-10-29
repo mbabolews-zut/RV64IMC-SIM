@@ -20,8 +20,10 @@ set(SOURCE_FILES
         source/common.hpp
         source/Instruction.cpp
         source/rv64/instruction_sets/Rv64IMC.hpp
-        source/rv64/IntReg.cpp
-        source/rv64/IntReg.hpp
+        source/rv64/GPIntReg.cpp
+        source/rv64/GPIntReg.hpp
+        source/rv64/Reg.cpp
+        source/rv64/Reg.hpp
 )
 
 # ---- Main executable ----

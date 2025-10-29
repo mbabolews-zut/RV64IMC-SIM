@@ -8,8 +8,7 @@ namespace rv64 {
         return m_pc;
     }
 
-    Cpu::Cpu() : m_int_regs(reg_array_construct<IntReg>(std::make_index_sequence<INT_REG_CNT>{})) {
+    Cpu::Cpu() : m_int_regs(reg_array_construct(std::make_index_sequence<INT_REG_CNT>{})) {
     }
-
 
 }

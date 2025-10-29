@@ -1,4 +1,5 @@
 #include "Memory.hpp"
+#include "common.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -214,21 +215,10 @@ MemErr Memory::store(uint64_t address, T value) {
     return MemErr::SegFault;
 }
 
+#define INSTANTIATE_LOAD(TYPE) \
+    template TYPE Memory::load(uint64_t address, MemErr &err) const;
+#define INSTANTIATE_STORE(TYPE) \
+    template MemErr Memory::store(uint64_t address, TYPE value);
 
-template uint8_t Memory::load(uint64_t, MemErr &) const;
-template uint16_t Memory::load(uint64_t, MemErr &) const;
-template uint32_t Memory::load(uint64_t, MemErr &) const;
-template uint64_t Memory::load(uint64_t, MemErr &) const;
-template int8_t Memory::load(uint64_t, MemErr &) const;
-template int16_t Memory::load(uint64_t, MemErr &) const;
-template int32_t Memory::load(uint64_t, MemErr &) const;
-template int64_t Memory::load(uint64_t, MemErr &) const;
-
-template MemErr Memory::store(uint64_t, uint8_t);
-template MemErr Memory::store(uint64_t, uint16_t);
-template MemErr Memory::store(uint64_t, uint32_t);
-template MemErr Memory::store(uint64_t, uint64_t);
-template MemErr Memory::store(uint64_t, int8_t);
-template MemErr Memory::store(uint64_t, int16_t);
-template MemErr Memory::store(uint64_t, int32_t);
-template MemErr Memory::store(uint64_t, int64_t);
+FOR_EACH_INT(INSTANTIATE_LOAD)
+FOR_EACH_INT(INSTANTIATE_STORE)
