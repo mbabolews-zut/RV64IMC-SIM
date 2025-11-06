@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <deque>
 #include <string>
 #include <vector>
 #include <span>
@@ -69,6 +70,8 @@ private:
 
     std::vector<uint8_t> m_stack{};
     std::vector<uint8_t> m_data{};
+
+    uint64_t m_stack_alloc_bottom = 0;
 
     Config m_config{};
     uint64_t m_stack_bottom = 0;

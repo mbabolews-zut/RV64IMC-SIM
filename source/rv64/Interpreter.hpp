@@ -221,8 +221,9 @@ public:
 
     ~Interpreter() override = default;
 
-private:
     void exec_instruction(const Instruction &in);
+
+private:
 
     template<typename T>
     void load_instruction_tmpl(GPIntReg &rd, const GPIntReg &rs, int12 imm12);

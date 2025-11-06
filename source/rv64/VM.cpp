@@ -7,36 +7,57 @@
 namespace rv64 {
 
     VM::VM() {
-        assert(state == VMState::Initializing);
-        state = VMState::Initializing;
+        assert(m_state == VMState::Initializing);
+        m_state = VMState::Initializing;
         std::array<uint8_t, 4> empty_prog{};
         m_memory.init(empty_prog);
     }
 
+    void VM::load_program(const ParserProcessor::ParsedInstVec &instructions) {
+        m_instructions = instructions;
+        m_state = VMState::Loaded;
+    }
+
+    void VM::run_step() {
+        assert(m_state == VMState::Loaded || m_state == VMState::Running || m_state == VMState::Stopped);
+        m_state = VMState::Running;
+        auto ins_idx = m_cpu.get_pc() / 2; // Every instruction is written on 2 bytes
+        if (ins_idx < m_instructions.size()) {
+            m_interpreter.exec_instruction(m_instructions[ins_idx].second);
+        }
+    }
+
+    void VM::run_until_stop() {
+        assert(m_state == VMState::Loaded || m_state == VMState::Running);
+        while (m_state == VMState::Running) {
+            run_step();
+        }
+    }
+
     void VM::terminate(int exit_code) {
-        state = VMState::Finished;
+        m_state = VMState::Finished;
         gui::print_info(std::format("Program terminated with exit code {}", exit_code));
     }
 
     void VM::error_stop() {
-        state = VMState::Error;
+        m_state = VMState::Error;
     }
 
     void VM::breakpoint_hit() {
-        state = VMState::Breakpoint;
+        m_state = VMState::Breakpoint;
     }
 
     void VM::set_program_start_address(uint64_t addr) {
-        assert(state == VMState::Initializing);
-        settings.prog_start_address = addr;
+        assert(m_state == VMState::Initializing);
+        m_settings.prog_start_address = addr;
     }
 
     void VM::set_stack_start_address(uint64_t addr) {
-        assert(state == VMState::Initializing);
-        settings.stack_start_address = addr;
+        assert(m_state == VMState::Initializing);
+        m_settings.stack_start_address = addr;
     }
 
     const VM::Settings & VM::get_settings() const noexcept {
-        return settings;
+        return m_settings;
     }
 } // rv64

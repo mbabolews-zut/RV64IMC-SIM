@@ -50,7 +50,7 @@ public:
     /// @attention check validity with is_valid() or operator bool().
     /// @param mnemonic instruction mnemonic (e.g., "addi")
     /// @param args instruction arguments in string form. (e.g., {"x1", "x2", "0x10"})
-    Instruction(std::string_view mnemonic, const std::array<std::string_view, 3> &args) noexcept;
+    Instruction(std::string_view mnemonic, const std::array<std::string, 3> &args) noexcept;
 
     /// @brief checks if the instruction is valid.
     [[nodiscard]] bool is_valid() const;

@@ -24,7 +24,9 @@ namespace rv64 {
 
     private:
         explicit GPIntReg(int idx) : Reg(idx) {}
-        std::variant<uint64_t, int64_t> m_value = 0;
+
+        uint64_t m_value = 0;
+
         friend class Cpu; // only Cpu can construct general purpose registers
     };
 

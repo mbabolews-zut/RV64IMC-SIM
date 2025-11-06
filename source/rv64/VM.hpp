@@ -1,10 +1,12 @@
 #pragma once
 #include <rv64/Cpu.hpp>
 #include <rv64/Memory.hpp>
+#include <parser/ParserProcessor.hpp>
 
 namespace rv64 {
     enum class VMState {
         Initializing,
+        Loaded,
         Running,
         Stopped,
         Error,
@@ -15,6 +17,8 @@ namespace rv64 {
     class VM {
     public:
         VM();
+
+        void load_program(const ParserProcessor::ParsedInstVec &instructions);
 
         void run_step();
 
@@ -45,8 +49,10 @@ namespace rv64 {
         Cpu m_cpu{};
 
     private:
-        Settings settings;
-        VMState state = VMState::Initializing;
+        Interpreter m_interpreter{*this};
+        ParserProcessor::ParsedInstVec m_instructions;
+        Settings m_settings;
+        VMState m_state = VMState::Initializing;
     };
 
 

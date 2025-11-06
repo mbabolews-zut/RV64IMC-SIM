@@ -22,13 +22,13 @@ bool InstProto::is_valid() const {
 
 InstProto::operator bool() const { return is_valid(); }
 
-Instruction::Instruction(std::string_view mnemonic, const std::array<std::string_view, 3> &args) noexcept {
+Instruction::Instruction(std::string_view mnemonic, const std::array<std::string, 3> &args) noexcept {
     auto proto = rv64::is::Rv64IMC::get_inst_proto(std::string(mnemonic));
     if (!proto) return;
 
     // parse arguments
     for (int i = 0; i < 3; ++i) {
-        auto arg = std::string(args[i]);
+        auto arg = args[i];
         m_proto_id = -i - 1; // invalid by default
 
         if (proto.args[i] == InstArgType::None) break;

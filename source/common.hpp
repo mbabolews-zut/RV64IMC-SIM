@@ -1,4 +1,5 @@
 #pragma once
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <iostream>
@@ -26,9 +27,14 @@ namespace gui {
     }
 }
 
-template<typename T = int64_t>
+inline std::string to_lowercase(std::string_view str) {
+    std::string result;
+    std::transform(str.begin(), str.end(), std::back_inserter(result), ::tolower);
+    return result;
+}
+
+template<std::integral T = int64_t>
 constexpr T pow_of_2(int64_t n) {
-    static_assert(std::is_integral_v<T>, "T must be an integral type");
     T result = 1;
     return result << n;
 }
@@ -52,7 +58,7 @@ struct intN {
     }
 
     static constexpr uint64_t MAX = pow_of_2(NBits - 1) - 1;
-    static constexpr uint64_t MIN = -pow_of_2(NBits - 1);
+    static constexpr int64_t MIN = -pow_of_2(NBits - 1);
 
 private:
     int64_t m_val;

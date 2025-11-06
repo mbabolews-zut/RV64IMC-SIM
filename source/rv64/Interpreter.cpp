@@ -429,6 +429,7 @@ namespace rv64 {
         auto get_reg = [this](InstArg arg) -> GPIntReg& {
             return m_vm.m_cpu.get_int_reg(std::get<Reg>(arg));
         };
+        auto proto = in.get_prototype();
 
         switch (in.get_prototype().id) {
             // --- Immediate arithmetic ---

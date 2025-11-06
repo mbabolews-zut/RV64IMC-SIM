@@ -20,21 +20,21 @@ namespace rv64 {
     }
 
     uint64_t GPIntReg::val() const {
-        return std::get<uint64_t>(m_value);
+        return m_value;
     }
 
     uint64_t &GPIntReg::val() {
         if (get_idx() == 0) return get_zero_ref<uint64_t>();
-        return std::get<uint64_t>(m_value);
+        return m_value;
     }
 
     int64_t GPIntReg::sval() const {
-        return std::get<int64_t>(m_value);
+        return std::bit_cast<int64_t>(m_value);
     }
 
     int64_t &GPIntReg::sval() {
         if (get_idx() == 0) return get_zero_ref<int64_t>();
-        return std::get<int64_t>(m_value);
+        return *reinterpret_cast<int64_t*>(&m_value);
     }
 
 

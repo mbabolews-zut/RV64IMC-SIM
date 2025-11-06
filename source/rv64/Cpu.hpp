@@ -4,11 +4,14 @@
 #include <array>
 #include <rv64/GPIntReg.hpp>
 
-namespace rv64 {
+#include "Interpreter.hpp"
 
+namespace rv64 {
     class Cpu {
     public:
         static constexpr size_t INT_REG_CNT = 32;
+
+        Cpu();
 
         void set_pc(uint64_t pc);
 
@@ -18,7 +21,7 @@ namespace rv64 {
         [[nodiscard]] const GPIntReg &get_int_reg(Reg reg) const noexcept;
         [[nodiscard]] uint64_t get_pc() const;
 
-        Cpu();
+        void print_cpu_state();
 
     private:
         template<std::size_t... Is>
