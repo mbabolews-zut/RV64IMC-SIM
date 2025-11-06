@@ -89,6 +89,28 @@ void Memory::init(std::span<const uint8_t> program_data) {
     m_initialized = true;
 }
 
+void Memory::load_program(const ParserProcessor::ParsedInstVec &instructions) {
+    m_instructions = instructions;
+}
+
+const Instruction &Memory::get_instruction_at(uint64_t address, MemErr &err) const {
+    size_t offset = (address - m_config.data_addr) / 4; // TODO: support for compressed instruction (... / 2 pad standard instructions)
+    if (offset == m_instructions.size()) {
+        err = MemErr::ProgramExit; // actually not an error
+        return Instruction::get_invalid_cref();
+    }
+    if (address < m_config.data_addr || offset > m_instructions.size()) {
+        err = MemErr::SegFault;
+        return Instruction::get_invalid_cref();
+    }
+    err = MemErr::None;
+    return m_instructions.at(offset).second;
+}
+
+const uint64_t Memory::get_instruction_end_addr() const {
+    return m_config.data_addr + m_instructions.size() * 4; // TODO: support for compressed instruction (... * 2 pad standard instructions)
+}
+
 std::string Memory::err_to_string(MemErr err) {
     switch (err) {
         case MemErr::None:

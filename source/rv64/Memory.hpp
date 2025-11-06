@@ -1,12 +1,13 @@
 #pragma once
 #include <cstdint>
-#include <deque>
 #include <string>
 #include <vector>
 #include <span>
 
+#include "parser/ParserProcessor.hpp"
+
 enum class MemErr {
-    None = 0, SegFault = 1, NotTermStr = 2, OutOfMemory = 3, NegativeSizeOfHeap = 4,
+    None = 0, SegFault = 1, NotTermStr = 2, OutOfMemory = 3, NegativeSizeOfHeap = 4, ProgramExit = 5
 };
 
 class Memory {
@@ -41,15 +42,21 @@ public:
 
     void init(std::span<const uint8_t> program_data);
 
-    static std::string err_to_string(MemErr err);
+    void load_program(const ParserProcessor::ParsedInstVec &instructions);
+
+    [[nodiscard]] const Instruction &get_instruction_at(uint64_t address, MemErr &err) const;
+
+    [[nodiscard]] const uint64_t get_instruction_end_addr() const;
+
+    [[nodiscard]] static std::string err_to_string(MemErr err);
 
     uint64_t sbrk(int64_t inc, MemErr &err);
 
-    uint64_t get_brk() const;
+    [[nodiscard]] uint64_t get_brk() const;
 
-    size_t get_program_space_size() const;
+    [[nodiscard]] size_t get_program_space_size() const;
 
-    const Config &get_conf() const;
+    [[nodiscard]] const Config &get_conf() const;
 
 private:
     [[nodiscard]] bool addr_in_stack(uint64_t address, size_t obj_size = 0) const noexcept;
@@ -76,6 +83,8 @@ private:
     Config m_config{};
     uint64_t m_stack_bottom = 0;
     uint64_t m_heap_addr = 0;
+
+    ParserProcessor::ParsedInstVec m_instructions;
 
     bool m_initialized = false;
 };

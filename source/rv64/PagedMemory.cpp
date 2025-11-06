@@ -3,6 +3,7 @@
 #include <array>
 #include <cassert>
 #include <endianness.hpp>
+#include <common.hpp>
 
 PagedMemory::Iterator::Iterator() noexcept = default;
 
@@ -37,14 +38,15 @@ bool PagedMemory::store(uint64_t addr, std::integral auto val) noexcept {
     }
 }
 
-bool PagedMemory::load(uint64_t addr, std::integral auto &val) noexcept {
+template<std::integral T>
+bool PagedMemory::load(uint64_t addr, T &val) noexcept {
     if (addr + sizeof(val) > size())
         return false;
 
     try {
-        std::array<uint8_t, sizeof(val)> tmp;
+        std::array<uint8_t, sizeof(val)> tmp{};
         std::ranges::copy_n(begin() + ptrdiff_t(addr), sizeof(val), tmp.begin());
-        val = std::bit_cast<decltype(val)>(tmp);
+        val = std::bit_cast<T>(tmp);
 
         if (m_endianness == std::endian::little)
             val = endianness::swap_on_be_platform(val);
@@ -188,3 +190,8 @@ PagedMemory::Iterator operator-(PagedMemory::Iterator it, PagedMemory::Iterator:
 PagedMemory::Iterator::difference_type operator-(const PagedMemory::Iterator &a, const PagedMemory::Iterator &b) {
     return static_cast<PagedMemory::Iterator::difference_type>(a.m_pos) - static_cast<PagedMemory::Iterator::difference_type>(b.m_pos);
 }
+
+#define INSTANTIATE_STORE(T) template bool PagedMemory::store(uint64_t addr, T) noexcept;
+#define INSTANTIATE_LOAD(T) template bool PagedMemory::load(uint64_t addr, T&) noexcept;
+FOR_EACH_INT(INSTANTIATE_STORE)
+FOR_EACH_INT(INSTANTIATE_LOAD)

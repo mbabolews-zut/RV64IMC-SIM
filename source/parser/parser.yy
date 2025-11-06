@@ -80,18 +80,20 @@ void yy::parser::error(const std::string& msg){
     std::cerr << "Parsing error (line:" << yylineno << "): " << msg << '\n';
 }
 
-int asm_parse(ParserProcessor &pproc, const std::string &str){
-    m_pproc = &pproc;
-    std::stringstream ss(str);
-    yyset_istream(&ss);
+namespace asm_parsing {
+    int parse(ParserProcessor &pproc, const std::string &str){
+        m_pproc = &pproc;
+        std::stringstream ss(str);
+        yyset_istream(&ss);
 
-    yy::parser parser;  
-    std::cout << "Starting parser\n";
-    yylineno = 1;
-    if (parser.parse() == 0) {
-        std::cout << "Parse succeeded\n";
-    } else {
-        std::cout << "Parse failed\n";
+        yy::parser parser;
+        std::cout << "Starting parser\n";
+        yylineno = 1;
+        if (parser.parse() == 0) {
+            std::cout << "Parse succeeded\n";
+        } else {
+            std::cout << "Parse failed\n";
+        }
+        return 0;
     }
-    return 0;
 }

@@ -73,3 +73,8 @@ const std::array<InstArg, 3> &Instruction::get_args() const noexcept {
 InstProto Instruction::get_prototype() const noexcept {
     return rv64::is::Rv64IMC::get_inst_proto(m_proto_id);
 }
+
+const Instruction & Instruction::get_invalid_cref() noexcept {
+    static Instruction invalid_inst{};
+    return invalid_inst;
+}

@@ -22,9 +22,8 @@ int main() {
         return 0;
     }
 
-
     // Parse and load program
-    asm_parse(parser_proc, whole_input);
+    asm_parsing::parse(parser_proc, whole_input);
     vm.load_program(parser_proc.get_parsed_instructions());
 
     // Helper function to print separator

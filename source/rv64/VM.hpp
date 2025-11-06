@@ -34,7 +34,7 @@ namespace rv64 {
 
         void set_stack_start_address(uint64_t addr);
 
-        VMState get_state() const noexcept;
+        [[nodiscard]] VMState get_state() const noexcept;
 
         struct Settings {
             uint64_t prog_start_address = 0x400000;
@@ -44,15 +44,13 @@ namespace rv64 {
             bool big_endian = false;
         };
 
-        const Settings& get_settings() const noexcept;
+        [[nodiscard]] const Settings& get_settings() const noexcept;
 
     public:
         Memory m_memory;
-        Cpu m_cpu{};
+        Cpu m_cpu{*this};
 
     private:
-        Interpreter m_interpreter{*this};
-        ParserProcessor::ParsedInstVec m_instructions;
         Settings m_settings;
         VMState m_state = VMState::Initializing;
     };

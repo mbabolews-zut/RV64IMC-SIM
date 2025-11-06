@@ -23,7 +23,7 @@ enum class InstArgType {
 
 
 using InstArg = std::variant<
-    std::monostate, rv64::Reg, rv64::GPIntRegRef /*for casting purposes*/,
+    std::monostate, rv64::Reg,
     int12, int20, uint12, uint5, uint6
 >;
 
@@ -62,7 +62,12 @@ public:
 
     [[nodiscard]] InstProto get_prototype() const noexcept;
 
+    static const Instruction& get_invalid_cref() noexcept;
+
 private:
-    int m_proto_id = 0;
+    Instruction() = default;
+
+    int m_proto_id = -1;
     std::array<InstArg, 3> m_args;
 };
+

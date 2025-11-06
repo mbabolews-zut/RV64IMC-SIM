@@ -14,20 +14,17 @@ namespace rv64 {
     }
 
     void VM::load_program(const ParserProcessor::ParsedInstVec &instructions) {
-        m_instructions = instructions;
+        m_memory.load_program(instructions);
+        m_cpu.set_pc(m_settings.prog_start_address);
         m_state = VMState::Loaded;
     }
 
     void VM::run_step() {
         assert(m_state == VMState::Loaded || m_state == VMState::Running || m_state == VMState::Stopped);
         m_state = VMState::Running;
-        auto ins_idx = m_cpu.get_pc() / 4; // Every instruction is written on 4 (without compressed now)
-        if (ins_idx < m_instructions.size()) {
-            m_interpreter.exec_instruction(m_instructions[ins_idx].second);
-            if (m_cpu.get_pc() / 4 >= m_instructions.size()) {
-                m_state = VMState::Finished;
-            }
-        } else {
+
+        // exec next instruction
+        if (!m_cpu.next_cycle()) {
             m_state = VMState::Finished;
         }
     }

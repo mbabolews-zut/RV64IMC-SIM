@@ -3,7 +3,9 @@
 #include <vector>
 
 class ParserProcessor;
-int asm_parse(ParserProcessor &pproc, const std::string &str);
+namespace asm_parsing {
+    int parse(ParserProcessor &pproc, const std::string &str);
+}
 
 class ParserProcessor {
 public:

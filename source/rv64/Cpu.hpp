@@ -11,7 +11,7 @@ namespace rv64 {
     public:
         static constexpr size_t INT_REG_CNT = 32;
 
-        Cpu();
+        Cpu(VM &vm);
 
         void set_pc(uint64_t pc);
 
@@ -21,7 +21,11 @@ namespace rv64 {
         [[nodiscard]] const GPIntReg &get_int_reg(Reg reg) const noexcept;
         [[nodiscard]] uint64_t get_pc() const;
 
-        void print_cpu_state();
+        void print_cpu_state() const;
+
+        /// @brief reads next instruction and updates the Cpu state
+        /// @return false if reached the last instruction, true otherwise
+        bool next_cycle();
 
     private:
         template<std::size_t... Is>
@@ -33,5 +37,7 @@ namespace rv64 {
     private:
         std::array<GPIntReg, INT_REG_CNT> m_int_regs;
         uint64_t m_pc = 0;
+        Interpreter m_interpreter;
+        VM &m_vm;
     };
 }

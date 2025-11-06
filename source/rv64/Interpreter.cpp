@@ -609,7 +609,6 @@ namespace rv64 {
             default:
                 throw std::runtime_error(std::format("Unknown instruction ID: {}", in.get_prototype().id));
         }
-        m_vm.m_cpu.set_pc(m_vm.m_cpu.get_pc() + 4); // TODO: Compressed instruction handling
         assert(m_vm.m_cpu.get_reg(0) == 0); // x0 is always zero
     }
 }
