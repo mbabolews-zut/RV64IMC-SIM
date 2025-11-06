@@ -54,6 +54,7 @@ set(SOURCE_FILES
         source/rv64/PagedMemory.cpp
         source/parser/ParserProcessor.hpp
         source/parser/ParserProcessor.cpp
+        source/ui.hpp
         # (omit source/parser/lex.yy.cc and parser.tab.* here)
 )
 

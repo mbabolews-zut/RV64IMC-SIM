@@ -3,29 +3,10 @@
 #include <cmath>
 #include <cstdint>
 #include <iostream>
-#include <ostream>
 #include <string_view>
-#include <type_traits>
+#include "ui.hpp"
 using namespace std::literals;
 
-/// TODO: move somewhere else
-namespace gui {
-    inline void display_error(std::string_view msg) {
-        std::cerr << "[ERROR] " << msg << std::endl;
-    }
-
-    inline void print_output(std::string_view msg) {
-        std::cout << "[OUTPUT] " << msg << std::endl;
-    }
-
-    inline void print_warning(std::string_view msg) {
-        std::cout << "[WARNING] " << msg << std::endl;
-    }
-
-    inline void print_info(std::string_view msg) {
-        std::cout << "[INFO] " << msg << std::endl;
-    }
-}
 
 inline std::string to_lowercase(std::string_view str) {
     std::string result;

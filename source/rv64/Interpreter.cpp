@@ -195,10 +195,10 @@ namespace rv64 {
         MemErr err{};
         switch (a0.sval()) {
             case 1:
-                gui::print_output(std::to_string(a1.sval()));
+                ui::print_output(std::to_string(a1.sval()));
                 return;
             case 4:
-                gui::print_output(m_vm.m_memory.load_string(a1.val(), err));
+                ui::print_output(m_vm.m_memory.load_string(a1.val(), err));
                 break;
             case 9:
                 a0 = m_vm.m_memory.sbrk(a1.sval(), err);
@@ -207,13 +207,13 @@ namespace rv64 {
                 m_vm.terminate(0);
                 return;
             case 11:
-                gui::print_output(std::string(1, static_cast<char>(a1.val() & 0xFF)));
+                ui::print_output(std::string(1, static_cast<char>(a1.val() & 0xFF)));
                 return;
             case 17:
                 m_vm.terminate(static_cast<int>(a1.sval()));
                 return;
             default:
-                gui::print_warning(std::format("Unsupported ecall code: {}", a0.sval()));
+                ui::print_warning(std::format("Unsupported ecall code: {}", a0.sval()));
                 return;
         }
         if (err != MemErr::None)
@@ -375,7 +375,7 @@ namespace rv64 {
 
     void Interpreter::handle_error(MemErr err) const {
         assert(err != MemErr::None);
-        gui::display_error("Memory access error: " + Memory::err_to_string(err));
+        ui::display_error("Memory access error: " + Memory::err_to_string(err));
         m_vm.error_stop();
     }
 
@@ -609,6 +609,7 @@ namespace rv64 {
             default:
                 throw std::runtime_error(std::format("Unknown instruction ID: {}", in.get_prototype().id));
         }
+        m_vm.m_cpu.set_pc(m_vm.m_cpu.get_pc() + 4); // TODO: Compressed instruction handling
         assert(m_vm.m_cpu.get_reg(0) == 0); // x0 is always zero
     }
 }

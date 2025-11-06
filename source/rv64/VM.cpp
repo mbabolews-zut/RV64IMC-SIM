@@ -21,9 +21,14 @@ namespace rv64 {
     void VM::run_step() {
         assert(m_state == VMState::Loaded || m_state == VMState::Running || m_state == VMState::Stopped);
         m_state = VMState::Running;
-        auto ins_idx = m_cpu.get_pc() / 2; // Every instruction is written on 2 bytes
+        auto ins_idx = m_cpu.get_pc() / 4; // Every instruction is written on 4 (without compressed now)
         if (ins_idx < m_instructions.size()) {
             m_interpreter.exec_instruction(m_instructions[ins_idx].second);
+            if (m_cpu.get_pc() / 4 >= m_instructions.size()) {
+                m_state = VMState::Finished;
+            }
+        } else {
+            m_state = VMState::Finished;
         }
     }
 
@@ -36,7 +41,7 @@ namespace rv64 {
 
     void VM::terminate(int exit_code) {
         m_state = VMState::Finished;
-        gui::print_info(std::format("Program terminated with exit code {}", exit_code));
+        ui::print_info(std::format("Program terminated with exit code {}", exit_code));
     }
 
     void VM::error_stop() {
@@ -55,6 +60,10 @@ namespace rv64 {
     void VM::set_stack_start_address(uint64_t addr) {
         assert(m_state == VMState::Initializing);
         m_settings.stack_start_address = addr;
+    }
+
+    VMState VM::get_state() const noexcept {
+        return m_state;
     }
 
     const VM::Settings & VM::get_settings() const noexcept {

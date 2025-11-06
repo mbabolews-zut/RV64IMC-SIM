@@ -34,6 +34,8 @@ namespace rv64 {
 
         void set_stack_start_address(uint64_t addr);
 
+        VMState get_state() const noexcept;
+
         struct Settings {
             uint64_t prog_start_address = 0x400000;
             uint64_t stack_start_address = 0x7FFFFFF0;
