@@ -375,7 +375,7 @@ namespace rv64 {
 
     void Interpreter::handle_error(MemErr err) const {
         assert(err != MemErr::None);
-        ui::display_error("Memory access error: " + Memory::err_to_string(err));
+        PRINT_ERROR("Memory access error: " + Memory::err_to_string(err));
         m_vm.error_stop();
     }
 
@@ -423,13 +423,16 @@ namespace rv64 {
     }
 
     void Interpreter::exec_instruction(const Instruction &in) {
-        assert(in.is_valid()); // assure that arguments are valid
+        if (!in.is_valid()) {
+            PRINT_ERROR("invalid instruction");
+            m_vm.error_stop();
+        }
+
         auto args = in.get_args();
 
         auto get_reg = [this](InstArg arg) -> GPIntReg& {
             return m_vm.m_cpu.get_int_reg(std::get<Reg>(arg));
         };
-        auto proto = in.get_prototype();
 
         switch (in.get_prototype().id) {
             // --- Immediate arithmetic ---

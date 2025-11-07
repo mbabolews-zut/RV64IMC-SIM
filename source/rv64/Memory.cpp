@@ -9,6 +9,9 @@
 #include <stdexcept>
 #include <cstring>
 
+/// @brief not compressed instructions are padded with following additional padding "instruction".
+/// If compressed instruction didn't exist then 4 would be used to access instruction vector instead.
+constexpr size_t MIN_INSTR_SIZE = 2;
 
 Memory::Memory() {
     m_stack.reserve(VEC_INIT_CAPACITY);
@@ -23,11 +26,11 @@ std::string Memory::load_string(uint64_t address, MemErr &err) const {
 
     if (addr_in_data(address)) {
         auto offset = data_addr_to_offset(address);
-        str_ptr = (const char *)(&m_data[offset]) ;
+        str_ptr = (const char *) (&m_data[offset]);
         max_len = m_data.size() - offset;
     } else if (addr_in_stack(address)) {
         auto offset = stack_addr_to_offset(address);
-        str_ptr = (const char *)(&m_stack[offset]);
+        str_ptr = (const char *) (&m_stack[offset]);
         max_len = m_stack.size() - offset;
     } else {
         err = MemErr::SegFault;
@@ -89,12 +92,16 @@ void Memory::init(std::span<const uint8_t> program_data) {
     m_initialized = true;
 }
 
-void Memory::load_program(const ParserProcessor::ParsedInstVec &instructions) {
+void Memory::load_program(const asm_parsing::ParsedInstVec &instructions) {
     m_instructions = instructions;
 }
 
-const Instruction &Memory::get_instruction_at(uint64_t address, MemErr &err) const {
-    size_t offset = (address - m_config.data_addr) / 4; // TODO: support for compressed instruction (... / 2 pad standard instructions)
+
+const Instruction &Memory::get_instruction_at(uint64_t address, MemErr &err, size_t *line) const {
+    assert(!m_instructions.empty());
+    if (line) *line = SIZE_MAX;
+
+    size_t offset = (address - m_config.data_addr) / MIN_INSTR_SIZE;
     if (offset == m_instructions.size()) {
         err = MemErr::ProgramExit; // actually not an error
         return Instruction::get_invalid_cref();
@@ -103,12 +110,14 @@ const Instruction &Memory::get_instruction_at(uint64_t address, MemErr &err) con
         err = MemErr::SegFault;
         return Instruction::get_invalid_cref();
     }
+    const auto &inst = m_instructions.at(offset);
     err = MemErr::None;
-    return m_instructions.at(offset).second;
+    if (line) *line = inst.lineno;
+    return inst.inst;
 }
 
-const uint64_t Memory::get_instruction_end_addr() const {
-    return m_config.data_addr + m_instructions.size() * 4; // TODO: support for compressed instruction (... * 2 pad standard instructions)
+uint64_t Memory::get_instruction_end_addr() const {
+    return m_config.data_addr + m_instructions.size() * MIN_INSTR_SIZE;
 }
 
 std::string Memory::err_to_string(MemErr err) {
@@ -164,7 +173,7 @@ size_t Memory::get_program_space_size() const {
     return m_data.size();
 }
 
-const Memory::Config & Memory::get_conf() const {
+const Memory::Config &Memory::get_conf() const {
     return m_config;
 }
 
@@ -220,7 +229,7 @@ MemErr Memory::store(uint64_t address, T value) {
         auto offset = stack_addr_to_offset(address);
 
         // expand stack if needed
-        if (offset + sizeof(T)> m_stack.size()) {
+        if (offset + sizeof(T) > m_stack.size()) {
             try {
                 m_stack.resize(offset + sizeof(T));
             } catch (const std::exception &) {

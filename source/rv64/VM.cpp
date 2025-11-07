@@ -13,7 +13,7 @@ namespace rv64 {
         m_memory.init(empty_prog);
     }
 
-    void VM::load_program(const ParserProcessor::ParsedInstVec &instructions) {
+    void VM::load_program(const asm_parsing::ParsedInstVec &instructions) {
         m_memory.load_program(instructions);
         m_cpu.set_pc(m_settings.prog_start_address);
         m_state = VMState::Loaded;

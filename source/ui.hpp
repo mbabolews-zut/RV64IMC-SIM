@@ -14,9 +14,15 @@ namespace ui {
         _estrm = &os;
     }
 
-    inline void display_error(std::string_view msg) {
-        *_estrm << "[ERROR] " << msg << std::endl;
-    }
+#ifdef DEBUG
+#define PRINT_ERROR(msg)\
+    *ui::_estrm << "[ERROR in " << __FILE__ << ":" << __LINE__ \
+    << " (" << __func__ << ")] " << msg << std::endl
+#else
+#define PRINT_ERROR(msg) \
+    *ui::_estrm << "[ERROR]" \
+    << " (" << __func__ << ")] " << msg << std::endl
+#endif
 
     inline void print_output(std::string_view msg) {
         *_ostrm << "" << msg << std::endl;

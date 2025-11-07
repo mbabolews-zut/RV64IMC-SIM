@@ -15,7 +15,7 @@
     extern yy::parser::symbol_type yylex(void);
     extern int yyparse(void);
     extern void yyset_istream(std::istream *in);
-    ParserProcessor *m_pproc = nullptr;
+    static ParserProcessor m_pproc{};
 }
 
 %token<std::string> Instruction
@@ -50,9 +50,9 @@ statement
     : Directive opt_operand_list
         { std::cout << "Directive: " << $1 << "\n"; }
     | Instruction opt_operand_list
-        { std::cout << "Instruction: " << $1 << "\n"; m_pproc->push_instruction($1, yylineno); }
+        { std::cout << "Instruction: " << $1 << "\n"; m_pproc.push_instruction($1, yylineno); }
     | Identifier opt_operand_list
-        { std::cout << "Instruction: " << $1 << "\n"; m_pproc->push_instruction($1, yylineno); }
+        { std::cout << "Instruction: " << $1 << "\n"; m_pproc.push_instruction($1, yylineno); }
     ;
 
 opt_operand_list
@@ -67,9 +67,9 @@ operand_list
 
 operand
     : Number
-        { std::cout << "  Number: " << $1 << "\n"; m_pproc->push_param($1); }
+        { std::cout << "  Number: " << $1 << "\n"; m_pproc.push_param($1); }
     | Identifier
-        { std::cout << "  Identifier operand: " << $1 << "\n"; m_pproc->push_param($1); }
+        { std::cout << "  Identifier operand: " << $1 << "\n"; m_pproc.push_param($1); }
     | LeftParen Identifier RightParen
         { std::cout << "  Parenthesized: (" << $2 << ")\n"; }
     ;
@@ -81,8 +81,8 @@ void yy::parser::error(const std::string& msg){
 }
 
 namespace asm_parsing {
-    int parse(ParserProcessor &pproc, const std::string &str){
-        m_pproc = &pproc;
+    int parse(ParsedInstVec &result, const std::string &str){
+        m_pproc.reset();
         std::stringstream ss(str);
         yyset_istream(&ss);
 
@@ -94,6 +94,7 @@ namespace asm_parsing {
         } else {
             std::cout << "Parse failed\n";
         }
+        result = m_pproc.get_parsed_instructions();
         return 0;
     }
 }

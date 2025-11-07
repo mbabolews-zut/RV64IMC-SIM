@@ -1,15 +1,10 @@
 #pragma once
-#include <Instruction.hpp>
+#include <parser/asm_parsing.hpp>
 #include <vector>
 
-class ParserProcessor;
-namespace asm_parsing {
-    int parse(ParserProcessor &pproc, const std::string &str);
-}
 
 class ParserProcessor {
 public:
-    using ParsedInstVec = std::vector<std::pair<size_t, Instruction>>; // pair (line, instruction)
 
     ParserProcessor() {
         m_instructions.reserve(32);
@@ -23,10 +18,13 @@ public:
         // TODO: pseudo instructions
         Instruction inst {str, m_parms};
         m_instructions.emplace_back(line, inst);
+        if (tolower(str[0]) != 'c') {
+            m_instructions.emplace_back(SIZE_MAX, Instruction::get_invalid_cref());
+        }
         m_parm_n = 0;
     }
 
-    ParsedInstVec get_parsed_instructions() {
+    asm_parsing::ParsedInstVec get_parsed_instructions() const {
         return m_instructions;
     }
 
@@ -39,7 +37,7 @@ public:
 private:
     size_t m_parm_n = 0;
     std::array<std::string, 3> m_parms;
-    ParsedInstVec m_instructions; // line and instruction
+    asm_parsing::ParsedInstVec m_instructions; // line and instruction
 };
 
 

@@ -18,7 +18,7 @@ namespace rv64 {
     public:
         VM();
 
-        void load_program(const ParserProcessor::ParsedInstVec &instructions);
+        void load_program(const asm_parsing::ParsedInstVec &instructions);
 
         void run_step();
 

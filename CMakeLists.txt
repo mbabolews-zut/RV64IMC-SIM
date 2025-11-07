@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.16)
 project(RV64_SIM LANGUAGES CXX)
 
+if(CMAKE_BUILD_TYPE MATCHES  "Debug")
+    add_definitions(-DDEBUG)
+endif()
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
@@ -55,6 +59,7 @@ set(SOURCE_FILES
         source/parser/ParserProcessor.hpp
         source/parser/ParserProcessor.cpp
         source/ui.hpp
+        source/parser/asm_parsing.hpp
         # (omit source/parser/lex.yy.cc and parser.tab.* here)
 )
 

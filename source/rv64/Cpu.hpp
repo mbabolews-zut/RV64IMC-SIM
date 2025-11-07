@@ -21,6 +21,8 @@ namespace rv64 {
         [[nodiscard]] const GPIntReg &get_int_reg(Reg reg) const noexcept;
         [[nodiscard]] uint64_t get_pc() const;
 
+        size_t get_current_line() const;
+
         void print_cpu_state() const;
 
         /// @brief reads next instruction and updates the Cpu state
@@ -39,5 +41,8 @@ namespace rv64 {
         uint64_t m_pc = 0;
         Interpreter m_interpreter;
         VM &m_vm;
+        size_t m_current_line = 0;
+
+        std::array<uint64_t, INT_REG_CNT> m_int_regs_prev_vals = {};
     };
 }

@@ -4,7 +4,7 @@
 #include <vector>
 #include <span>
 
-#include "parser/ParserProcessor.hpp"
+#include "parser/asm_parsing.hpp"
 
 enum class MemErr {
     None = 0, SegFault = 1, NotTermStr = 2, OutOfMemory = 3, NegativeSizeOfHeap = 4, ProgramExit = 5
@@ -42,11 +42,12 @@ public:
 
     void init(std::span<const uint8_t> program_data);
 
-    void load_program(const ParserProcessor::ParsedInstVec &instructions);
+    void load_program(const asm_parsing::ParsedInstVec &instructions);
 
-    [[nodiscard]] const Instruction &get_instruction_at(uint64_t address, MemErr &err) const;
+    /// @line optional pointer to where the line of instruction will be placed. If instruction out of range then results in SIZE_MAX
+    [[nodiscard]] const Instruction &get_instruction_at(uint64_t address, MemErr &err, size_t *line = nullptr) const;
 
-    [[nodiscard]] const uint64_t get_instruction_end_addr() const;
+    [[nodiscard]] uint64_t get_instruction_end_addr() const;
 
     [[nodiscard]] static std::string err_to_string(MemErr err);
 
@@ -84,7 +85,7 @@ private:
     uint64_t m_stack_bottom = 0;
     uint64_t m_heap_addr = 0;
 
-    ParserProcessor::ParsedInstVec m_instructions;
+    asm_parsing::ParsedInstVec m_instructions;
 
     bool m_initialized = false;
 };
