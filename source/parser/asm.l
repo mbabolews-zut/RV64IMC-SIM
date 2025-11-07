@@ -38,7 +38,7 @@ enum FlexToken {
 [a-zA-Z_][a-zA-Z0-9_]*                              { yydebug("flex: identifier");           return IdentifierToken;     }
 
 0[bB][01]+                                          { yydebug("flex: binary number");        return NumberToken;         }
-[+-]?((0x[0-9A-Fa-f]+)|(0[0-7]+)|([1-9][0-9]*))     { yydebug("flex: number");               return NumberToken;         }
+[+-]?((0x[0-9A-Fa-f]+)|(0[0-7]+)|([1-9][0-9]*)|0)     { yydebug("flex: number");               return NumberToken;         }
 
 %[a-zA-Z_][a-zA-Z0-9_]*                             { yydebug("flex: directive");            return DirectiveToken;      }
 
@@ -48,7 +48,7 @@ enum FlexToken {
 
 [a-zA-Z_][a-zA-Z0-9_]*:                             { yydebug("flex: label");                return LabelToken;          }
 
-\n                                                  { yydebug("flex: new line"); yylineno++; return NewLineToken;        }
+\n                                                  { yydebug("flex: new line"); return NewLineToken;        }
 
 [ \t\r]+                                            { /* ignore whitespace */                                            }
 
@@ -63,6 +63,8 @@ void yyset_istream(std::istream *in){
 yy::parser::symbol_type yylex() {
     int token = scanner.yylex();
     std::string text = scanner.YYText();
+
+    if(token == NewLineToken) yylineno++;
 
 
     switch(token) {

@@ -88,7 +88,7 @@ namespace asm_parsing {
 
         yy::parser parser;
         std::cout << "Starting parser\n";
-        yylineno = 1;
+        yylineno = 0;
         if (parser.parse() == 0) {
             std::cout << "Parse succeeded\n";
         } else {

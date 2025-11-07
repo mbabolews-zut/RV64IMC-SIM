@@ -40,7 +40,7 @@ namespace rv64::is {
                 return IBase::list_inst()[id - IBase::BASE_ID];
             }
             if (id >= IExtM::BASE_ID && id < IExtM::BASE_ID + IExtM::list_inst().size()) {
-                return IExtM::list_inst()[id - IBase::BASE_ID];
+                return IExtM::list_inst()[id - IExtM::BASE_ID];
             }
             return invalid_inst_proto;
         }
