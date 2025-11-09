@@ -15,7 +15,7 @@ namespace rv64 {
 
         void set_pc(uint64_t pc);
 
-        [[nodiscard]] GPIntReg &get_reg(int i) noexcept;
+        [[nodiscard]] GPIntReg &reg(int i) noexcept;
         [[nodiscard]] const GPIntReg &get_int_reg(int i) const noexcept;
         [[nodiscard]] GPIntReg &get_int_reg(Reg reg) noexcept;
         [[nodiscard]] const GPIntReg &get_int_reg(Reg reg) const noexcept;

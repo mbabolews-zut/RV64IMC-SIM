@@ -42,7 +42,7 @@ namespace rv64 {
         m_pc = pc & ~UINT64_C(1); // ensure LSB is 0
     }
 
-    GPIntReg &Cpu::get_reg(int i) noexcept {
+    GPIntReg &Cpu::reg(int i) noexcept {
         assert(i < INT_REG_CNT);
         return m_int_regs[i];
     }
@@ -53,13 +53,12 @@ namespace rv64 {
     }
 
     GPIntReg & Cpu::get_int_reg(Reg reg) noexcept {
-        return get_reg(reg.get_idx());
+        return m_int_regs[reg.get_idx()];
     }
 
     const GPIntReg & Cpu::get_int_reg(Reg reg) const noexcept {
         return get_int_reg(reg.get_idx());
     }
-
 
     GPIntReg &GPIntReg::operator=(uint64_t val) {
         if (get_idx() != 0)

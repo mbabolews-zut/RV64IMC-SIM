@@ -6,16 +6,15 @@
 
 namespace rv64 {
 
-    VM::VM() {
-        assert(m_state == VMState::Initializing);
+    VM::VM(const Memory::Layout &layout)
+        : m_memory(layout)
+    {
         m_state = VMState::Initializing;
-        std::array<uint8_t, 4> empty_prog{};
-        m_memory.init(empty_prog);
     }
 
     void VM::load_program(const asm_parsing::ParsedInstVec &instructions) {
         m_memory.load_program(instructions);
-        m_cpu.set_pc(m_settings.prog_start_address);
+        m_cpu.set_pc(m_memory.get_layout().data_base);
         m_state = VMState::Loaded;
     }
 
@@ -23,7 +22,6 @@ namespace rv64 {
         assert(m_state == VMState::Loaded || m_state == VMState::Running || m_state == VMState::Stopped);
         m_state = VMState::Running;
 
-        // exec next instruction
         if (!m_cpu.next_cycle()) {
             m_state = VMState::Finished;
         }
@@ -49,21 +47,12 @@ namespace rv64 {
         m_state = VMState::Breakpoint;
     }
 
-    void VM::set_program_start_address(uint64_t addr) {
-        assert(m_state == VMState::Initializing);
-        m_settings.prog_start_address = addr;
-    }
-
-    void VM::set_stack_start_address(uint64_t addr) {
-        assert(m_state == VMState::Initializing);
-        m_settings.stack_start_address = addr;
-    }
-
     VMState VM::get_state() const noexcept {
         return m_state;
     }
 
-    const VM::Settings & VM::get_settings() const noexcept {
-        return m_settings;
+    const Memory::Layout &VM::get_memory_layout() const noexcept {
+        return m_memory.get_layout();
     }
+
 } // rv64

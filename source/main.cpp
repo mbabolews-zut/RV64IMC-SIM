@@ -25,7 +25,11 @@ int main() {
     lines.emplace_back(" ");
 
     // Parse and load program
-    asm_parsing::parse(inst_vec, whole_input);
+    int parsed = asm_parsing::parse(inst_vec, whole_input);
+    if (parsed != 0) {
+        std::cerr << "Error: Failed to parse input assembly code.\n";
+        return 1;
+    }
     vm.load_program(inst_vec);
 
     // Helper function to print separator

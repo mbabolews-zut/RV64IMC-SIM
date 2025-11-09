@@ -1,22 +1,24 @@
 find_package(Catch2 REQUIRED)
 
-# Reuse source files from the main project
-set(TEST_SOURCES
-        ${CMAKE_SOURCE_DIR}/source/common.hpp
-        ${CMAKE_SOURCE_DIR}/source/rv64/Cpu.cpp
-        ${CMAKE_SOURCE_DIR}/source/rv64/Interpreter.cpp
-        ${CMAKE_SOURCE_DIR}/source/rv64/Memory.cpp
-        ${CMAKE_SOURCE_DIR}/source/rv64/VM.cpp
-        # Add others if needed
+# Get parent's source files (exclude main.cpp)
+file(GLOB_RECURSE PROJECT_SOURCE_FILES
+        ${CMAKE_SOURCE_DIR}/source/*.cpp
+        ${CMAKE_SOURCE_DIR}/source/*.hpp
 )
+list(FILTER PROJECT_SOURCE_FILES EXCLUDE REGEX ".*main\\.cpp$")
+
+# Auto-discover test files
+file(GLOB TEST_FILES *.cpp)
 
 add_executable(RV64_SIM_tests
-        ${TEST_SOURCES}
-        memory_test.cpp
+        ${PROJECT_SOURCE_FILES}
+        ${TEST_FILES}
+        interp_instr_methods_test.cpp
 )
 
 target_include_directories(RV64_SIM_tests PRIVATE
         ${CMAKE_SOURCE_DIR}/source
+        ${GEN_DIR}
 )
 
 target_link_libraries(RV64_SIM_tests PRIVATE Catch2::Catch2WithMain)

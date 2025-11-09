@@ -60,7 +60,7 @@ namespace rv64 {
     }
 
     void Interpreter::lui(GPIntReg &rd, int20 imm20) {
-        rd = imm20 << 12;
+        rd = static_cast<int32_t>(imm20 << 12);
     }
 
     void Interpreter::auipc(GPIntReg &rd, int20 imm20) {
@@ -109,12 +109,12 @@ namespace rv64 {
 
     void Interpreter::jal(GPIntReg &rd, int20 imm20) {
         rd = m_vm.m_cpu.get_pc() + 4;
-        m_vm.m_cpu.set_pc(rd.val() + imm20 * 2 - 4);
+        m_vm.m_cpu.set_pc(m_vm.m_cpu.get_pc() + imm20 * 2 - 4);
     }
 
     void Interpreter::jalr(GPIntReg &rd, const GPIntReg &rs, int12 imm12) {
         rd = m_vm.m_cpu.get_pc() + 4;
-        m_vm.m_cpu.set_pc(rs.sval() + imm12 * 2 - 4);
+        m_vm.m_cpu.set_pc(rs.sval() + imm12 - 4);
     }
 
     void Interpreter::beq(const GPIntReg &rs1, const GPIntReg &rs2, int12 imm12) {
@@ -190,8 +190,8 @@ namespace rv64 {
     }
 
     void Interpreter::ecall() {
-        auto &a0 = m_vm.m_cpu.get_reg(10);
-        const auto &a1 = m_vm.m_cpu.get_reg(11);
+        auto &a0 = m_vm.m_cpu.reg(10);
+        const auto &a1 = m_vm.m_cpu.reg(11);
         MemErr err{};
         switch (a0.sval()) {
             case 1:
@@ -225,7 +225,7 @@ namespace rv64 {
     }
 
     void Interpreter::addiw(GPIntReg &rd, const GPIntReg &rs, int12 imm12) {
-        rd = rs.as_i32() + imm12;
+        rd = rs.as_i32() + static_cast<int32_t>(imm12);
     }
 
     void Interpreter::slliw(GPIntReg &rd, const GPIntReg &rs, uint5 imm5) {
@@ -306,7 +306,7 @@ namespace rv64 {
 
     void Interpreter::mulhsu(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) {
 #   ifdef __SIZEOF_INT128__
-        rd = int64_t(__int128_t(rs1.val()) * __uint128_t(rs2.val()) >> 64);
+        rd = int64_t(__int128_t(rs1.sval()) * __uint128_t(rs2.val()) >> 64);
 #   else
         bool neg = (rs1.sval() < 0);
 
@@ -330,11 +330,15 @@ namespace rv64 {
     }
 
     void Interpreter::div(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) {
-        rd = rs1.sval() / rs2.sval();
+        rd = div_rem_tmpl<false>(rs1.sval(), rs2.sval());
     }
 
     void Interpreter::divu(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) {
-        rd = rs1.val() / rs2.val();
+        if (rs2 == 0) {
+            rd = -1;
+        } else {
+            rd = rs1.val() / rs2.val();
+        }
     }
 
     void Interpreter::rem(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) {
@@ -342,11 +346,11 @@ namespace rv64 {
     }
 
     void Interpreter::remu(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) {
-        if (rs2.sval() == 0) {
+        if (rs2 == 0) {
             rd = rs1.val();
-            return;
+        } else {
+            rd = rs1.val() % rs2.val();
         }
-        rd = rs1.val() % rs2.val();
     }
 
     void Interpreter::divw(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) {
@@ -416,10 +420,10 @@ namespace rv64 {
     int64_t Interpreter::div_rem_tmpl(T lhs, T rhs) {
         static_assert(std::is_signed_v<T>);
         if (rhs == 0)
-            return -1;
+            return Rem? lhs : -1;
         if (lhs == std::numeric_limits<T>::min() && rhs == -1)
             return Rem ? 0 : lhs;
-        return lhs / rhs;
+        return Rem ? (lhs % rhs) : (lhs / rhs);
     }
 
     void Interpreter::exec_instruction(const Instruction &in) {
@@ -433,7 +437,6 @@ namespace rv64 {
         auto get_reg = [this](InstArg arg) -> GPIntReg& {
             return m_vm.m_cpu.get_int_reg(std::get<Reg>(arg));
         };
-        auto proto = in.get_prototype();
 
         switch (in.get_prototype().id) {
             // --- Immediate arithmetic ---
@@ -613,6 +616,6 @@ namespace rv64 {
             default:
                 throw std::runtime_error(std::format("Unknown instruction ID: {}", in.get_prototype().id));
         }
-        assert(m_vm.m_cpu.get_reg(0) == 0); // x0 is always zero
+        assert(m_vm.m_cpu.reg(0) == 0); // x0 is always zero
     }
 }

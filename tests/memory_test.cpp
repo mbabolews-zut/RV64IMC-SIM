@@ -2,174 +2,431 @@
 #include <rv64/Memory.hpp>
 #include <rv64/VM.hpp>
 
-TEST_CASE("Memory basic tests", "[memory][load][store]") {
+TEST_CASE("Memory alignment requirements", "[memory][alignment]") {
     rv64::VM vm{};
     Memory &mem = vm.m_memory;
     MemErr err = MemErr::None;
-    const auto &conf = vm.get_settings();
+    const auto &layout = vm.get_memory_layout();
 
-    // Store to data segment
-    SECTION("Storing to data segment") {
-        INFO("brk:" + std::to_string(mem.get_brk()));
-        INFO("program_space_size: " + std::to_string(mem.get_program_space_size()));
-        err = mem.store(conf.prog_start_address + 5, 0x12345678);
-        INFO(Memory::err_to_string(err));
+    SECTION("Aligned access should succeed") {
+        err = mem.store<uint16_t>(layout.data_base, 0x1234);
         REQUIRE(err == MemErr::None);
 
-        // Edge cases
-        INFO("brk:" + std::to_string(mem.get_brk()));
-        INFO("program_space_size: " + std::to_string(mem.get_program_space_size()));
-        err = mem.store(conf.prog_start_address, 0xdeadbeef);
-        INFO(Memory::err_to_string(err));
+        err = mem.store<uint32_t>(layout.data_base + 4, 0x12345678);
         REQUIRE(err == MemErr::None);
 
-        INFO("brk:" + std::to_string(mem.get_brk()));
-        INFO("program_space_size: " + std::to_string(mem.get_program_space_size()));
-        err = mem.store<uint32_t>(mem.get_brk() - 4, 0xabcdef01);
-        INFO(Memory::err_to_string(err));
+        err = mem.store<uint64_t>(layout.data_base + 8, 0x123456789ABCDEF0);
         REQUIRE(err == MemErr::None);
+    }
 
-        // Error cases
-        err = mem.store<uint16_t>(conf.prog_start_address - 1, 0xbeef);
-        INFO(Memory::err_to_string(err));
-        REQUIRE(err == MemErr::SegFault);
+    SECTION("Unaligned 16-bit access should fail") {
+        err = mem.store<uint16_t>(layout.data_base + 1, 0x1234);
+        REQUIRE(err == MemErr::UnalignedAccess);
 
-        err = mem.store<int8_t>(conf.prog_start_address + Memory::PROGRAM_MEM_LIMIT - 4, 0x20);
-        INFO(Memory::err_to_string(err));
-        REQUIRE(err == MemErr::SegFault);
+        uint16_t val = mem.load<uint16_t>(layout.data_base + 3, err);
+        REQUIRE(err == MemErr::UnalignedAccess);
+        REQUIRE(val == 0);
+    }
 
-        // Load to data segment
-        SECTION("Loading from data segment") {
-            auto val = mem.load<uint32_t>(conf.prog_start_address + 5, err);
-            INFO(Memory::err_to_string(err));
-            REQUIRE(err == MemErr::None);
-            REQUIRE(val == 0x12345678);
+    SECTION("Unaligned 32-bit access should fail") {
+        err = mem.store<uint32_t>(layout.data_base + 1, 0x12345678);
+        REQUIRE(err == MemErr::UnalignedAccess);
 
-            val = mem.load<uint32_t>(conf.prog_start_address, err);
-            INFO(Memory::err_to_string(err));
-            REQUIRE(err == MemErr::None);
-            REQUIRE(val == 0xdeadbeef);
+        err = mem.store<uint32_t>(layout.data_base + 2, 0x12345678);
+        REQUIRE(err == MemErr::UnalignedAccess);
 
-            val = mem.load<uint32_t>(mem.get_brk() - 4, err);
-            INFO(Memory::err_to_string(err));
-            REQUIRE(err == MemErr::None);
-            REQUIRE(val == 0xabcdef01);
+        uint32_t val = mem.load<uint32_t>(layout.data_base + 3, err);
+        REQUIRE(err == MemErr::UnalignedAccess);
+        REQUIRE(val == 0);
+    }
 
-            // Error cases
-            mem.load<uint16_t>(conf.prog_start_address - 1, err);
-            INFO(Memory::err_to_string(err));
-            REQUIRE(err == MemErr::SegFault);
+    SECTION("Unaligned 64-bit access should fail") {
+        for (uint64_t offset = 1; offset < 8; ++offset) {
+            err = mem.store<uint64_t>(layout.data_base + offset, 0x123456789ABCDEF0);
+            REQUIRE(err == MemErr::UnalignedAccess);
 
-            mem.load<uint16_t>(conf.prog_start_address + Memory::PROGRAM_MEM_LIMIT - 4, err);
-            INFO(Memory::err_to_string(err));
-            REQUIRE(err == MemErr::SegFault);
-
-            mem.load<int8_t>(mem.get_brk(), err);
-            INFO(Memory::err_to_string(err));
-            REQUIRE(err == MemErr::SegFault);
+            uint64_t val = mem.load<uint64_t>(layout.data_base + offset, err);
+            REQUIRE(err == MemErr::UnalignedAccess);
+            REQUIRE(val == 0);
         }
     }
 
-    // Store to stack segment
-    SECTION("Storing to stack segment") {
-        err = mem.store<uint16_t>(conf.stack_start_address - 0x1000, UINT16_MAX);
-        INFO(Memory::err_to_string(err));
+    SECTION("8-bit access is always aligned") {
+        for (uint64_t offset = 0; offset < 16; ++offset) {
+            err = mem.store<uint8_t>(layout.data_base + offset, 0x42);
+            REQUIRE(err == MemErr::None);
+
+            uint8_t val = mem.load<uint8_t>(layout.data_base + offset, err);
+            REQUIRE(err == MemErr::None);
+            REQUIRE(val == 0x42);
+        }
+    }
+}
+
+TEST_CASE("Memory descending stack (default)", "[memory][stack][descending]") {
+    Memory::Layout layout;
+    layout.stack_base = 0x7FF00000;  // Base (bottom) of stack
+    layout.stack_size = 0x100000; // 1 MiB
+    rv64::VM vm{layout};
+    Memory &mem = vm.m_memory;
+    MemErr err = MemErr::None;
+
+    const uint64_t stack_bottom = layout.stack_base;
+    const uint64_t stack_top = layout.stack_base + layout.stack_size;
+
+    SECTION("Stack boundaries are correct") {
+        INFO("stack_bottom: " + std::format("{:#x}", stack_bottom));
+        INFO("stack_top: " + std::format("{:#x}", stack_top));
+        REQUIRE(stack_bottom == 0x7FF00000);
+        REQUIRE(stack_top == 0x80000000);
+    }
+
+    SECTION("Can write to stack bottom (lowest valid address)") {
+        err = mem.store<uint64_t>(stack_bottom, 0xDEADBEEFCAFEBABE);
         REQUIRE(err == MemErr::None);
 
-        // Edge cases
-        err = mem.store<int64_t>(conf.stack_start_address - 8, INT64_MAX - 2);
-        INFO(Memory::err_to_string(err));
+        auto val = mem.load<uint64_t>(stack_bottom, err);
+        REQUIRE(err == MemErr::None);
+        REQUIRE(val == 0xDEADBEEFCAFEBABE);
+    }
+
+    SECTION("Can write to stack top - 8 (highest valid address for 64-bit)") {
+        err = mem.store<uint64_t>(stack_top - 8, 0x123456789ABCDEF0);
         REQUIRE(err == MemErr::None);
 
-        err = mem.store<int16_t>(conf.stack_start_address - conf.stack_size, INT16_MAX);
-        INFO(Memory::err_to_string(err));
+        auto val = mem.load<uint64_t>(stack_top - 8, err);
+        REQUIRE(err == MemErr::None);
+        REQUIRE(val == 0x123456789ABCDEF0);
+    }
+
+    SECTION("Can write throughout the stack") {
+        err = mem.store<uint32_t>(stack_bottom + 0x1000, 0x11111111);
         REQUIRE(err == MemErr::None);
 
-        // Error cases
-        err = mem.store<uint16_t>(conf.stack_start_address - 1, 0xbeef);
-        INFO(Memory::err_to_string(err));
+        err = mem.store<uint32_t>(stack_bottom + 0x50000, 0x22222222);
+        REQUIRE(err == MemErr::None);
+
+        err = mem.store<uint32_t>(stack_top - 0x1000, 0x33333333);
+        REQUIRE(err == MemErr::None);
+    }
+
+    SECTION("Cannot write below stack bottom") {
+        err = mem.store<uint64_t>(stack_bottom - 8, 0xDEADBEEF);
         REQUIRE(err == MemErr::SegFault);
 
-        err = mem.store<int8_t>(conf.stack_start_address, 0x20);
-        INFO(Memory::err_to_string(err));
+        err = mem.store<uint8_t>(stack_bottom - 1, 0x42);
+        REQUIRE(err == MemErr::SegFault);
+    }
+
+    SECTION("Cannot write at or above stack top") {
+        err = mem.store<uint64_t>(stack_top, 0xDEADBEEF);
         REQUIRE(err == MemErr::SegFault);
 
-        // Load to stack segment
-        SECTION("Loading from stack segment") {
-            auto val = mem.load<uint16_t>(conf.stack_start_address - 0x1000, err);
-            INFO(Memory::err_to_string(err));
-            REQUIRE(err == MemErr::None);
-            REQUIRE(val == UINT16_MAX);
+        err = mem.store<uint8_t>(stack_top + 100, 0x42);
+        REQUIRE(err == MemErr::SegFault);
+    }
 
-            // Edge cases
-            val = mem.load<int16_t>(conf.stack_start_address - conf.stack_size, err);
-            INFO(Memory::err_to_string(err));
-            REQUIRE(err == MemErr::None);
-            REQUIRE(val == INT16_MAX);
+    SECTION("Multi-byte values cannot cross stack boundary") {
+        // First verify stack_bottom alignment for predictable test behavior
+        REQUIRE(stack_bottom % 8 == 0);  // Ensure 8-byte alignment
 
-            auto val64 = mem.load<int64_t>(conf.stack_start_address - 8, err);
-            INFO(Memory::err_to_string(err));
-            REQUIRE(err == MemErr::None);
-            REQUIRE(val64 == INT64_MAX - 2);
+        // Test 1: Aligned 32-bit value entirely within bounds (near top)
+        err = mem.store<uint32_t>(stack_top - 4, 0x12345678);
+        REQUIRE(err == MemErr::None);  // 0x7FFFFFFC-0x7FFFFFFF all valid
 
-            // Error cases
-            mem.load<uint16_t>(conf.stack_start_address - 1, err);
-            INFO(Memory::err_to_string(err));
-            REQUIRE(err == MemErr::SegFault);
+        // Test 2: Aligned 64-bit value at boundary - starts outside
+        err = mem.store<uint64_t>(stack_top, 0x123456789ABCDEF0);
+        REQUIRE(err == MemErr::SegFault);  // 0x80000000 is first invalid address
 
-            mem.load<int16_t>(conf.stack_start_address - conf.stack_size - 1, err);
-            INFO(Memory::err_to_string(err));
-            REQUIRE(err == MemErr::SegFault);
+        // Test 3: Aligned 64-bit value at bottom boundary
+        err = mem.store<uint64_t>(stack_bottom - 8, 0xDEADBEEFCAFEBABE);
+        REQUIRE(err == MemErr::SegFault);  // Entirely below valid range
 
-            mem.load<int8_t>(conf.stack_start_address, err);
-            INFO(Memory::err_to_string(err));
+        // Test 4: Unaligned access near top boundary
+        // 0x7FFFFFFC is not 8-byte aligned (would need 0x7FFFFFF8)
+        err = mem.store<uint64_t>(stack_top - 4, 0x123456789ABCDEF0);
+        REQUIRE(err == MemErr::UnalignedAccess);  // Alignment checked first
+
+        // Test 5: Unaligned access near bottom boundary
+        // Since stack_bottom is 8-byte aligned, stack_bottom - 2 is not 4-byte aligned
+        err = mem.store<uint32_t>(stack_bottom - 2, 0x12345678);
+        REQUIRE(err == MemErr::UnalignedAccess);  // Alignment checked before bounds
+
+        // Test 6: Properly aligned value entirely below stack
+        if (stack_bottom >= 16) {  // Ensure we have room
+            uint64_t below_stack = (stack_bottom - 16) & ~7ULL;  // Align down
+            err = mem.store<uint64_t>(below_stack, 0xDEADBEEF);
             REQUIRE(err == MemErr::SegFault);
         }
     }
 }
 
-
-TEST_CASE("Memory sbrk behavior", "[memory][sbrk]") {
-    rv64::VM vm{};
+TEST_CASE("Memory stack at different address", "[memory][stack]") {
+    Memory::Layout layout;
+    layout.stack_base = 0x10000000;
+    layout.stack_size = 0x100000; // 1 MiB
+    rv64::VM vm{layout};
     Memory &mem = vm.m_memory;
     MemErr err = MemErr::None;
 
-    const auto &conf = mem.get_conf();
-    INFO(std::format("initial brk: {:X}, initial heap size: {:X}",
-        conf.data_addr,
-        conf.initial_heap_size));
+    const uint64_t stack_bottom = layout.stack_base;
+    const uint64_t stack_top = layout.stack_base + layout.stack_size;
+
+    SECTION("Stack boundaries are correct") {
+        INFO("stack_bottom: " + std::format("{:#x}", stack_bottom));
+        INFO("stack_top: " + std::format("{:#x}", stack_top));
+        REQUIRE(stack_bottom == 0x10000000);
+        REQUIRE(stack_top == 0x10100000);
+    }
+
+    SECTION("Can write to stack bottom (lowest valid address)") {
+        err = mem.store<uint64_t>(stack_bottom, 0xDEADBEEFCAFEBABE);
+        REQUIRE(err == MemErr::None);
+
+        auto val = mem.load<uint64_t>(stack_bottom, err);
+        REQUIRE(err == MemErr::None);
+        REQUIRE(val == 0xDEADBEEFCAFEBABE);
+    }
+
+    SECTION("Can write near stack top") {
+        err = mem.store<uint64_t>(stack_top - 8, 0x123456789ABCDEF0);
+        REQUIRE(err == MemErr::None);
+
+        auto val = mem.load<uint64_t>(stack_top - 8, err);
+        REQUIRE(err == MemErr::None);
+        REQUIRE(val == 0x123456789ABCDEF0);
+    }
+
+    SECTION("Cannot write at or above stack top") {
+        err = mem.store<uint64_t>(stack_top, 0xDEADBEEF);
+        REQUIRE(err == MemErr::SegFault);
+
+        err = mem.store<uint8_t>(stack_top + 100, 0x42);
+        REQUIRE(err == MemErr::SegFault);
+    }
+
+    SECTION("Cannot write below stack bottom") {
+        err = mem.store<uint64_t>(stack_bottom - 8, 0xDEADBEEF);
+        REQUIRE(err == MemErr::SegFault);
+    }
+}
+
+TEST_CASE("Memory data segment", "[memory][data][heap]") {
+    rv64::VM vm{};
+    Memory &mem = vm.m_memory;
+    MemErr err = MemErr::None;
+    const auto &layout = vm.get_memory_layout();
+
+    SECTION("Can write to data segment start") {
+        err = mem.store<uint64_t>(layout.data_base, 0xDEADBEEF);
+        REQUIRE(err == MemErr::None);
+
+        auto val = mem.load<uint64_t>(layout.data_base, err);
+        REQUIRE(err == MemErr::None);
+        REQUIRE(val == 0xDEADBEEF);
+    }
+
+    SECTION("Can write to heap") {
+        uint64_t heap_addr = layout.data_base + layout.initial_heap_size / 2;
+        err = mem.store<uint32_t>(heap_addr, 0x12345678);
+        REQUIRE(err == MemErr::None);
+    }
+
+    SECTION("Cannot write before data segment") {
+        err = mem.store<uint64_t>(layout.data_base - 8, 0xDEADBEEF);
+        REQUIRE(err == MemErr::SegFault);
+    }
+
+    SECTION("Cannot write past current brk") {
+        uint64_t brk = mem.get_brk();
+        err = mem.store<uint64_t>(brk, 0xDEADBEEF);
+        REQUIRE(err == MemErr::SegFault);
+
+        err = mem.store<uint8_t>(brk + 1000, 0x42);
+        REQUIRE(err == MemErr::SegFault);
+    }
+
+    SECTION("Data values persist correctly") {
+        std::vector<std::pair<uint64_t, uint64_t>> test_data = {
+            {layout.data_base, 0x1111111111111111},
+            {layout.data_base + 8, 0x2222222222222222},
+            {layout.data_base + 16, 0x3333333333333333},
+            {layout.data_base + 32, 0x4444444444444444}
+        };
+
+        // Write all values
+        for (const auto &[addr, value] : test_data) {
+            err = mem.store<uint64_t>(addr, value);
+            REQUIRE(err == MemErr::None);
+        }
+
+        // Verify all values persisted
+        for (const auto &[addr, expected] : test_data) {
+            auto val = mem.load<uint64_t>(addr, err);
+            REQUIRE(err == MemErr::None);
+            REQUIRE(val == expected);
+        }
+    }
+}
+
+TEST_CASE("Memory sbrk behavior", "[memory][sbrk][heap]") {
+    rv64::VM vm{};
+    Memory &mem = vm.m_memory;
+    MemErr err = MemErr::None;
+    const auto &layout = vm.get_memory_layout();
+
     const uint64_t initial_brk = mem.get_brk();
 
-    SECTION("Heap grows correctly") {
-        auto old = mem.sbrk(64, err);
+    SECTION("sbrk(0) returns current brk without changing it") {
+        uint64_t brk = mem.sbrk(0, err);
         REQUIRE(err == MemErr::None);
-        REQUIRE(mem.get_brk() == initial_brk + 64);
-        REQUIRE(old == initial_brk);
+        REQUIRE(brk == initial_brk);
+        REQUIRE(mem.get_brk() == initial_brk);
+    }
+
+    SECTION("Heap grows correctly") {
+        uint64_t old_brk = mem.sbrk(4096, err);
+        REQUIRE(err == MemErr::None);
+        REQUIRE(old_brk == initial_brk);
+        REQUIRE(mem.get_brk() == initial_brk + 4096);
+
+        // Can now write to newly allocated area
+        err = mem.store<uint64_t>(initial_brk, 0xDEADBEEF);
+        REQUIRE(err == MemErr::None);
     }
 
     SECTION("Heap shrinks correctly") {
-        mem.sbrk(128, err);
-        REQUIRE(mem.get_brk() == initial_brk + 128);
+        mem.sbrk(8192, err);
         REQUIRE(err == MemErr::None);
-        auto prev_brk = mem.sbrk(-64, err);
+
+        uint64_t brk_after_grow = mem.get_brk();
+        uint64_t old_brk = mem.sbrk(-4096, err);
         REQUIRE(err == MemErr::None);
-        REQUIRE(prev_brk == initial_brk + 128);
-        REQUIRE(mem.get_brk() == initial_brk + 64);
+        REQUIRE(old_brk == brk_after_grow);
+        REQUIRE(mem.get_brk() == brk_after_grow - 4096);
     }
 
-    SECTION("Negative shrink beyond base heap should fail") {
-        auto new_brk = mem.sbrk(-conf.initial_heap_size - 4, err);
-        INFO(Memory::err_to_string(err));
+    SECTION("Cannot shrink heap below program data") {
+        mem.sbrk(-static_cast<int64_t>(layout.initial_heap_size + 1), err);
         REQUIRE(err == MemErr::NegativeSizeOfHeap);
     }
 
-    SECTION("Out of memory condition") {
-        // artificially grow until hitting limit
-        size_t total_growth = 0;
-        while (err == MemErr::None && total_growth < Memory::PROGRAM_MEM_LIMIT * 2) {
-            mem.sbrk(1024 * 1024, err);
-            total_growth += 1024 * 1024;
-        }
+    SECTION("Cannot grow heap beyond memory limit") {
+        // Try to allocate more than the limit in one go
+        uint64_t huge_allocation = Memory::PROGRAM_MEM_LIMIT + 1024;
+        mem.sbrk(static_cast<int64_t>(huge_allocation), err);
         REQUIRE(err == MemErr::OutOfMemory);
+
+        // Reset error for next test
+        err = MemErr::None;
+
+        // Also test growing incrementally to the limit
+        uint64_t current_size = mem.get_data_size();
+        uint64_t remaining = Memory::PROGRAM_MEM_LIMIT - current_size;
+
+        // Grow to just under the limit - should succeed
+        if (remaining > 1024) {
+            mem.sbrk(static_cast<int64_t>(remaining - 512), err);
+            REQUIRE(err == MemErr::None);
+
+            // Now try to grow beyond - should fail
+            mem.sbrk(1024, err);
+            REQUIRE(err == MemErr::OutOfMemory);
+        }
+    }
+
+    SECTION("Multiple small allocations work correctly") {
+        const size_t alloc_size = 256;
+        const size_t num_allocs = 100;
+
+        for (size_t i = 0; i < num_allocs; ++i) {
+            uint64_t old_brk = mem.sbrk(alloc_size, err);
+            REQUIRE(err == MemErr::None);
+            REQUIRE(mem.get_brk() == old_brk + alloc_size);
+        }
+
+        REQUIRE(mem.get_brk() == initial_brk + alloc_size * num_allocs);
+    }
+}
+
+TEST_CASE("Memory string operations", "[memory][string]") {
+    // Use larger initial heap for string tests
+    Memory::Layout layout;
+    layout.initial_heap_size = 8192;  // Enough for 4096 byte test
+    rv64::VM vm{layout};
+    Memory &mem = vm.m_memory;
+    MemErr err = MemErr::None;
+    const auto &vm_layout = vm.get_memory_layout();
+
+    SECTION("Load null-terminated string") {
+        const char *test_str = "Hello, RISC-V!";
+        size_t len = strlen(test_str);
+
+        for (size_t i = 0; i <= len; ++i) {
+            err = mem.store<uint8_t>(vm_layout.data_base + i, test_str[i]);
+            REQUIRE(err == MemErr::None);
+        }
+
+        std::string loaded = mem.load_string(vm_layout.data_base, err);
+        REQUIRE(err == MemErr::None);
+        REQUIRE(loaded == test_str);
+    }
+
+    SECTION("String not null-terminated returns error") {
+        // Write 4096 non-zero bytes (max string length)
+        for (size_t i = 0; i < 4096; ++i) {
+            err = mem.store<uint8_t>(vm_layout.data_base + i, 'A');
+            REQUIRE(err == MemErr::None);
+        }
+
+        std::string loaded = mem.load_string(vm_layout.data_base, err);
+        REQUIRE(err == MemErr::NotTermStr);
+    }
+
+    SECTION("Empty string works") {
+        err = mem.store<uint8_t>(vm_layout.data_base, 0);
+        REQUIRE(err == MemErr::None);
+
+        std::string loaded = mem.load_string(vm_layout.data_base, err);
+        REQUIRE(err == MemErr::None);
+        REQUIRE(loaded.empty());
+    }
+}
+
+TEST_CASE("Memory mixed types", "[memory][types]") {
+    rv64::VM vm{};
+    Memory &mem = vm.m_memory;
+    MemErr err = MemErr::None;
+    const auto &layout = vm.get_memory_layout();
+
+    SECTION("Different integer types at same location") {
+        err = mem.store<uint32_t>(layout.data_base, 0x12345678);
+        REQUIRE(err == MemErr::None);
+
+        auto val8 = mem.load<uint8_t>(layout.data_base, err);
+        REQUIRE(err == MemErr::None);
+        // Little endian: lowest byte first
+        REQUIRE(val8 == 0x78);
+
+        auto val16 = mem.load<uint16_t>(layout.data_base, err);
+        REQUIRE(err == MemErr::None);
+        REQUIRE(val16 == 0x5678);
+
+        auto val32 = mem.load<uint32_t>(layout.data_base, err);
+        REQUIRE(err == MemErr::None);
+        REQUIRE(val32 == 0x12345678);
+    }
+
+    SECTION("Signed and unsigned values") {
+        err = mem.store<int32_t>(layout.data_base, -12345);
+        REQUIRE(err == MemErr::None);
+
+        auto signed_val = mem.load<int32_t>(layout.data_base, err);
+        REQUIRE(err == MemErr::None);
+        REQUIRE(signed_val == -12345);
+
+        auto unsigned_val = mem.load<uint32_t>(layout.data_base, err);
+        REQUIRE(err == MemErr::None);
+        REQUIRE(unsigned_val == static_cast<uint32_t>(-12345));
     }
 }

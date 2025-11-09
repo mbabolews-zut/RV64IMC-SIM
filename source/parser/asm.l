@@ -50,6 +50,7 @@ enum FlexToken {
 
 \n                                                  { yydebug("flex: new line"); return NewLineToken;        }
 
+[#;].*                                              { /* ignore // comments */                                          }
 [ \t\r]+                                            { /* ignore whitespace */                                            }
 
 .                                                   { yydebug("flex: syntax error");         return SyntaxErrorToken;    }

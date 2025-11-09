@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 project(RV64_SIM LANGUAGES CXX)
 
-if(CMAKE_BUILD_TYPE MATCHES  "Debug")
+if(CMAKE_BUILD_TYPE MATCHES "Debug")
     add_definitions(-DDEBUG)
 endif()
 
@@ -16,7 +16,7 @@ set(LEXER_SRC  ${CMAKE_CURRENT_SOURCE_DIR}/source/parser/asm.l)
 set(GEN_DIR    ${CMAKE_CURRENT_BINARY_DIR}/source/parser)
 file(MAKE_DIRECTORY ${GEN_DIR})
 
-# Bison: generate parser.tab.cc and parser.tab.hh
+# Generate parser and lexer
 BISON_TARGET(Parser
         ${PARSER_SRC}
         ${GEN_DIR}/parser.tab.cc
@@ -24,7 +24,6 @@ BISON_TARGET(Parser
         COMPILE_FLAGS -d
 )
 
-# Flex: generate lex.yy.cc (C++ scanner)
 FLEX_TARGET(Scanner
         ${LEXER_SRC}
         ${GEN_DIR}/lex.yy.cc
@@ -33,52 +32,36 @@ FLEX_TARGET(Scanner
 
 ADD_FLEX_BISON_DEPENDENCY(Scanner Parser)
 
-# ---- Sources (do NOT list generated parser files here) ----
-set(SOURCE_FILES
-        source/rv64/Cpu.cpp
-        source/rv64/Cpu.hpp
-        source/rv64/Interpreter.cpp
-        source/rv64/Interpreter.hpp
-        source/rv64/Memory.cpp
-        source/rv64/Memory.hpp
-        source/rv64/VM.cpp
-        source/rv64/VM.hpp
-        source/rv64/instruction_sets/IBase.hpp
-        source/rv64/instruction_sets/IExtM.hpp
-        source/Instruction.hpp
-        source/common.hpp
-        source/Instruction.cpp
-        source/rv64/instruction_sets/Rv64IMC.hpp
-        source/rv64/GPIntReg.cpp
-        source/rv64/GPIntReg.hpp
-        source/rv64/Reg.cpp
-        source/rv64/Reg.hpp
-        source/endianness.hpp
-        source/rv64/PagedMemory.hpp
-        source/rv64/PagedMemory.cpp
-        source/parser/ParserProcessor.hpp
-        source/parser/ParserProcessor.cpp
-        source/ui.hpp
-        source/parser/asm_parsing.hpp
-        # (omit source/parser/lex.yy.cc and parser.tab.* here)
+# Auto-discover source files
+file(GLOB_RECURSE SOURCE_FILES
+        source/*.cpp
+        source/*.hpp
 )
 
-# Append generated outputs from Bison/Flex into the sources
+# Exclude main.cpp from source files (it's only for the executable)
+list(FILTER SOURCE_FILES EXCLUDE REGEX ".*main\\.cpp$")
+
+# Add generated parser/lexer files
 list(APPEND SOURCE_FILES
-        ${BISON_Parser_OUTPUTS}       # parser.tab.cc
-        ${FLEX_Scanner_OUTPUTS}       # lex.yy.cc
-        ${BISON_Parser_DEFINES_FILE}  # parser.tab.hh (will be available to include)
+        ${BISON_Parser_OUTPUTS}
+        ${FLEX_Scanner_OUTPUTS}
+        ${BISON_Parser_DEFINES_FILE}
 )
 
-# ---- Main executable (now the target exists) ----
+# Main executable
 add_executable(RV64_SIM ${SOURCE_FILES} source/main.cpp)
 
-# Include generated headers and project sources
-target_include_directories(RV64_SIM PRIVATE ${GEN_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/source)
+target_include_directories(RV64_SIM PRIVATE
+        ${GEN_DIR}
+        ${CMAKE_CURRENT_SOURCE_DIR}/source
+)
 
-# Ensure the executable depends on generated parser/lexer targets
-#add_dependencies(RV64_SIM Parser Scanner)
-
-# ---- Testing ----
-enable_testing()
-add_subdirectory(tests)
+# Optional testing (only if Catch2 is found)
+find_package(Catch2 QUIET)
+if(Catch2_FOUND)
+    message(STATUS "Catch2 found - building tests")
+    enable_testing()
+    add_subdirectory(tests)
+else()
+    message(STATUS "Catch2 not found - skipping tests")
+endif()

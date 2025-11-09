@@ -1,123 +1,99 @@
 #include "Memory.hpp"
 #include "common.hpp"
 
-#include <algorithm>
 #include <cassert>
 #include <format>
 
-#include <rv64/VM.hpp>
-#include <stdexcept>
-#include <cstring>
+namespace {
+    constexpr size_t MIN_INSTR_SIZE = 2; // Compressed instructions are 2 bytes
+    constexpr size_t MAX_STRING_LEN = 4096; // Max string length to prevent infinite loops
+}
 
-/// @brief not compressed instructions are padded with following additional padding "instruction".
-/// If compressed instruction didn't exist then 4 would be used to access instruction vector instead.
-constexpr size_t MIN_INSTR_SIZE = 2;
+Memory::Memory(const Layout &layout, std::span<const uint8_t> program_data)
+    : m_layout(layout)
+    , m_stack_bottom(layout.stack_base)
+    , m_heap_start(layout.data_base + program_data.size())
+    , m_data_size(program_data.size() + layout.initial_heap_size)
+{
+    assert(m_data_size <= PROGRAM_MEM_LIMIT);
 
-Memory::Memory() {
-    m_stack.reserve(VEC_INIT_CAPACITY);
-    m_data.reserve(VEC_INIT_CAPACITY);
+    // Allocate paged memory for stack and data segments
+    m_stack = std::make_unique<PagedMemory>(layout.stack_size, layout.endianness);
+    m_data = std::make_unique<PagedMemory>(PROGRAM_MEM_LIMIT, layout.endianness);
+
+    // Load program data into memory
+    for (size_t i = 0; i < program_data.size(); ++i) {
+        [[maybe_unused]] bool ok = m_data->store(i, program_data[i]);
+        assert(ok);
+    }
 }
 
 std::string Memory::load_string(uint64_t address, MemErr &err) const {
-    assert(m_initialized);
-    size_t len = 0;
-    size_t max_len = 0;
-    const char *str_ptr = nullptr;
+    std::string result;
+    result.reserve(64);
 
-    if (addr_in_data(address)) {
-        auto offset = data_addr_to_offset(address);
-        str_ptr = (const char *) (&m_data[offset]);
-        max_len = m_data.size() - offset;
-    } else if (addr_in_stack(address)) {
-        auto offset = stack_addr_to_offset(address);
-        str_ptr = (const char *) (&m_stack[offset]);
-        max_len = m_stack.size() - offset;
-    } else {
-        err = MemErr::SegFault;
-        return "";
-    }
-    len = strnlen(str_ptr, max_len);
-    err = (len == max_len) ? MemErr::NotTermStr : MemErr::None;
-    return {str_ptr, len};
-}
+    for (size_t i = 0; i < MAX_STRING_LEN; ++i) {
+        uint8_t ch = 0;
+        uint64_t byte_addr = address + i;
 
-void Memory::init(std::span<const uint8_t> program_data, const Config &conf) {
-    m_config = conf;
-    init(program_data);
-}
+        // Try data segment first, then stack
+        if (in_data(byte_addr, 1)) {
+            if (!m_data->load(to_data_offset(byte_addr), ch)) {
+                err = MemErr::SegFault;
+                return "";
+            }
+        } else if (in_stack(byte_addr, 1)) {
+            if (!m_stack->load(to_stack_offset(byte_addr), ch)) {
+                err = MemErr::SegFault;
+                return "";
+            }
+        } else {
+            err = MemErr::SegFault;
+            return "";
+        }
 
-void Memory::init(std::span<const uint8_t> program_data) {
-    assert(!m_initialized);
-    m_stack_bottom = (m_config.asc_stack
-                          ? m_config.stack_addr
-                          : m_config.stack_addr - m_config.stack_size);
-
-    m_data.resize(program_data.size() + m_config.initial_heap_size);
-    std::ranges::copy(program_data, m_data.data());
-
-    m_heap_addr = m_config.data_addr + program_data.size();
-
-    bool asc = m_config.asc_stack;
-
-    if (!asc && (m_config.stack_addr < m_config.stack_size)) {
-        throw std::invalid_argument("Memory: stack address is too small");
-    }
-    if (asc && (m_config.stack_addr + m_config.stack_size < m_config.stack_addr)) {
-        throw std::invalid_argument("Memory: stack address is too large");
+        if (ch == 0) {
+            err = MemErr::None;
+            return result;
+        }
+        result.push_back(static_cast<char>(ch));
     }
 
-    m_stack_bottom = m_config.stack_addr - (asc ? 0 : m_config.stack_size);
-
-    const auto data_start = m_config.data_addr;
-    const auto data_end = m_config.data_addr + PROGRAM_MEM_LIMIT;
-
-    bool overlap = asc
-                       ? (m_stack_bottom >= data_start && m_stack_bottom < data_end)
-                       : (m_config.stack_addr >= data_start && m_config.stack_addr < data_end);
-
-    if (overlap)
-        throw std::invalid_argument(std::format(
-            "Memory: Stack and program memory may overlap.\n"
-            " - Program memory range: [0x{:#X}; 0x{:#X})\n"
-            " - Stack range: [0x{:#X}; 0x{:#X})\n"
-            " - Stack direction: {}",
-            m_config.data_addr,
-            m_config.data_addr + PROGRAM_MEM_LIMIT,
-            m_stack_bottom,
-            stack_end(),
-            asc ? "ascending" : "descending"
-        ));
-
-
-    m_initialized = true;
+    err = MemErr::NotTermStr;
+    return result;
 }
 
 void Memory::load_program(const asm_parsing::ParsedInstVec &instructions) {
     m_instructions = instructions;
 }
 
-
 const Instruction &Memory::get_instruction_at(uint64_t address, MemErr &err, size_t *line) const {
     assert(!m_instructions.empty());
     if (line) *line = SIZE_MAX;
 
-    size_t offset = (address - m_config.data_addr) / MIN_INSTR_SIZE;
+    // Calculate instruction index based on minimum instruction size
+    size_t offset = (address - m_layout.data_base) / MIN_INSTR_SIZE;
+
+    // Check if we've reached the end of the program
     if (offset == m_instructions.size()) {
-        err = MemErr::ProgramExit; // actually not an error
+        err = MemErr::ProgramExit;
         return Instruction::get_invalid_cref();
     }
-    if (address < m_config.data_addr || offset > m_instructions.size()) {
+
+    // Validate address is within instruction memory range
+    if (address < m_layout.data_base || offset > m_instructions.size()) {
         err = MemErr::SegFault;
         return Instruction::get_invalid_cref();
     }
-    const auto &inst = m_instructions.at(offset);
+
+    const auto &parsed_inst = m_instructions.at(offset);
     err = MemErr::None;
-    if (line) *line = inst.lineno;
-    return inst.inst;
+    if (line) *line = parsed_inst.lineno;
+    return parsed_inst.inst;
 }
 
 uint64_t Memory::get_instruction_end_addr() const {
-    return m_config.data_addr + m_instructions.size() * MIN_INSTR_SIZE;
+    return m_layout.data_base + m_instructions.size() * MIN_INSTR_SIZE;
 }
 
 std::string Memory::err_to_string(MemErr err) {
@@ -132,120 +108,134 @@ std::string Memory::err_to_string(MemErr err) {
             return "Hypervisor could not allocate memory";
         case MemErr::NegativeSizeOfHeap:
             return "Heap size became negative";
+        case MemErr::UnalignedAccess:
+            return "Unaligned memory access";
         default:
             return "Unknown error";
     }
 }
 
 uint64_t Memory::sbrk(int64_t inc, MemErr &err) {
-    assert(m_initialized);
     uint64_t old_brk = get_brk();
 
     if (inc == 0)
         return old_brk;
 
-    auto heap_off = m_heap_addr - m_config.data_addr;
-    if (inc + m_data.size() < heap_off) {
+    // Calculate new data size after increment
+    auto heap_offset = m_heap_start - m_layout.data_base;
+    int64_t new_size = static_cast<int64_t>(m_data_size) + inc;
+
+    // Ensure heap doesn't shrink below program data
+    if (new_size < static_cast<int64_t>(heap_offset)) {
         err = MemErr::NegativeSizeOfHeap;
         return 0;
     }
 
-    if (inc + m_data.size() > PROGRAM_MEM_LIMIT) {
+    // Ensure we don't exceed memory limit
+    if (new_size > static_cast<int64_t>(PROGRAM_MEM_LIMIT)) {
         err = MemErr::OutOfMemory;
         return 0;
     }
 
-    try {
-        m_data.resize(m_data.size() + inc);
-    } catch (const std::exception &) {
-        err = MemErr::OutOfMemory;
-        return 0;
-    }
+    m_data_size = static_cast<size_t>(new_size);
     err = MemErr::None;
     return old_brk;
 }
 
 uint64_t Memory::get_brk() const {
-    return m_config.data_addr + m_data.size();
+    return m_layout.data_base + m_data_size;
 }
 
-size_t Memory::get_program_space_size() const {
-    return m_data.size();
+size_t Memory::get_data_size() const {
+    return m_data_size;
 }
 
-const Memory::Config &Memory::get_conf() const {
-    return m_config;
+const Memory::Layout &Memory::get_layout() const {
+    return m_layout;
 }
 
-bool Memory::addr_in_stack(uint64_t address, size_t obj_size) const noexcept {
-    return address >= m_stack_bottom && address + obj_size <= stack_end();
+bool Memory::in_stack(uint64_t address, size_t obj_size) const noexcept {
+    return address >= m_stack_bottom && address + obj_size <= stack_end_addr();
 }
 
-bool Memory::addr_in_data(uint64_t address, size_t obj_size) const noexcept {
-    return address >= m_config.data_addr && address + obj_size <= m_data.size() + m_config.data_addr;
+bool Memory::in_data(uint64_t address, size_t obj_size) const noexcept {
+    return address >= m_layout.data_base && address + obj_size <= m_layout.data_base + m_data_size;
 }
 
-uint64_t Memory::stack_addr_to_offset(uint64_t address) const noexcept {
-    return m_config.asc_stack
-               ? address - m_stack_bottom
-               : stack_end() - address;
+uint64_t Memory::to_stack_offset(uint64_t address) const noexcept {
+    return address - m_stack_bottom;
 }
 
-uint64_t Memory::data_addr_to_offset(uint64_t address) const noexcept {
-    return address - m_config.data_addr;
+uint64_t Memory::to_data_offset(uint64_t address) const noexcept {
+    return address - m_layout.data_base;
 }
 
-template<typename T>
+uint64_t Memory::stack_end_addr() const noexcept {
+    return m_stack_bottom + m_layout.stack_size;
+}
+
+template<std::integral T>
 T Memory::load(uint64_t address, MemErr &err) const {
-    assert(m_initialized);
     err = MemErr::None;
-    if (addr_in_stack(address, sizeof(T))) {
-        auto offset = stack_addr_to_offset(address);
+    T value = 0;
 
-        // uninitialized stack memory access
-        if (offset + sizeof(T) >= m_stack.size()) {
-            if (offset >= m_stack.size())
-                return 0;
-            std::array<uint8_t, sizeof(T)> buffer{};
-            std::ranges::fill(buffer, 0);
-            std::copy(&m_stack[offset], m_stack.data() + m_stack.size(), buffer.begin());
-
-            return loadT<T>(buffer);
+    // Check alignment for multi-byte values (RISC-V requirement)
+    if constexpr (sizeof(T) > 1) {
+        if (address % sizeof(T) != 0) {
+            err = MemErr::UnalignedAccess;
+            return 0;
         }
-
-        return loadT<T>({&m_stack[offset], sizeof(T)});
     }
-    if (addr_in_data(address, sizeof(T)))
-        return loadT<T>({&m_data[address - m_config.data_addr], sizeof(T)});
+
+    // Check stack first (more commonly accessed)
+    if (in_stack(address, sizeof(T))) {
+        if (!m_stack->load(to_stack_offset(address), value)) {
+            err = MemErr::SegFault;
+            return 0;
+        }
+        return value;
+    }
+
+    // Then check data segment
+    if (in_data(address, sizeof(T))) {
+        if (!m_data->load(to_data_offset(address), value)) {
+            err = MemErr::SegFault;
+            return 0;
+        }
+        return value;
+    }
 
     err = MemErr::SegFault;
     return 0;
 }
 
-template<typename T>
+template<std::integral T>
 MemErr Memory::store(uint64_t address, T value) {
-    assert(m_initialized);
-    if (addr_in_stack(address, sizeof(T))) {
-        auto offset = stack_addr_to_offset(address);
-
-        // expand stack if needed
-        if (offset + sizeof(T) > m_stack.size()) {
-            try {
-                m_stack.resize(offset + sizeof(T));
-            } catch (const std::exception &) {
-                return MemErr::OutOfMemory;
-            }
+    // Check alignment for multi-byte values (RISC-V requirement)
+    if constexpr (sizeof(T) > 1) {
+        if (address % sizeof(T) != 0) {
+            return MemErr::UnalignedAccess;
         }
-        storeT({&m_stack[offset], sizeof(T)}, value);
-        return MemErr::None;
     }
-    if (addr_in_data(address, sizeof(T))) {
-        storeT({&m_data[address - m_config.data_addr], sizeof(T)}, value);
-        return MemErr::None;
+
+    // Check stack first (more commonly accessed for writes)
+    if (in_stack(address, sizeof(T))) {
+        return m_stack->store(to_stack_offset(address), value)
+                   ? MemErr::None
+                   : MemErr::SegFault;
     }
+
+    // Then check data segment
+    if (in_data(address, sizeof(T))) {
+        return m_data->store(to_data_offset(address), value)
+                   ? MemErr::None
+                   : MemErr::SegFault;
+    }
+
     return MemErr::SegFault;
 }
 
+// Explicit template instantiations
 #define INSTANTIATE_LOAD(TYPE) \
     template TYPE Memory::load(uint64_t address, MemErr &err) const;
 #define INSTANTIATE_STORE(TYPE) \
@@ -253,3 +243,5 @@ MemErr Memory::store(uint64_t address, T value) {
 
 FOR_EACH_INT(INSTANTIATE_LOAD)
 FOR_EACH_INT(INSTANTIATE_STORE)
+
+
