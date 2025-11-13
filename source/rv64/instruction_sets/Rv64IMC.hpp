@@ -1,20 +1,23 @@
 #pragma once
-#include <rv64/instruction_sets/IBase.hpp>
-#include <rv64/instruction_sets/IExtM.hpp>
+#include <rv64/instruction_sets/IBaseI.hpp>
+#include <rv64/instruction_sets/IExtensionM.hpp>
+#include <rv64/instruction_sets/IExtensionC.hpp>
 #include <Instruction.hpp>
 #include <unordered_map>
 #include <cassert>
 
+
 namespace rv64::is {
-    class Rv64IMC : public IBase, public IExtM {
+    class Rv64IMC : public IBaseI, public IExtensionM, public IExtensionC {
     public:
         ~Rv64IMC() override = default;
 
         Rv64IMC() {
             if (instructions.empty()) {
-                auto b = IBase::list_inst();
-                auto m = IExtM::list_inst();
-                instructions.reserve(b.size() + m.size());
+                auto b = IBaseI::list_inst();
+                auto m = IExtensionM::list_inst();
+                auto c = IExtensionC::list_inst();
+                instructions.reserve(b.size() + m.size() + c.size());
 
                 for (const auto &inst: b) {
                     instructions.emplace(std::string(inst.mnemonic), inst);
@@ -22,7 +25,9 @@ namespace rv64::is {
                 for (const auto &inst: m) {
                     instructions.emplace(std::string(inst.mnemonic), inst);
                 }
-                //TODO: C extension
+                for (const auto &inst: c) {
+                    instructions.emplace(std::string(inst.mnemonic), inst);
+                }
             }
         }
 
@@ -35,12 +40,17 @@ namespace rv64::is {
         }
 
         static constexpr InstProto get_inst_proto(int id) noexcept {
-            if (id >= IBase::BASE_ID && id < IBase::BASE_ID + IBase::list_inst().size()) {
-                assert(IBase::list_inst().at(id - IBase::BASE_ID));
-                return IBase::list_inst()[id - IBase::BASE_ID];
+            // Integer Base
+            if (id >= IBaseI::IS_ID && id < IBaseI::IS_ID + IBaseI::list_inst().size()) {
+                return IBaseI::list_inst()[id - IBaseI::IS_ID];
             }
-            if (id >= IExtM::BASE_ID && id < IExtM::BASE_ID + IExtM::list_inst().size()) {
-                return IExtM::list_inst()[id - IExtM::BASE_ID];
+            // M-extension
+            if (id >= IExtensionM::IS_ID && id < IExtensionM::IS_ID + IExtensionM::list_inst().size()) {
+                return IExtensionM::list_inst()[id - IExtensionM::IS_ID];
+            }
+            // C-extension
+            if (id >= IExtensionC::IS_ID && id < IExtensionC::IS_ID + IExtensionC::list_inst().size()) {
+                return IExtensionC::list_inst()[id - IExtensionC::IS_ID];
             }
             return invalid_inst_proto;
         }

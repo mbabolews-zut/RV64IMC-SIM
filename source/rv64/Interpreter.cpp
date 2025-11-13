@@ -15,14 +15,6 @@
 #endif
 
 namespace rv64 {
-    template void Interpreter::load_instruction_tmpl<int64_t>(GPIntReg &rd, const GPIntReg &rs, int12 imm12);
-    template void Interpreter::load_instruction_tmpl<uint32_t>(GPIntReg &rd, const GPIntReg &rs, int12 imm12);
-    template void Interpreter::load_instruction_tmpl<uint16_t>(GPIntReg &rd, const GPIntReg &rs, int12 imm12);
-    template void Interpreter::load_instruction_tmpl<int16_t>(GPIntReg &rd, const GPIntReg &rs, int12 imm12);
-    template void Interpreter::load_instruction_tmpl<uint8_t>(GPIntReg &rd, const GPIntReg &rs, int12 imm12);
-    template void Interpreter::load_instruction_tmpl<int8_t>(GPIntReg &rd, const GPIntReg &rs, int12 imm12);
-
-
     void Interpreter::addi(GPIntReg &rd, const GPIntReg &rs, int12 imm12) {
         rd = rs.sval() + imm12;
     }
@@ -398,7 +390,7 @@ namespace rv64 {
     }
 
     template<typename T>
-    void Interpreter::load_instruction_tmpl(GPIntReg &rd, const GPIntReg &rs, int12 imm12) {
+    void Interpreter::load_instruction_tmpl(GPIntReg &rd, const GPIntReg &rs, int12 imm12) const {
         MemErr err;
         if constexpr (std::is_same_v<T, uint64_t>) {
             rd = m_vm.m_memory.load<T>(rs.sval() + imm12, err);
@@ -439,177 +431,176 @@ namespace rv64 {
         };
 
         switch (in.get_prototype().id) {
-            // --- Immediate arithmetic ---
-            case (int) IBase::InstId::addi:
+            case (int) IBaseI::InstId::addi:
                 addi(get_reg(args[0]), get_reg(args[1]), std::get<int12>(args[2]));
                 break;
-            case (int) IBase::InstId::slti:
+            case (int) IBaseI::InstId::slti:
                 slti(get_reg(args[0]), get_reg(args[1]), std::get<int12>(args[2]));
                 break;
-            case (int) IBase::InstId::sltiu:
+            case (int) IBaseI::InstId::sltiu:
                 sltiu(get_reg(args[0]), get_reg(args[1]), std::get<int12>(args[2]));
                 break;
-            case (int) IBase::InstId::andi:
+            case (int) IBaseI::InstId::andi:
                 andi(get_reg(args[0]), get_reg(args[1]), std::get<int12>(args[2]));
                 break;
-            case (int) IBase::InstId::ori:
+            case (int) IBaseI::InstId::ori:
                 ori(get_reg(args[0]), get_reg(args[1]), std::get<int12>(args[2]));
                 break;
-            case (int) IBase::InstId::xori:
+            case (int) IBaseI::InstId::xori:
                 xori(get_reg(args[0]), get_reg(args[1]), std::get<int12>(args[2]));
                 break;
 
             // --- Shift immediate ---
-            case (int) IBase::InstId::slli:
+            case (int) IBaseI::InstId::slli:
                 slli(get_reg(args[0]), get_reg(args[1]), std::get<uint6>(args[2]));
                 break;
-            case (int) IBase::InstId::srli:
+            case (int) IBaseI::InstId::srli:
                 srli(get_reg(args[0]), get_reg(args[1]), std::get<uint6>(args[2]));
                 break;
-            case (int) IBase::InstId::srai:
+            case (int) IBaseI::InstId::srai:
                 srai(get_reg(args[0]), get_reg(args[1]), std::get<uint6>(args[2]));
                 break;
 
             // --- U-type ---
-            case (int) IBase::InstId::lui:
+            case (int) IBaseI::InstId::lui:
                 lui(get_reg(args[0]), std::get<int20>(args[1]));
                 break;
-            case (int) IBase::InstId::auipc:
+            case (int) IBaseI::InstId::auipc:
                 auipc(get_reg(args[0]), std::get<int20>(args[1]));
                 break;
 
             // --- R-type arithmetic ---
-            case (int) IBase::InstId::add:
+            case (int) IBaseI::InstId::add:
                 add(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
                 break;
-            case (int) IBase::InstId::sub:
+            case (int) IBaseI::InstId::sub:
                 sub(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
                 break;
-            case (int) IBase::InstId::sll:
+            case (int) IBaseI::InstId::sll:
                 sll(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
                 break;
-            case (int) IBase::InstId::slt:
+            case (int) IBaseI::InstId::slt:
                 slt(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
                 break;
-            case (int) IBase::InstId::sra:
+            case (int) IBaseI::InstId::sra:
                 sra(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
                 break;
-            case (int) IBase::InstId::srl:
+            case (int) IBaseI::InstId::srl:
                 srl(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
                 break;
-            case (int) IBase::InstId::and_:
+            case (int) IBaseI::InstId::and_:
                 and_(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
                 break;
-            case (int) IBase::InstId::or_:
+            case (int) IBaseI::InstId::or_:
                 or_(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
                 break;
-            case (int) IBase::InstId::xor_:
+            case (int) IBaseI::InstId::xor_:
                 xor_(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
                 break;
 
             // --- Branches ---
-            case (int) IBase::InstId::beq:
+            case (int) IBaseI::InstId::beq:
                 beq(get_reg(args[0]), get_reg(args[1]), std::get<int12>(args[2]));
                 break;
-            case (int) IBase::InstId::bne:
+            case (int) IBaseI::InstId::bne:
                 bne(get_reg(args[0]), get_reg(args[1]), std::get<int12>(args[2]));
                 break;
-            case (int) IBase::InstId::blt:
+            case (int) IBaseI::InstId::blt:
                 blt(get_reg(args[0]), get_reg(args[1]), std::get<int12>(args[2]));
                 break;
-            case (int) IBase::InstId::bge:
+            case (int) IBaseI::InstId::bge:
                 bge(get_reg(args[0]), get_reg(args[1]), std::get<int12>(args[2]));
                 break;
-            case (int) IBase::InstId::bltu:
+            case (int) IBaseI::InstId::bltu:
                 bltu(get_reg(args[0]), get_reg(args[1]), std::get<int12>(args[2]));
                 break;
-            case (int) IBase::InstId::bgeu:
+            case (int) IBaseI::InstId::bgeu:
                 bgeu(get_reg(args[0]), get_reg(args[1]), std::get<int12>(args[2]));
                 break;
 
             // --- Jumps ---
-            case (int) IBase::InstId::jal:
+            case (int) IBaseI::InstId::jal:
                 jal(get_reg(args[0]), std::get<int20>(args[1]));
                 break;
-            case (int) IBase::InstId::jalr:
+            case (int) IBaseI::InstId::jalr:
                 jalr(get_reg(args[0]), get_reg(args[1]), std::get<int12>(args[2]));
                 break;
 
             // --- Memory ---
-            case (int) IBase::InstId::lw:
+            case (int) IBaseI::InstId::lw:
                 lw(get_reg(args[0]), get_reg(args[1]), std::get<int12>(args[2]));
                 break;
-            case (int) IBase::InstId::lh:
+            case (int) IBaseI::InstId::lh:
                 lh(get_reg(args[0]), get_reg(args[1]), std::get<int12>(args[2]));
                 break;
-            case (int) IBase::InstId::lhu:
+            case (int) IBaseI::InstId::lhu:
                 lhu(get_reg(args[0]), get_reg(args[1]), std::get<int12>(args[2]));
                 break;
-            case (int) IBase::InstId::lb:
+            case (int) IBaseI::InstId::lb:
                 lb(get_reg(args[0]), get_reg(args[1]), std::get<int12>(args[2]));
                 break;
-            case (int) IBase::InstId::lbu:
+            case (int) IBaseI::InstId::lbu:
                 lbu(get_reg(args[0]), get_reg(args[1]), std::get<int12>(args[2]));
                 break;
-            case (int) IBase::InstId::sw:
+            case (int) IBaseI::InstId::sw:
                 sw(get_reg(args[0]), get_reg(args[1]), std::get<int12>(args[2]));
                 break;
-            case (int) IBase::InstId::sh:
+            case (int) IBaseI::InstId::sh:
                 sh(get_reg(args[0]), get_reg(args[1]), std::get<int12>(args[2]));
                 break;
-            case (int) IBase::InstId::sb:
+            case (int) IBaseI::InstId::sb:
                 sb(get_reg(args[0]), get_reg(args[1]), std::get<int12>(args[2]));
                 break;
 
             // --- System ---
-            case (int) IBase::InstId::fence:
+            case (int) IBaseI::InstId::fence:
                 fence();
                 break;
-            case (int) IBase::InstId::ecall:
+            case (int) IBaseI::InstId::ecall:
                 ecall();
                 break;
-            case (int) IBase::InstId::ebreak:
+            case (int) IBaseI::InstId::ebreak:
                 ebreak();
                 break;
 
             // --- M-extension ---
-            case (int) IExtM::InstId::mul:
+            case (int) IExtensionM::InstId::mul:
                 mul(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
                 break;
-            case (int) IExtM::InstId::mulh:
+            case (int) IExtensionM::InstId::mulh:
                 mulh(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
                 break;
-            case (int) IExtM::InstId::mulhu:
+            case (int) IExtensionM::InstId::mulhu:
                 mulhu(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
                 break;
-            case (int) IExtM::InstId::mulhsu:
+            case (int) IExtensionM::InstId::mulhsu:
                 mulhsu(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
                 break;
-            case (int) IExtM::InstId::mulw:
+            case (int) IExtensionM::InstId::mulw:
                 mulw(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
                 break;
-            case (int) IExtM::InstId::div:
+            case (int) IExtensionM::InstId::div:
                 div(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
                 break;
-            case (int) IExtM::InstId::divu:
+            case (int) IExtensionM::InstId::divu:
                 divu(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
                 break;
-            case (int) IExtM::InstId::rem:
+            case (int) IExtensionM::InstId::rem:
                 rem(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
                 break;
-            case (int) IExtM::InstId::remu:
+            case (int) IExtensionM::InstId::remu:
                 remu(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
                 break;
-            case (int) IExtM::InstId::divw:
+            case (int) IExtensionM::InstId::divw:
                 divw(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
                 break;
-            case (int) IExtM::InstId::divuw:
+            case (int) IExtensionM::InstId::divuw:
                 divuw(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
                 break;
-            case (int) IExtM::InstId::remw:
+            case (int) IExtensionM::InstId::remw:
                 remw(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
                 break;
-            case (int) IExtM::InstId::remuw:
+            case (int) IExtensionM::InstId::remuw:
                 remuw(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
                 break;
 

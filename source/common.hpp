@@ -5,72 +5,27 @@
 #include <iostream>
 #include <string_view>
 #include "ui.hpp"
+#include <intN.hpp>
+
 using namespace std::literals;
 
-
-inline std::string to_lowercase(std::string_view str) {
-    std::string result;
-    std::transform(str.begin(), str.end(), std::back_inserter(result), ::tolower);
-    return result;
-}
-
-template<std::integral T = int64_t>
-constexpr T pow_of_2(int64_t n) {
-    T result = 1;
-    return result << n;
-}
-
-template<size_t NBits>
-struct intN {
-    static_assert(NBits < 64);
-
-    constexpr intN(int64_t v) : m_val(v) { // NOLINT(*-explicit-constructor)
-        if (!(v & pow_of_2(NBits - 1))) return;
-        m_val = INT64_C(-1) << NBits;
-        m_val |= v;
-    }
-
-    constexpr operator int64_t() const { // NOLINT(*-explicit-constructor)
-        return m_val;
-    }
-
-    [[nodiscard]] constexpr uint64_t raw() const {
-        return m_val & (pow_of_2(NBits) - 1);
-    }
-
-    static constexpr uint64_t MAX = pow_of_2(NBits - 1) - 1;
-    static constexpr int64_t MIN = -pow_of_2(NBits - 1);
-
-private:
-    int64_t m_val;
-};
-
-template<size_t NBits>
-struct uintN {
-    static_assert(NBits < 64);
-
-    uintN(uint64_t v) : m_val(v) { // NOLINT(*-explicit-constructor)
-        m_val &= (pow_of_2(NBits) - 1);
-    }
-
-    constexpr operator uint64_t() const { // NOLINT(*-explicit-constructor)
-        return m_val & (pow_of_2(NBits) - 1);
-    }
-
-    static constexpr uint64_t MAX = pow_of_2(NBits) - 1;
-    static constexpr uint64_t MIN = 0;
-
-private:
-    uint64_t m_val = 0;
-};
-
 using int5 = intN<5>;
+using int6 = intN<6>;
+using int8 = intN<8>;
+using int11 = intN<11>;
 using int12 = intN<12>;
 using int20 = intN<20>;
 using uint5 = uintN<5>;
 using uint6 = uintN<6>;
+using uint8 = uintN<8>;
 using uint12 = uintN<12>;
 using uint20 = uintN<20>;
+
+inline std::string to_lowercase(std::string_view str) {
+    std::string result;
+    std::ranges::transform(str, std::back_inserter(result), ::tolower);
+    return result;
+}
 
 // Helpers for instantiating templates for all integer types
 // Use like this:

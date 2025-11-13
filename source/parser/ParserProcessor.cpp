@@ -1,4 +1,5 @@
 #include "ParserProcessor.hpp"
+#include <InstructionBuilder.hpp>
 #include <cassert>
 #include <algorithm>
 
@@ -14,25 +15,43 @@ void ParserProcessor::push_param(const std::string &str) {
 
 void ParserProcessor::push_instruction(std::string str, size_t line) {
     assert(m_parm_n <= m_parms.size());
-    // TODO: integrate with a symbol table
-    // TODO: pseudo instructions
+
     str = to_lowercase(str);
 
-    // parser param modifications
-    // for branch instructions (except jalr), divide the immediate by 2
+    // Build instruction using the builder pattern
+    InstructionBuilder builder(str);
+
+    // For branch instructions (except jalr), divide the immediate by 2
+    // This is because branch offsets are encoded as multiples of 2 bytes
     static constexpr std::array<std::string_view, 7> branch_instr{
         "beq","bne","blt","bltu","bge","bgeu","jal"
     };
 
-    if (std::ranges::find(branch_instr, str) != branch_instr.end()) {
-        m_parms[2] = std::to_string(std::stoll(m_parms[2]) / 2);
+    bool is_branch = std::ranges::find(branch_instr, str) != branch_instr.end();
+
+    for (size_t i = 0; i < m_parm_n; ++i) {
+        // Special handling for branch instruction immediates
+        if (is_branch && i == 2) {
+            try {
+                int64_t imm = std::stoll(m_parms[i]);
+                builder.add_imm(imm / 2);
+            } catch (...) {
+                // If parsing fails, it might be a symbol - add as-is and let symbol resolution handle it
+                builder.add_arg(m_parms[i]);
+            }
+        } else {
+            builder.add_arg(m_parms[i]);
+        }
     }
 
-    Instruction inst {str, m_parms};
+    Instruction inst = builder.build();
     m_instructions.emplace_back(line, inst);
+
+    // Add padding for non-compressed instructions (4-byte alignment)
     if (tolower(str[0]) != 'c') {
         m_instructions.emplace_back(SIZE_MAX, Instruction::get_invalid_cref());
     }
+
     m_parm_n = 0;
 }
 

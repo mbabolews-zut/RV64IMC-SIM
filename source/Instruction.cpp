@@ -1,70 +1,45 @@
-#include <cassert>
 #include <Instruction.hpp>
 #include <rv64/instruction_sets/Rv64IMC.hpp>
 
 #include "rv64/Cpu.hpp"
 
-template<typename T>
-concept HasMIN = requires { T::MIN; };
 
-template<typename T>
-static bool in_range(const std::string &value) {
-    if constexpr (!HasMIN<T>)
-        return T::MAX >= std::stoull(value);
-
-    return T::MAX >= std::stoll(value)
-           && T::MIN <= std::stoll(value);
-}
-
+// InstProto methods
 bool InstProto::is_valid() const {
     return id != -1;
 }
 
-InstProto::operator bool() const { return is_valid(); }
-
-Instruction::Instruction(std::string_view mnemonic, const std::array<std::string, 3> &args) noexcept {
-    auto proto = rv64::is::Rv64IMC::get_inst_proto(std::string(mnemonic));
-    if (!proto) return;
-
-    // parse arguments
-    for (int i = 0; i < 3; ++i) {
-        auto arg = args[i];
-        m_proto_id = -i - 1; // invalid by default
-
-        if (proto.args[i] == InstArgType::None) break;
-        // register argument
-        if (proto.args[i] == InstArgType::IntReg) {
-            rv64::Reg reg(arg);
-
-            if (!reg.is_valid()) return;
-            this->m_args[i] = reg;
-            continue;
-        }
-        // immediate argument
-        if (proto.args[i] == InstArgType::Imm12) {
-            if (!in_range<int12>(arg)) return;
-            this->m_args[i] = int12(std::stoll(arg));
-        } else if (proto.args[i] == InstArgType::Imm20) {
-            if (!in_range<int20>(arg)) return;
-            this->m_args[i] = int20(std::stoll(arg));
-        } else if (proto.args[i] == InstArgType::UImm5) {
-            if (!in_range<uint5>(arg)) return;
-            this->m_args[i] = uint5(std::stoull(arg));
-        } else if (proto.args[i] == InstArgType::UImm6) {
-            if (!in_range<uint6>(arg)) return;
-            this->m_args[i] = uint6(std::stoull(arg));
-        } else if (proto.args[i] == InstArgType::UImm12) {
-            if (!in_range<uint12>(arg)) return;
-            this->m_args[i] = uint12(std::stoull(arg));
-        } else
-            assert(false && "unreachable");
-    }
-    m_proto_id = proto.id;
+InstProto::operator bool() const {
+    return is_valid();
 }
 
-bool Instruction::is_valid() const { return m_proto_id > 0; }
+bool InstProto::is_branch() const {
+    return std::ranges::any_of(
+        std::array{"beq"sv, "bne"sv, "blt"sv, "bltu"sv, "bge"sv, "bgeu"sv, "jal"sv},
+        [&](auto b) { return mnemonic == b; }
+        );
+}
 
-Instruction::operator bool() const { return is_valid(); }
+size_t InstProto::byte_size() const noexcept {
+    if (!is_valid()) return 0;
+    if (mnemonic.size() >= 2 && mnemonic[0] == 'c' && mnemonic[1] == '.') {
+        return 2; // compressed instruction
+    }
+    return 4; // standard instruction size
+}
+
+// Instruction methods
+Instruction::Instruction(int proto_id, const std::array<InstArg, 3> &args)
+    : m_proto_id(proto_id), m_args(args) {
+}
+
+bool Instruction::is_valid() const {
+    return m_proto_id >= 0;
+}
+
+Instruction::operator bool() const {
+    return is_valid();
+}
 
 const std::array<InstArg, 3> &Instruction::get_args() const noexcept {
     return m_args;
@@ -74,7 +49,12 @@ InstProto Instruction::get_prototype() const noexcept {
     return rv64::is::Rv64IMC::get_inst_proto(m_proto_id);
 }
 
-const Instruction & Instruction::get_invalid_cref() noexcept {
+size_t Instruction::byte_size() const noexcept {
+    if (m_proto_id == -1) return 0;
+    return get_prototype().byte_size();
+}
+
+const Instruction &Instruction::get_invalid_cref() noexcept {
     static Instruction invalid_inst{};
     return invalid_inst;
 }

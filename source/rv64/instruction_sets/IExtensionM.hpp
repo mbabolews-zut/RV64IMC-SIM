@@ -5,9 +5,9 @@ namespace rv64 {
 }
 
 namespace rv64::is {
-    class IExtM {
+    class IExtensionM {
     public:
-        static constexpr int BASE_ID = 200;
+        static constexpr int IS_ID = 200; ///< Unique ID for the IExtensionM instruction set
 
         /// @brief multiply
         /// <br> rd = rs1 * rs2
@@ -84,9 +84,9 @@ namespace rv64::is {
                 }};
         }
 
-        static_assert(BASE_ID > 0);
+        static_assert(IS_ID > 0);
         enum class InstId {
-            mul = BASE_ID, mulh, mulhu, mulhsu, mulw, div,
+            mul = IS_ID, mulh, mulhu, mulhsu, mulw, div,
             divu, rem, remu, divw, divuw, remw, remuw
         };
 
