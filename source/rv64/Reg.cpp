@@ -62,8 +62,12 @@ namespace rv64 {
         return it->second;
     }
 
-    int Reg::get_idx() const {
+    int Reg::idx() const {
         return m_idx;
+    }
+
+    bool Reg::in_compressed_range() const {
+        return idx() >= 8 && idx() <= 15;
     }
 
     bool Reg::is_valid() const {

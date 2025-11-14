@@ -14,6 +14,7 @@
 #   pragma intrinsic (__umulh)
 #endif
 
+
 namespace rv64 {
     void Interpreter::addi(GPIntReg &rd, const GPIntReg &rs, int12 imm12) {
         rd = rs.sval() + imm12;
@@ -100,48 +101,48 @@ namespace rv64 {
     }
 
     void Interpreter::jal(GPIntReg &rd, int20 imm20) {
-        rd = m_vm.m_cpu.get_pc() + 4;
-        m_vm.m_cpu.set_pc(m_vm.m_cpu.get_pc() + imm20 * 2 - 4);
+        rd = m_vm.m_cpu.get_pc();
+        m_vm.m_cpu.move_pc(imm20 * 2);
     }
 
     void Interpreter::jalr(GPIntReg &rd, const GPIntReg &rs, int12 imm12) {
-        rd = m_vm.m_cpu.get_pc() + 4;
-        m_vm.m_cpu.set_pc(rs.sval() + imm12 - 4);
+        rd = m_vm.m_cpu.get_pc();
+        m_vm.m_cpu.set_pc(rs.sval() + imm12);
     }
 
     void Interpreter::beq(const GPIntReg &rs1, const GPIntReg &rs2, int12 imm12) {
         if (rs1.sval() == rs2.sval()) {
-            m_vm.m_cpu.set_pc(m_vm.m_cpu.get_pc() + (imm12 * 2) - 4);
+            m_vm.m_cpu.move_pc(imm12 * 2);
         }
     }
 
     void Interpreter::bne(const GPIntReg &rs1, const GPIntReg &rs2, int12 imm12) {
         if (rs1.sval() != rs2.sval()) {
-            m_vm.m_cpu.set_pc(m_vm.m_cpu.get_pc() + (imm12 * 2) - 4);
+            m_vm.m_cpu.move_pc(imm12 * 2);
         }
     }
 
     void Interpreter::blt(const GPIntReg &rs1, const GPIntReg &rs2, int12 imm12) {
         if (rs1.sval() < rs2.sval()) {
-            m_vm.m_cpu.set_pc(m_vm.m_cpu.get_pc() + (imm12 * 2) - 4);
+            m_vm.m_cpu.move_pc(imm12 * 2);
         }
     }
 
     void Interpreter::bltu(const GPIntReg &rs1, const GPIntReg &rs2, int12 imm12) {
         if (rs1.val() < rs2.val()) {
-            m_vm.m_cpu.set_pc(m_vm.m_cpu.get_pc() + imm12 * 2 - 4);
+            m_vm.m_cpu.move_pc(imm12 * 2);
         }
     }
 
     void Interpreter::bge(const GPIntReg &rs1, const GPIntReg &rs2, int12 imm12) {
         if (rs1.sval() >= rs2.sval()) {
-            m_vm.m_cpu.set_pc(m_vm.m_cpu.get_pc() + imm12 * 2 - 4);
+            m_vm.m_cpu.move_pc(imm12 * 2);
         }
     }
 
     void Interpreter::bgeu(const GPIntReg &rs1, const GPIntReg &rs2, int12 imm12) {
         if (rs1.val() >= rs2.val()) {
-            m_vm.m_cpu.set_pc(m_vm.m_cpu.get_pc() + imm12 * 2 - 4);
+            m_vm.m_cpu.move_pc(imm12 * 2);
         }
     }
 
@@ -204,12 +205,16 @@ namespace rv64 {
             case 17:
                 m_vm.terminate(static_cast<int>(a1.sval()));
                 return;
+            case -2137: // Secret exit code to suppress clangd "(err != MemErr::None) is always false",
+                // err can be modified in the cases above.
+                m_vm.terminate(-2137);
+                err = MemErr::ProgramExit;
+                break;
             default:
                 ui::print_warning(std::format("Unsupported ecall code: {}", a0.sval()));
                 return;
         }
-        if (err != MemErr::None)
-            handle_error(err);
+        if (err != MemErr::None) handle_error(err);
     }
 
     void Interpreter::ebreak() {
@@ -369,9 +374,276 @@ namespace rv64 {
         rd = std::bit_cast<int32_t>(rs1.as_u32() % rs2.as_u32());
     }
 
+    void Interpreter::c_lwsp(GPIntReg &rd, int6 imm6) {
+        if (rd.idx() == 0) {
+            handle_error("destination register cannot be x0 in c.lwsp instruction");
+            return;
+        }
+
+        auto offset = int64_t(imm6) << 2;
+        load_instruction_tmpl<uint32_t>(rd, x2_reg(), offset);
+    }
+
+    void Interpreter::c_ldsp(GPIntReg &rd, int6 imm6) {
+        if (rd.idx() == 0) {
+            handle_error("destination register cannot be x0 in c.lwsp instruction");
+            return;
+        }
+        auto offset = int64_t(imm6) << 3;
+        load_instruction_tmpl<uint32_t>(rd, x2_reg(), offset);
+    }
+
+    void Interpreter::c_fldsp(GPIntReg &rd, int6 imm6) {
+        handle_error("Floating point instructions are not handled: c.fldsp");
+    }
+
+    void Interpreter::c_swsp(const GPIntReg &rs2, int6 imm6) {
+        auto offset = int64_t(imm6) << 2;
+        store_instruction_tmpl<uint32_t>(rs2, x2_reg(), offset);
+    }
+
+    void Interpreter::c_sdsp(const GPIntReg &rs2, int6 imm6) {
+        auto offset = int64_t(imm6) << 3;
+        store_instruction_tmpl<uint64_t>(rs2, x2_reg(), offset);
+    }
+
+    void Interpreter::c_fsdsp(GPIntReg &rd, int6 imm6) {
+        handle_error("Floating point instructions are not handled: c.fsdsp");
+    }
+
+    void Interpreter::c_lw(GPIntReg &rdp, const GPIntReg &rs1p, int5 imm5) {
+        assert(rdp.in_compressed_range() && rs1p.in_compressed_range());
+
+        auto offset = int64_t(imm5) << 2;
+        load_instruction_tmpl<uint32_t>(rdp, rs1p, offset);
+    }
+
+    void Interpreter::c_ld(GPIntReg &rdp, const GPIntReg &rs1p, int5 imm5) {
+        assert(rdp.in_compressed_range() && rs1p.in_compressed_range());
+
+        auto offset = int64_t(imm5) << 3;
+        store_instruction_tmpl<uint64_t>(rdp, rs1p, offset);
+    }
+
+    void Interpreter::c_fld(GPIntReg &rdp, const GPIntReg &rs1p, int5 imm5) {
+        handle_error("Floating point instructions are not handled: c.fld");
+    }
+
+    void Interpreter::c_sw(const GPIntReg &rs2p, const GPIntReg &rs1p, int5 imm5) {
+        auto offset = int64_t(imm5) << 2;
+        store_instruction_tmpl<uint32_t>(rs1p, rs2p, offset);
+    }
+
+    void Interpreter::c_sd(const GPIntReg &rs2p, const GPIntReg &rs1p, int5 imm5) {
+        auto offset = int64_t(imm5) << 3;
+        store_instruction_tmpl<uint64_t>(rs1p, rs2p, offset);
+    }
+
+    void Interpreter::c_fsd(const GPIntReg &rs2p, const GPIntReg &rs1p, int5 imm5) {
+        handle_error("Floating point instructions are not handled: c.fsd");
+    }
+
+    void Interpreter::c_j(int11 imm11) {
+        auto offset = int64_t(imm11) << 1;
+        m_vm.m_cpu.move_pc(offset);
+    }
+
+    void Interpreter::c_jr(const GPIntReg &rs1) {
+        if (rs1.idx() == 0) {
+            handle_error("destination register cannot be x0 in c.jr");
+            return;
+        }
+        m_vm.m_cpu.set_pc(rs1.val());
+    }
+
+    void Interpreter::c_jalr(const GPIntReg &rs1) {
+        if (rs1.idx() == 0) {
+            ebreak();
+            return;
+        }
+        m_vm.m_cpu.reg(1) = m_vm.m_cpu.get_pc();
+        m_vm.m_cpu.set_pc(rs1.val());
+    }
+
+    void Interpreter::c_beqz(const GPIntReg &rs1p, int8 imm8) {
+        assert(rs1p.in_compressed_range());
+        if (rs1p == 0) {
+            auto offset = int64_t(imm8) << 1;
+            m_vm.m_cpu.move_pc(offset);
+        }
+    }
+
+    void Interpreter::c_bnez(const GPIntReg &rs1p, int8 imm8) {
+        assert(rs1p.in_compressed_range());
+        if (rs1p == 0) {
+            auto offset = int64_t(imm8) << 1;
+            m_vm.m_cpu.move_pc(offset);
+        }
+    }
+
+    void Interpreter::c_li(GPIntReg &rd, int6 imm6) {
+        if (rd.idx() == 0)
+            ui::print_hint("Loading immediate into x0 has no effect.");
+
+        rd = int64_t(imm6);
+    }
+
+    void Interpreter::c_lui(GPIntReg &rd, int6 nzimm6) {
+        if (rd.idx() == 0) {
+            ui::print_hint("Loading immediate into x0 has no effect.");
+        } else if (rd.idx() == 2) {
+            c_addi16sp(rd, nzimm6);
+            return;
+        }
+        if (nzimm6 == 0) {
+            handle_error("nzimm6 cannot be zero in c.lui instruction");
+            return;
+        }
+
+        rd = int64_t(nzimm6) << 12;
+    }
+
+    void Interpreter::c_addi(GPIntReg &rd, int6 nzimm6) {
+        if (rd.idx() == 0) return; // C.NOP
+        if (nzimm6 == 0) {
+            ui::print_hint("Adding zero immediate has no effect.");
+        }
+        rd.sval() += nzimm6;
+    }
+
+    void Interpreter::c_addiw(GPIntReg &rd, int6 nzimm6) {
+        if (rd.idx() == 0) {
+            handle_error("Register cannot be x0 in c.addiw instruction");
+            return;
+        }
+        rd = rd.as_i32() + nzimm6.as_i32();
+    }
+
+    void Interpreter::c_addi16sp(GPIntReg &x2, int6 nzimm6) {
+        if (nzimm6 == 0) {
+            handle_error("nzimm6 cannot be zero in c.addi16sp instruction");
+            return;
+        }
+        if (x2.idx() != 2) {
+            c_lui(x2, nzimm6);
+            return;
+        }
+        x2_reg() = x2_reg().sval() + (int64_t(nzimm6) << 4);
+    }
+
+    void Interpreter::c_addi4spn(GPIntReg &rdp, uint8 nzuimm8) {
+        assert(rdp.in_compressed_range());
+        if (nzuimm8 == 0) {
+            handle_error("nzuimm8 cannot be zero in c.addi4spn instruction");
+            return;
+        }
+        rdp = x2_reg().sval() + nzuimm8;
+    }
+
+    void Interpreter::c_slli(GPIntReg &rd, uint6 nzuimm6) {
+        if (nzuimm6 == 0) {
+            ui::print_hint("Shifting by zero has no effect.");
+            return;
+        }
+        if (rd.idx() == 0) {
+            ui::print_hint("Shifting zero register has no effect.");
+            return;
+        }
+        rd = rd.val() << nzuimm6;
+    }
+
+    void Interpreter::c_srli(GPIntReg &rdp, uint6 nzuimm6) {
+        assert(rdp.in_compressed_range());
+        if (nzuimm6 == 0) {
+            ui::print_hint("Shifting by zero has no effect.");
+            return;
+        }
+        if (rdp.idx() == 0) {
+            ui::print_hint("Shifting zero register has no effect.");
+            return;
+        }
+        rdp = rdp.val() >> nzuimm6;
+    }
+
+    void Interpreter::c_srai(GPIntReg &rdp, uint6 nzuimm6) {
+        assert(rdp.in_compressed_range());
+        if (nzuimm6 == 0) {
+            ui::print_hint("Shifting by zero has no effect.");
+            return;
+        }
+        if (rdp.idx() == 0) {
+            ui::print_hint("Shifting zero register has no effect.");
+            return;
+        }
+        rdp = rdp.sval() >> nzuimm6; // signed int shifting is arithmetic in C++ 20
+    }
+
+    void Interpreter::c_andi(GPIntReg &rdp, int6 imm6) {
+        rdp = rdp.sval() & int64_t(imm6);
+    }
+
+    void Interpreter::c_mv(GPIntReg &rd, const GPIntReg &rs2) {
+        if (rs2.idx() == 0) {
+            c_jr(rs2);
+            return;
+        }
+        if (rd.idx() == 0) {
+            ui::print_hint("Moving to zero register has no effect.");
+            return;
+        }
+        rd = rs2;
+    }
+
+    void Interpreter::c_add(GPIntReg &rd, const GPIntReg &rs2) {
+        if (rs2.idx() == 0) {
+            c_jalr(rs2);
+            return;
+        }
+        if (rd.idx() == 0) {
+            ui::print_hint("Adding to zero register has no effect.");
+            return;
+        }
+        rd = rd.sval() + rs2.sval();
+    }
+
+    void Interpreter::c_and(GPIntReg &rdp, const GPIntReg &rs2p) {
+        assert(rdp.in_compressed_range() && rs2p.in_compressed_range());
+        rdp = rdp.val() & rs2p.val();
+    }
+
+    void Interpreter::c_or(GPIntReg &rdp, const GPIntReg &rs2p) {
+        assert(rdp.in_compressed_range() && rs2p.in_compressed_range());
+        rdp = rdp.val() | rs2p.val();
+    }
+
+    void Interpreter::c_xor(GPIntReg &rdp, const GPIntReg &rs2p) {
+        assert(rdp.in_compressed_range() && rs2p.in_compressed_range());
+        rdp = rdp.val() ^ rs2p.val();
+    }
+
+    void Interpreter::c_sub(GPIntReg &rdp, const GPIntReg &rs2p) {
+        assert(rdp.in_compressed_range() && rs2p.in_compressed_range());
+        rdp = rdp.sval() - rs2p.sval();
+    }
+
+    void Interpreter::c_addw(GPIntReg &rdp, const GPIntReg &rs2p) {
+        assert(rdp.in_compressed_range() && rs2p.in_compressed_range());
+        rdp = rdp.as_i32() + rs2p.as_i32();
+    }
+
+    void Interpreter::c_subw(GPIntReg &rdp, const GPIntReg &rs2p) {
+        assert(rdp.in_compressed_range() && rs2p.in_compressed_range());
+        rdp = rdp.as_i32() - rs2p.as_i32();
+    }
+
     void Interpreter::handle_error(MemErr err) const {
         assert(err != MemErr::None);
         PRINT_ERROR("Memory access error: " + Memory::err_to_string(err));
+        m_vm.error_stop();
+    }
+
+    void Interpreter::handle_error(std::string_view msg) const {
+        PRINT_ERROR(msg);
         m_vm.error_stop();
     }
 
@@ -389,21 +661,26 @@ namespace rv64 {
         return p3 + mid;
     }
 
-    template<typename T>
-    void Interpreter::load_instruction_tmpl(GPIntReg &rd, const GPIntReg &rs, int12 imm12) const {
+    GPIntReg &Interpreter::x2_reg() const {
+        return m_vm.m_cpu.reg(2);
+    }
+
+    template<typename T, typename TOff>
+    void Interpreter::load_instruction_tmpl(GPIntReg &rd, const GPIntReg &rs, TOff offset) const {
         MemErr err;
         if constexpr (std::is_same_v<T, uint64_t>) {
-            rd = m_vm.m_memory.load<T>(rs.sval() + imm12, err);
+            rd = m_vm.m_memory.load<T>(rs.sval() + offset, err);
         } else {
-            rd = int64_t(m_vm.m_memory.load<T>(rs.sval() + imm12, err));
+            rd = int64_t(m_vm.m_memory.load<T>(rs.sval() + offset, err));
         }
         if (err != MemErr::None)
             handle_error(err);
     }
 
-    template<typename T>
-    void Interpreter::store_instruction_tmpl(const GPIntReg &rs, const GPIntReg &rs2, int12 imm12) {
-        auto err = m_vm.m_memory.store<T>(rs.sval() + imm12, static_cast<T>(rs2.val()));
+
+    template<typename T, typename TOff>
+    void Interpreter::store_instruction_tmpl(const GPIntReg &rs, const GPIntReg &rs2, TOff offset) {
+        auto err = m_vm.m_memory.store<T>(rs.sval() + offset, static_cast<T>(rs2.val()));
         if (err != MemErr::None)
             handle_error(err);
     }
@@ -412,7 +689,7 @@ namespace rv64 {
     int64_t Interpreter::div_rem_tmpl(T lhs, T rhs) {
         static_assert(std::is_signed_v<T>);
         if (rhs == 0)
-            return Rem? lhs : -1;
+            return Rem ? lhs : -1;
         if (lhs == std::numeric_limits<T>::min() && rhs == -1)
             return Rem ? 0 : lhs;
         return Rem ? (lhs % rhs) : (lhs / rhs);
@@ -426,8 +703,8 @@ namespace rv64 {
 
         auto args = in.get_args();
 
-        auto get_reg = [this](InstArg arg) -> GPIntReg& {
-            return m_vm.m_cpu.get_int_reg(std::get<Reg>(arg));
+        auto get_reg = [this](InstArg arg) -> GPIntReg & {
+            return m_vm.m_cpu.reg(std::get<Reg>(arg));
         };
 
         switch (in.get_prototype().id) {

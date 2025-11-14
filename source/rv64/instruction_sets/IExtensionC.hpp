@@ -15,8 +15,8 @@ namespace rv64::is {
         virtual void c_lwsp(GPIntReg &rd, int6 imm6) = 0;
         virtual void c_ldsp(GPIntReg &rd, int6 imm6) = 0;
         virtual void c_fldsp(GPIntReg &rd, int6 imm6) = 0;
-        virtual void c_swsp(GPIntReg &rd, int6 imm6) = 0;
-        virtual void c_sdsp(GPIntReg &rd, int6 imm6) = 0;
+        virtual void c_swsp(const GPIntReg &rs2, int6 imm6) = 0;
+        virtual void c_sdsp(const GPIntReg &rs2, int6 imm6) = 0;
         virtual void c_fsdsp(GPIntReg &rd, int6 imm6) = 0;
         virtual void c_lw(GPIntReg &rdp, const GPIntReg &rs1p, int5 imm5) = 0;
         virtual void c_ld(GPIntReg &rdp, const GPIntReg &rs1p, int5 imm5) = 0;
@@ -29,24 +29,24 @@ namespace rv64::is {
         virtual void c_jalr(const GPIntReg &rs1) = 0;
         virtual void c_beqz(const GPIntReg &rs1p, int8 imm8) = 0;
         virtual void c_bnez(const GPIntReg &rs1p, int8 imm8) = 0;
-        virtual void c_li(const GPIntReg &rd, int6 imm6) = 0;
-        virtual void c_lui(const GPIntReg &rd, int6 nzimm6) = 0;
-        virtual void c_addi(const GPIntReg &rd, int6 nzimm6) = 0;
-        virtual void c_addiw(const GPIntReg &rd, int6 nzimm6) = 0;
-        virtual void c_addi16sp(const GPIntReg &x2, int6 nzimm6) = 0;
-        virtual void c_addi4spn(const GPIntReg &rdp, uint8 nzuimm8) = 0;
-        virtual void c_slli(const GPIntReg &rd, uint6 nzuimm6) = 0;
-        virtual void c_srli(const GPIntReg &rdp, uint6 nzuimm6) = 0;
-        virtual void c_srai(const GPIntReg &rdp, uint6 uimm6) = 0;
-        virtual void c_andi(const GPIntReg &rdp, int6 imm6) = 0;
-        virtual void c_mv(const GPIntReg &rd, const GPIntReg &rs2) = 0;
-        virtual void c_add(const GPIntReg &rd, const GPIntReg &rs2) = 0;
-        virtual void c_and(const GPIntReg &rdp, const GPIntReg &rs2p) = 0;
-        virtual void c_or(const GPIntReg &rdp, const GPIntReg &rs2p) = 0;
-        virtual void c_xor(const GPIntReg &rdp, const GPIntReg &rs2p) = 0;
-        virtual void c_sub(const GPIntReg &rdp, const GPIntReg &rs2p) = 0;
-        virtual void c_addw(const GPIntReg &rdp, const GPIntReg &rs2p) = 0;
-        virtual void c_subw(const GPIntReg &rdp, const GPIntReg &rs2p) = 0;
+        virtual void c_li(GPIntReg &rd, int6 imm6) = 0;
+        virtual void c_lui(GPIntReg &rd, int6 nzimm6) = 0;
+        virtual void c_addi(GPIntReg &rd, int6 nzimm6) = 0;
+        virtual void c_addiw(GPIntReg &rd, int6 nzimm6) = 0;
+        virtual void c_addi16sp(GPIntReg &x2, int6 nzimm6) = 0;
+        virtual void c_addi4spn(GPIntReg &rdp, uint8 nzuimm8) = 0;
+        virtual void c_slli(GPIntReg &rd, uint6 nzuimm6) = 0;
+        virtual void c_srli(GPIntReg &rdp, uint6 nzuimm6) = 0;
+        virtual void c_srai(GPIntReg &rdp, uint6 uimm6) = 0;
+        virtual void c_andi(GPIntReg &rdp, int6 imm6) = 0;
+        virtual void c_mv(GPIntReg &rd, const GPIntReg &rs2) = 0;
+        virtual void c_add(GPIntReg &rd, const GPIntReg &rs2) = 0;
+        virtual void c_and(GPIntReg &rdp, const GPIntReg &rs2p) = 0;
+        virtual void c_or(GPIntReg &rdp, const GPIntReg &rs2p) = 0;
+        virtual void c_xor(GPIntReg &rdp, const GPIntReg &rs2p) = 0;
+        virtual void c_sub(GPIntReg &rdp, const GPIntReg &rs2p) = 0;
+        virtual void c_addw(GPIntReg &rdp, const GPIntReg &rs2p) = 0;
+        virtual void c_subw(GPIntReg &rdp, const GPIntReg &rs2p) = 0;
 
         static constexpr std::array<InstProto, 35> list_inst() {
             return {{

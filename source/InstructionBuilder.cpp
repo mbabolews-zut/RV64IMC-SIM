@@ -112,8 +112,8 @@ Instruction InstructionBuilder::build() const {
                 if (!reg.is_valid()) {
                     return {};
                 }
-                auto ridx = reg.get_idx();
-                if (arg == InstArgType::IntRegP && (ridx < 8 || ridx > 15)) {
+
+                if (arg == InstArgType::IntRegP && !reg.in_compressed_range()) {
                     return {}; // IntRegP must be in range x8-x15
                 }
                 validated_args[i] = reg;

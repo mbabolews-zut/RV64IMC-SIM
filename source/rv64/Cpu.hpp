@@ -11,17 +11,19 @@ namespace rv64 {
     public:
         static constexpr size_t INT_REG_CNT = 32;
 
-        Cpu(VM &vm);
+        explicit Cpu(VM &vm);
 
         void set_pc(uint64_t pc);
 
+        void move_pc(int64_t offset);
+
         [[nodiscard]] GPIntReg &reg(int i) noexcept;
-        [[nodiscard]] const GPIntReg &get_int_reg(int i) const noexcept;
-        [[nodiscard]] GPIntReg &get_int_reg(Reg reg) noexcept;
-        [[nodiscard]] const GPIntReg &get_int_reg(Reg reg) const noexcept;
+        [[nodiscard]] const GPIntReg &reg(int i) const noexcept;
+        [[nodiscard]] GPIntReg &reg(Reg reg) noexcept;
+        [[nodiscard]] const GPIntReg &reg(Reg reg) const noexcept;
         [[nodiscard]] uint64_t get_pc() const;
 
-        size_t get_current_line() const;
+        [[nodiscard]] size_t get_current_line() const;
 
         void print_cpu_state() const;
 

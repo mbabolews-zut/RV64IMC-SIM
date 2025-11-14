@@ -298,8 +298,8 @@ public:
     void c_lwsp(GPIntReg &rd, int6 imm6) override;
     void c_ldsp(GPIntReg &rd, int6 imm6) override;
     void c_fldsp(GPIntReg &rd, int6 imm6) override;
-    void c_swsp(GPIntReg &rd, int6 imm6) override;
-    void c_sdsp(GPIntReg &rd, int6 imm6) override;
+    void c_swsp(const GPIntReg &rs2, int6 imm6) override;
+    void c_sdsp(const GPIntReg &rs2, int6 imm6) override;
     void c_fsdsp(GPIntReg &rd, int6 imm6) override;
     void c_lw(GPIntReg &rdp, const GPIntReg &rs1p, int5 imm5) override;
     void c_ld(GPIntReg &rdp, const GPIntReg &rs1p, int5 imm5) override;
@@ -312,24 +312,24 @@ public:
     void c_jalr(const GPIntReg &rs1) override;
     void c_beqz(const GPIntReg &rs1p, int8 imm8) override;
     void c_bnez(const GPIntReg &rs1p, int8 imm8) override;
-    void c_li(const GPIntReg &rd, int6 imm6) override;
-    void c_lui(const GPIntReg &rd, int6 nzimm6) override;
-    void c_addi(const GPIntReg &rd, int6 nzimm6) override;
-    void c_addiw(const GPIntReg &rd, int6 nzimm6) override;
-    void c_addi16sp(const GPIntReg &x2, int6 nzimm6) override;
-    void c_addi4spn(const GPIntReg &rdp, uint8 nzuimm8) override;
-    void c_slli(const GPIntReg &rd, uint6 nzuimm6) override;
-    void c_srli(const GPIntReg &rdp, uint6 nzuimm6) override;
-    void c_srai(const GPIntReg &rdp, uint6 uimm6) override;
-    void c_andi(const GPIntReg &rdp, int6 imm6) override;
-    void c_mv(const GPIntReg &rd, const GPIntReg &rs2) override;
-    void c_add(const GPIntReg &rd, const GPIntReg &rs2) override;
-    void c_and(const GPIntReg &rdp, const GPIntReg &rs2p) override;
-    void c_or(const GPIntReg &rdp, const GPIntReg &rs2p) override;
-    void c_xor(const GPIntReg &rdp, const GPIntReg &rs2p) override;
-    void c_sub(const GPIntReg &rdp, const GPIntReg &rs2p) override;
-    void c_addw(const GPIntReg &rdp, const GPIntReg &rs2p) override;
-    void c_subw(const GPIntReg &rdp, const GPIntReg &rs2p) override;
+    void c_li(GPIntReg &rd, int6 imm6) override;
+    void c_lui(GPIntReg &rd, int6 nzimm6) override;
+    void c_addi(GPIntReg &rd, int6 nzimm6) override;
+    void c_addiw(GPIntReg &rd, int6 nzimm6) override;
+    void c_addi16sp(GPIntReg &x2, int6 nzimm6) override;
+    void c_addi4spn(GPIntReg &rdp, uint8 nzuimm8) override;
+    void c_slli(GPIntReg &rd, uint6 nzuimm6) override;
+    void c_srli(GPIntReg &rdp, uint6 nzuimm6) override;
+    void c_srai(GPIntReg &rdp, uint6 nzuimm6) override;
+    void c_andi(GPIntReg &rdp, int6 imm6) override;
+    void c_mv(GPIntReg &rd, const GPIntReg &rs2) override;
+    void c_add(GPIntReg &rd, const GPIntReg &rs2) override;
+    void c_and(GPIntReg &rdp, const GPIntReg &rs2p) override;
+    void c_or(GPIntReg &rdp, const GPIntReg &rs2p) override;
+    void c_xor(GPIntReg &rdp, const GPIntReg &rs2p) override;
+    void c_sub(GPIntReg &rdp, const GPIntReg &rs2p) override;
+    void c_addw(GPIntReg &rdp, const GPIntReg &rs2p) override;
+    void c_subw(GPIntReg &rdp, const GPIntReg &rs2p) override;
 
     ~Interpreter() override = default;
 
@@ -337,21 +337,22 @@ public:
 
 private:
 
-    template<typename T>
-    void load_instruction_tmpl(GPIntReg &rd, const GPIntReg &rs, int12 imm12) const;
+    template<typename T, typename TOff = int12>
+    void load_instruction_tmpl(GPIntReg &rd, const GPIntReg &rs, TOff offset) const;
 
-    template<typename T>
-    void store_instruction_tmpl(const GPIntReg &rs, const GPIntReg &rs2, int12 imm12);
+    template<class T, class TOff = int12>
+    void store_instruction_tmpl(const GPIntReg &rs, const GPIntReg &rs2, TOff offset);
 
     template<bool Rem = false, typename T>
     [[nodiscard]] static int64_t div_rem_tmpl(T lhs, T rhs);
 
     void handle_error(MemErr err) const;
 
+    void handle_error(std::string_view msg) const;
+
     static uint64_t mul64x64_128high(uint64_t a, uint64_t b);
 
-public:
-
+    [[nodiscard]] GPIntReg& x2_reg() const;
 
 private:
     VM &m_vm;

@@ -42,9 +42,9 @@ namespace rv64 {
             }
             return false;
         }
+        m_pc += instruction.byte_size(); // advance PC
         m_interpreter.exec_instruction(instruction);
-        m_pc += 4; // TODO: support for compressed instructions
-        return m_vm.m_memory.get_instruction_end_addr() != m_pc;
+        return m_vm.m_memory.get_instruction_end_addr() < m_pc;
     }
 
     Cpu::Cpu(VM &vm)

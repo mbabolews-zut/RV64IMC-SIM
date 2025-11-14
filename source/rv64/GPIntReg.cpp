@@ -24,7 +24,7 @@ namespace rv64 {
     }
 
     uint64_t &GPIntReg::val() {
-        if (get_idx() == 0) return get_zero_ref<uint64_t>();
+        if (idx() == 0) return get_zero_ref<uint64_t>();
         return m_value;
     }
 
@@ -33,7 +33,7 @@ namespace rv64 {
     }
 
     int64_t &GPIntReg::sval() {
-        if (get_idx() == 0) return get_zero_ref<int64_t>();
+        if (idx() == 0) return get_zero_ref<int64_t>();
         return *reinterpret_cast<int64_t*>(&m_value);
     }
 
@@ -42,39 +42,26 @@ namespace rv64 {
         m_pc = pc & ~UINT64_C(1); // ensure LSB is 0
     }
 
+    void Cpu::move_pc(int64_t offset) {
+        m_pc += offset;
+        m_pc &= ~UINT64_C(1); // ensure LSB is 0
+    }
+
     GPIntReg &Cpu::reg(int i) noexcept {
         assert(i < INT_REG_CNT);
         return m_int_regs[i];
     }
 
-    const GPIntReg &Cpu::get_int_reg(int i) const noexcept {
+    const GPIntReg &Cpu::reg(int i) const noexcept {
         assert(i < INT_REG_CNT);
         return m_int_regs[i];
     }
 
-    GPIntReg & Cpu::get_int_reg(Reg reg) noexcept {
-        return m_int_regs[reg.get_idx()];
+    GPIntReg & Cpu::reg(Reg reg) noexcept {
+        return m_int_regs[reg.idx()];
     }
 
-    const GPIntReg & Cpu::get_int_reg(Reg reg) const noexcept {
-        return get_int_reg(reg.get_idx());
-    }
-
-    GPIntReg &GPIntReg::operator=(uint64_t val) {
-        if (get_idx() != 0)
-            m_value = val;
-        return *this;
-    }
-
-    GPIntReg &GPIntReg::operator=(int64_t val) {
-        if (get_idx() != 0)
-            this->val() = std::bit_cast<uint64_t>(val);
-        return *this;
-    }
-
-    GPIntReg &GPIntReg::operator=(int32_t val) {
-        if (get_idx() != 0)
-            m_value = std::bit_cast<uint64_t>(static_cast<int64_t>(val));
-        return *this;
+    const GPIntReg & Cpu::reg(Reg reg) const noexcept {
+        return this->reg(reg.idx());
     }
 }

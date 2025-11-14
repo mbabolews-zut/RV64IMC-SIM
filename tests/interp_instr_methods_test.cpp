@@ -496,7 +496,7 @@ TEST_CASE("Interpreter branch instructions", "[interpreter][branch]") {
         cpu.reg(1) = 100;
         cpu.reg(2) = 100;
         interp.beq(cpu.reg(1), cpu.reg(2), 8);
-        REQUIRE(cpu.get_pc() == initial_pc + 16 - 4);
+        REQUIRE(cpu.get_pc() == initial_pc + 16);
 
         cpu.set_pc(initial_pc);
         cpu.reg(3) = 100;
@@ -510,7 +510,7 @@ TEST_CASE("Interpreter branch instructions", "[interpreter][branch]") {
         cpu.reg(1) = 100;
         cpu.reg(2) = 200;
         interp.bne(cpu.reg(1), cpu.reg(2), 8);
-        REQUIRE(cpu.get_pc() == initial_pc + 16 - 4);
+        REQUIRE(cpu.get_pc() == initial_pc + 16);
 
         cpu.set_pc(initial_pc);
         cpu.reg(3) = 100;
@@ -524,13 +524,13 @@ TEST_CASE("Interpreter branch instructions", "[interpreter][branch]") {
         cpu.reg(1) = 10;
         cpu.reg(2) = 20;
         interp.blt(cpu.reg(1), cpu.reg(2), 8);
-        REQUIRE(cpu.get_pc() == initial_pc + 16 - 4);
+        REQUIRE(cpu.get_pc() == initial_pc + 16);
 
         cpu.set_pc(initial_pc);
         cpu.reg(3) = static_cast<uint64_t>(-10);
         cpu.reg(4) = 10;
         interp.blt(cpu.reg(3), cpu.reg(4), 8);
-        REQUIRE(cpu.get_pc() == initial_pc + 16 - 4);
+        REQUIRE(cpu.get_pc() == initial_pc + 16);
     }
 
     SECTION("bltu - branch if less than unsigned") {
@@ -538,7 +538,7 @@ TEST_CASE("Interpreter branch instructions", "[interpreter][branch]") {
         cpu.reg(1) = 10;
         cpu.reg(2) = 20;
         interp.bltu(cpu.reg(1), cpu.reg(2), 8);
-        REQUIRE(cpu.get_pc() == initial_pc + 16 - 4);
+        REQUIRE(cpu.get_pc() == initial_pc + 16);
 
         cpu.set_pc(initial_pc);
         cpu.reg(3) = static_cast<uint64_t>(-10);
@@ -552,13 +552,13 @@ TEST_CASE("Interpreter branch instructions", "[interpreter][branch]") {
         cpu.reg(1) = 20;
         cpu.reg(2) = 10;
         interp.bge(cpu.reg(1), cpu.reg(2), 8);
-        REQUIRE(cpu.get_pc() == initial_pc + 16 - 4);
+        REQUIRE(cpu.get_pc() == initial_pc + 16);
 
         cpu.set_pc(initial_pc);
         cpu.reg(3) = 10;
         cpu.reg(4) = 10;
         interp.bge(cpu.reg(3), cpu.reg(4), 8);
-        REQUIRE(cpu.get_pc() == initial_pc + 16 - 4);
+        REQUIRE(cpu.get_pc() == initial_pc + 16);
     }
 
     SECTION("bgeu - branch if greater or equal unsigned") {
@@ -566,13 +566,13 @@ TEST_CASE("Interpreter branch instructions", "[interpreter][branch]") {
         cpu.reg(1) = 20;
         cpu.reg(2) = 10;
         interp.bgeu(cpu.reg(1), cpu.reg(2), 8);
-        REQUIRE(cpu.get_pc() == initial_pc + 16 - 4);
+        REQUIRE(cpu.get_pc() == initial_pc + 16);
 
         cpu.set_pc(initial_pc);
         cpu.reg(3) = static_cast<uint64_t>(-10);
         cpu.reg(4) = 10;
         interp.bgeu(cpu.reg(3), cpu.reg(4), 8);
-        REQUIRE(cpu.get_pc() == initial_pc + 16 - 4);
+        REQUIRE(cpu.get_pc() == initial_pc + 16);
     }
 
     SECTION("Branch with negative offset") {
@@ -580,7 +580,7 @@ TEST_CASE("Interpreter branch instructions", "[interpreter][branch]") {
         cpu.reg(1) = 100;
         cpu.reg(2) = 100;
         interp.beq(cpu.reg(1), cpu.reg(2), -8);
-        REQUIRE(cpu.get_pc() == initial_pc - 16 - 4);
+        REQUIRE(cpu.get_pc() == initial_pc - 16);
     }
 }
 
@@ -593,23 +593,23 @@ TEST_CASE("Interpreter jump instructions", "[interpreter][jump]") {
     SECTION("jal - jump and link") {
         cpu.set_pc(initial_pc);
         interp.jal(cpu.reg(1), 100);
-        REQUIRE(cpu.get_pc() == initial_pc + 200 - 4);
-        REQUIRE(cpu.reg(1) == initial_pc + 4);
+        REQUIRE(cpu.get_pc() == initial_pc + 200);
+        REQUIRE(cpu.reg(1) == initial_pc);
     }
 
     SECTION("jalr - jump and link register") {
         cpu.set_pc(initial_pc);
         cpu.reg(2) = 0x2000;
         interp.jalr(cpu.reg(1), cpu.reg(2), 8);
-        REQUIRE(cpu.get_pc() == 0x2000 + 8 - 4);
-        REQUIRE(cpu.reg(1) == initial_pc + 4);
+        REQUIRE(cpu.get_pc() == 0x2000 + 8);
+        REQUIRE(cpu.reg(1) == initial_pc);
     }
 
     SECTION("jalr clears lowest bit") {
         cpu.set_pc(initial_pc);
         cpu.reg(2) = 0x2001;
         interp.jalr(cpu.reg(1), cpu.reg(2), 0);
-        REQUIRE(cpu.get_pc() == 0x2000 - 4);
+        REQUIRE(cpu.get_pc() == 0x2000);
     }
 }
 
@@ -1006,7 +1006,7 @@ TEST_CASE("Interpreter PC manipulation", "[interpreter][pc]") {
 
         uint64_t pc_before = cpu.get_pc();
         interp.beq(cpu.reg(1), cpu.reg(2), 16);
-        REQUIRE(cpu.get_pc() == pc_before + 32 - 4); // 4-byte instruction size
+        REQUIRE(cpu.get_pc() == pc_before + 32); // 4-byte instruction size
     }
 
     SECTION("Branch instructions don't modify PC when condition is false") {
@@ -1022,16 +1022,16 @@ TEST_CASE("Interpreter PC manipulation", "[interpreter][pc]") {
     SECTION("jal modifies PC and stores return address") {
         cpu.set_pc(initial_pc);
         interp.jal(cpu.reg(1), 100);
-        REQUIRE(cpu.get_pc() == initial_pc + 200 - 4); // 4-byte instruction size
-        REQUIRE(cpu.reg(1) == initial_pc + 4);
+        REQUIRE(cpu.get_pc() == initial_pc + 200); // 4-byte instruction size
+        REQUIRE(cpu.reg(1) == initial_pc);
     }
 
     SECTION("jalr modifies PC to computed address") {
         cpu.set_pc(initial_pc);
         cpu.reg(2) = 0x5000;
         interp.jalr(cpu.reg(1), cpu.reg(2), 8);
-        REQUIRE(cpu.get_pc() == (0x5000 + 8 - 4));
-        REQUIRE(cpu.reg(1) == initial_pc + 4);
+        REQUIRE(cpu.get_pc() == (0x5000 + 8));
+        REQUIRE(cpu.reg(1) == initial_pc);
     }
 
     SECTION("auipc computes address relative to PC") {
@@ -1058,3 +1058,4 @@ TEST_CASE("Interpreter fence and system instructions", "[interpreter][system]") 
         REQUIRE(vm.get_state() == VMState::Breakpoint);
     }
 }
+
