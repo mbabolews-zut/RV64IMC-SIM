@@ -54,7 +54,7 @@ size_t Instruction::byte_size() const noexcept {
     return get_prototype().byte_size();
 }
 
-const Instruction &Instruction::get_invalid_cref() noexcept {
+const Instruction &Instruction::invalid_cref() noexcept {
     static Instruction invalid_inst{};
     return invalid_inst;
 }

@@ -7,15 +7,17 @@ namespace asm_parsing {
         ParsedInstVec result;
         result.reserve(unresolved_instructions.size());
 
+        uint64_t current_pc = data_off;
+
         for (const auto &uinst: unresolved_instructions) {
             if (uinst.lineno == SIZE_MAX) {
-                result.push_back(ParsedInst{SIZE_MAX, Instruction::get_invalid_cref()});
+                result.push_back(ParsedInst{SIZE_MAX, Instruction::invalid_cref()});
                 continue;
             }
 
             InstructionBuilder builder = uinst.builder;
 
-            if (!builder.resolve_symbols(sym_map)) {
+            if (!builder.resolve_symbols(sym_map, current_pc)) {
                 return 1;
             }
 
@@ -25,6 +27,7 @@ namespace asm_parsing {
             }
 
             result.push_back(ParsedInst{uinst.lineno, inst});
+            current_pc += inst.byte_size();
         }
 
         out_instructions.insert(out_instructions.end(), result.begin(), result.end());

@@ -20,8 +20,10 @@ public:
     InstructionBuilder& add_symbol(std::string_view symbol, int64_t offset = 0);
 
     /// @brief resolves symbols using the provided symbol table
+    /// @param symbol_table Map of symbol names to absolute addresses
+    /// @param current_pc Current instruction's PC (for branch offset calculation)
     /// @return true if all symbols were resolved
-    bool resolve_symbols(const std::unordered_map<std::string, uint64_t> &symbol_table);
+    bool resolve_symbols(const std::unordered_map<std::string, uint64_t> &symbol_table, uint64_t current_pc = 0);
 
     /// @brief validates and builds the final instruction
     /// @return valid Instruction or invalid instruction if validation fails

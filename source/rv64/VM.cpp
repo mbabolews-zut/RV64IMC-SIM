@@ -55,4 +55,5 @@ namespace rv64 {
         return m_memory.get_layout();
     }
 
+    size_t VM::get_current_line() const noexcept { return m_cpu.m_interpreter.get_current_line(); }
 } // rv64

@@ -16,6 +16,10 @@ class Interpreter final
 public:
     explicit Interpreter(VM &vm) : m_vm(vm) {}
 
+    // current source line (moved from Cpu)
+    [[nodiscard]] size_t get_current_line() const noexcept { return m_current_line; }
+    void set_current_line(size_t ln) noexcept { m_current_line = ln; }
+
     //
     // ------- Integer Base Instructions (I) -------
     //
@@ -356,6 +360,7 @@ private:
 
 private:
     VM &m_vm;
+    size_t m_current_line = SIZE_MAX;
 };
 
 }

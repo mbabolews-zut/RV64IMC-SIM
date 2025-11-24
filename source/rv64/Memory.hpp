@@ -3,6 +3,7 @@
 #include <span>
 #include <bit>
 #include <memory>
+#include <optional>
 
 #include "PagedMemory.hpp"
 #include "parser/asm_parsing.hpp"
@@ -57,9 +58,10 @@ public:
 
     void load_program(const asm_parsing::ParsedInstVec &instructions);
 
+    // Return a copy of the instruction and optional source-line mapping.
     struct InstructionFetch {
-        const Instruction& inst;
-        size_t lineno;
+        Instruction inst;
+        std::optional<size_t> lineno;
     };
 
     [[nodiscard]] InstructionFetch get_instruction_at(uint64_t address, MemErr &err) const;

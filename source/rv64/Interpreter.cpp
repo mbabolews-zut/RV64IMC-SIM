@@ -706,7 +706,7 @@ namespace rv64 {
                     " - pc = 0x{:x} ({})\n"
                     " - line = {}\n",
                     pc, pc,
-                    m_vm.m_cpu.get_current_line()
+                    get_current_line()
                 )
             );
             m_vm.error_stop();

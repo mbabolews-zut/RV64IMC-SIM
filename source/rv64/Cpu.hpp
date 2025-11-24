@@ -23,14 +23,13 @@ namespace rv64 {
         [[nodiscard]] const GPIntReg &reg(Reg reg) const noexcept;
         [[nodiscard]] uint64_t get_pc() const;
 
-        [[nodiscard]] size_t get_current_line() const;
-
         void print_cpu_state() const;
 
         /// @brief reads next instruction and updates the Cpu state
         /// @return false if reached the last instruction, true otherwise
         bool next_cycle();
 
+        Interpreter m_interpreter;
     private:
         template<std::size_t... Is>
         static constexpr std::array<GPIntReg, sizeof...(Is)>
@@ -41,9 +40,7 @@ namespace rv64 {
     private:
         std::array<GPIntReg, INT_REG_CNT> m_int_regs;
         uint64_t m_pc = 0;
-        Interpreter m_interpreter;
         VM &m_vm;
-        size_t m_current_line = 0;
 
         std::array<uint64_t, INT_REG_CNT> m_int_regs_prev_vals = {};
     };

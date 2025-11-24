@@ -77,13 +77,13 @@ Memory::InstructionFetch Memory::get_instruction_at(uint64_t address, MemErr &er
     // check if end of program has been reached
     if (offset == m_instructions.size()) {
         err = MemErr::ProgramExit;
-        return {invalid_inst, SIZE_MAX};
+        return {invalid_inst, std::nullopt};
     }
 
     // check if address is in instruction memory range
     if (address < m_layout.data_base || offset > m_instructions.size()) {
         err = MemErr::SegFault;
-        return {invalid_inst, SIZE_MAX};
+        return {invalid_inst, std::nullopt};
     }
 
     const auto &parsed_inst = m_instructions.at(offset);
@@ -91,7 +91,7 @@ Memory::InstructionFetch Memory::get_instruction_at(uint64_t address, MemErr &er
     // check for padding (invalid instruction fetch)
     if (parsed_inst.is_padding()) {
         err = MemErr::InvalidInstructionAddress;
-        return {invalid_inst, SIZE_MAX};
+        return {invalid_inst, std::nullopt};
     }
 
     err = MemErr::None;
@@ -253,5 +253,3 @@ MemErr Memory::store(uint64_t address, T value) {
 
 FOR_EACH_INT(INSTANTIATE_LOAD)
 FOR_EACH_INT(INSTANTIATE_STORE)
-
-

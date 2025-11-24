@@ -50,11 +50,11 @@ int main() {
     print_separator();
     vm.m_cpu.print_cpu_state();
 
-    auto current_lineno = (ssize_t)vm.m_cpu.get_current_line();
+    auto current_lineno = (ssize_t)vm.get_current_line();
     while (vm.get_state() != rv64::VMState::Error &&
            vm.get_state() != rv64::VMState::Finished) {
         vm.run_step();
-        current_lineno = vm.m_cpu.get_current_line();
+        current_lineno = vm.get_current_line();
         print_separator(true);
         print_lines(current_lineno);
         print_separator();

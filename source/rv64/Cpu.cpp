@@ -10,10 +10,6 @@ namespace rv64 {
         return m_pc;
     }
 
-    size_t Cpu::get_current_line() const {
-        return m_current_line;
-    }
-
     void Cpu::print_cpu_state() const {
         std::cout << std::format("pc = 0x{:<16X}\n", get_pc());
         for (size_t i = 0; i < m_int_regs.size(); i++) {
@@ -45,7 +41,16 @@ namespace rv64 {
 
         m_pc += fetch.inst.byte_size();
         m_interpreter.exec_instruction(fetch.inst);
-        m_current_line = m_vm.m_memory.get_instruction_at(get_pc(), mem_err).lineno;
+
+        // update current source line via interpreter
+        MemErr next_err;
+        auto next_fetch = m_vm.m_memory.get_instruction_at(get_pc(), next_err);
+        if (next_err == MemErr::None && next_fetch.lineno.has_value()) {
+            m_interpreter.set_current_line(next_fetch.lineno.value());
+        } else {
+            m_interpreter.set_current_line(SIZE_MAX);
+        }
+
         return m_pc < m_vm.m_memory.get_instruction_end_addr();
     }
 

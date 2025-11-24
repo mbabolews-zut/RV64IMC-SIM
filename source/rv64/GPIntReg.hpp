@@ -2,58 +2,43 @@
 #include <cstdint>
 #include <string>
 #include <rv64/Reg.hpp>
-#include <variant>
+#include <compare>
 
 namespace rv64 {
     class GPIntReg : public Reg {
     public:
-        [[nodiscard]] uint64_t val() const;
-        [[nodiscard]] uint64_t &val();
-        [[nodiscard]] int64_t sval() const;
-        [[nodiscard]] int64_t &sval();
-        [[nodiscard]] int32_t as_i32() const;
-        [[nodiscard]] uint32_t as_u32() const;
+        [[nodiscard]] uint64_t val() const noexcept { return m_storage.u; }
+        [[nodiscard]] uint64_t &val() noexcept { return m_storage.u; }
+        [[nodiscard]] int64_t sval() const noexcept { return m_storage.s; }
+        [[nodiscard]] int64_t &sval() noexcept { return m_storage.s; }
+        void set_sval(int64_t v) noexcept { m_storage.s = v; }
+        [[nodiscard]] int32_t as_i32() const noexcept { return static_cast<int32_t>(m_storage.u); }
+        [[nodiscard]] uint32_t as_u32() const noexcept { return static_cast<uint32_t>(m_storage.u); }
 
-        GPIntReg &operator=(std::signed_integral auto val);
-        GPIntReg &operator=(std::unsigned_integral auto val);
-
-        constexpr auto operator==(std::signed_integral auto other) const;
-        constexpr auto operator==(std::unsigned_integral auto other) const;
-        constexpr auto operator<=>(std::signed_integral auto other) const;
-        constexpr auto operator<=>(std::unsigned_integral auto other) const;
-
-    private:
-        explicit GPIntReg(int idx) : Reg(idx) {
+        GPIntReg &operator=(std::signed_integral auto v) noexcept {
+            if (idx() == 0) return *this; // writes to x0 are ignored
+            m_storage.s = static_cast<int64_t>(v);
+            return *this;
         }
 
-        uint64_t m_value = 0;
+        GPIntReg &operator=(std::unsigned_integral auto v) noexcept {
+            if (idx() == 0) return *this; // writes to x0 are ignored
+            m_storage.u = static_cast<uint64_t>(v);
+            return *this;
+        }
+
+        // explicit signed comparison (avoid ambiguous overloads for integer literals)
+        bool operator==(int64_t other) const noexcept { return sval() == other; }
+        std::strong_ordering operator<=>(int64_t other) const noexcept { return sval() <=> other; }
+
+    private:
+        explicit GPIntReg(int idx) : Reg(idx) {}
+
+        union {
+            uint64_t u;
+            int64_t s;
+        } m_storage{};
 
         friend class Cpu; // only Cpu can construct general purpose registers
     };
-
-    GPIntReg &GPIntReg::operator=(std::signed_integral auto val) {
-        this->sval() = val;
-        return *this;
-    }
-
-    GPIntReg &GPIntReg::operator=(std::unsigned_integral auto val) {
-        this->val() = val;
-        return *this;
-    }
-
-    constexpr auto GPIntReg::operator==(std::signed_integral auto other) const {
-        return sval() == static_cast<int64_t>(other);
-    }
-
-    constexpr auto GPIntReg::operator==(std::unsigned_integral auto other) const {
-        return val() == static_cast<uint64_t>(other);
-    }
-
-    constexpr auto GPIntReg::operator<=>(std::signed_integral auto other) const {
-        return sval() <=> static_cast<int64_t>(other);
-    }
-
-    constexpr auto GPIntReg::operator<=>(std::unsigned_integral auto other) const {
-        return val() <=> static_cast<uint64_t>(other);
-    }
 }
