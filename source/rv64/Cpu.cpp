@@ -34,17 +34,19 @@ namespace rv64 {
         for (int i = 0; i < m_int_regs.size(); i++)
             m_int_regs_prev_vals[i] = m_int_regs[i].val();
 
-        auto instruction = m_vm.m_memory.get_instruction_at(get_pc(), mem_err, &m_current_line);
+        auto fetch = m_vm.m_memory.get_instruction_at(get_pc(), mem_err);
         if (mem_err != MemErr::None) {
             if (mem_err != MemErr::ProgramExit) {
-                PRINT_ERROR(Memory::err_to_string(mem_err));
+                ui::print_error(Memory::err_to_string(mem_err));
                 m_vm.error_stop();
             }
             return false;
         }
-        m_pc += instruction.byte_size(); // advance PC
-        m_interpreter.exec_instruction(instruction);
-        return m_vm.m_memory.get_instruction_end_addr() < m_pc;
+
+        m_pc += fetch.inst.byte_size();
+        m_interpreter.exec_instruction(fetch.inst);
+        m_current_line = m_vm.m_memory.get_instruction_at(get_pc(), mem_err).lineno;
+        return m_pc < m_vm.m_memory.get_instruction_end_addr();
     }
 
     Cpu::Cpu(VM &vm)

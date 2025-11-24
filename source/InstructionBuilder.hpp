@@ -8,7 +8,6 @@ public:
     InstructionBuilder() = default;
     explicit InstructionBuilder(std::string_view mnemonic);
 
-    /// @brief sets the instruction mnemonic
     InstructionBuilder& set_mnemonic(std::string_view mnemonic);
 
     /// @brief adds a raw argument (register name, immediate string, or symbol)
@@ -28,7 +27,6 @@ public:
     /// @return valid Instruction or invalid instruction if validation fails
     [[nodiscard]] Instruction build() const;
 
-    /// @brief resets the builder to initial state
     void reset();
 
 private:

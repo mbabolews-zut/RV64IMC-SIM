@@ -112,6 +112,9 @@ namespace rv64 {
 
     void Interpreter::beq(const GPIntReg &rs1, const GPIntReg &rs2, int12 imm12) {
         if (rs1.sval() == rs2.sval()) {
+            auto debug_val = imm12 * 2;
+            auto pc_before = m_vm.m_cpu.get_pc();
+            auto pc_after = pc_before + debug_val;
             m_vm.m_cpu.move_pc(imm12 * 2);
         }
     }
@@ -638,12 +641,12 @@ namespace rv64 {
 
     void Interpreter::handle_error(MemErr err) const {
         assert(err != MemErr::None);
-        PRINT_ERROR("Memory access error: " + Memory::err_to_string(err));
+        ui::print_error("Memory access error: " + Memory::err_to_string(err));
         m_vm.error_stop();
     }
 
     void Interpreter::handle_error(std::string_view msg) const {
-        PRINT_ERROR(msg);
+        ui::print_error(msg);
         m_vm.error_stop();
     }
 
@@ -697,8 +700,17 @@ namespace rv64 {
 
     void Interpreter::exec_instruction(const Instruction &in) {
         if (!in.is_valid()) {
-            PRINT_ERROR("invalid instruction");
+            auto pc = m_vm.m_cpu.get_pc();
+            ui::print_error(std::format(
+                    "invalid instruction\n"
+                    " - pc = 0x{:x} ({})\n"
+                    " - line = {}\n",
+                    pc, pc,
+                    m_vm.m_cpu.get_current_line()
+                )
+            );
             m_vm.error_stop();
+            return;
         }
 
         auto args = in.get_args();

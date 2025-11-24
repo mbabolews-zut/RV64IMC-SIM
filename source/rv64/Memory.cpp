@@ -67,29 +67,35 @@ void Memory::load_program(const asm_parsing::ParsedInstVec &instructions) {
     m_instructions = instructions;
 }
 
-const Instruction &Memory::get_instruction_at(uint64_t address, MemErr &err, size_t *line) const {
+Memory::InstructionFetch Memory::get_instruction_at(uint64_t address, MemErr &err) const {
+    static constexpr Instruction invalid_inst;
     assert(!m_instructions.empty());
-    if (line) *line = SIZE_MAX;
 
-    // Calculate instruction index based on minimum instruction size
-    size_t offset = (address - m_layout.data_base) / MIN_INSTR_SIZE;
+    size_t relative_addr = address - m_layout.data_base;
+    size_t offset = relative_addr / MIN_INSTR_SIZE;
 
-    // Check if we've reached the end of the program
+    // check if end of program has been reached
     if (offset == m_instructions.size()) {
         err = MemErr::ProgramExit;
-        return Instruction::get_invalid_cref();
+        return {invalid_inst, SIZE_MAX};
     }
 
-    // Validate address is within instruction memory range
+    // check if address is in instruction memory range
     if (address < m_layout.data_base || offset > m_instructions.size()) {
         err = MemErr::SegFault;
-        return Instruction::get_invalid_cref();
+        return {invalid_inst, SIZE_MAX};
     }
 
     const auto &parsed_inst = m_instructions.at(offset);
+
+    // check for padding (invalid instruction fetch)
+    if (parsed_inst.is_padding()) {
+        err = MemErr::InvalidInstructionAddress;
+        return {invalid_inst, SIZE_MAX};
+    }
+
     err = MemErr::None;
-    if (line) *line = parsed_inst.lineno;
-    return parsed_inst.inst;
+    return {parsed_inst.inst, parsed_inst.lineno};
 }
 
 uint64_t Memory::get_instruction_end_addr() const {
@@ -110,6 +116,10 @@ std::string Memory::err_to_string(MemErr err) {
             return "Heap size became negative";
         case MemErr::UnalignedAccess:
             return "Unaligned memory access";
+        case MemErr::InvalidInstructionAddress:
+            return "Invalid instruction address (between instructions)";
+        case MemErr::ProgramExit:
+            assert(false && "ProgramExit should be handled, not reported as an error");
         default:
             return "Unknown error";
     }

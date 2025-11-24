@@ -53,7 +53,11 @@ add_executable(RV64_SIM ${SOURCE_FILES} source/main.cpp
         source/rv64/instruction_sets/IExtensionC.hpp
         source/intN.hpp
         source/InstructionBuilder.cpp
-        source/InstructionBuilder.hpp)
+        source/InstructionBuilder.hpp
+        source/parser/Symbol.hpp
+        source/parser/SymbolTable.hpp
+        source/parser/SymbolTable.cpp
+        source/parser/asm_parsing.cpp)
 
 target_include_directories(RV64_SIM PRIVATE
         ${GEN_DIR}

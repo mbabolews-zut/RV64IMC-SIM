@@ -102,10 +102,9 @@ Instruction InstructionBuilder::build() const {
         }
 
         if (i >= m_arg_count) {
-            return {}; // Not enough arguments
+            return {};
         }
 
-        // Handle register arguments
         if (arg == InstArgType::IntReg || arg == InstArgType::IntRegP) {
             if (auto *str = std::get_if<std::string>(&m_raw_args[i])) {
                 rv64::Reg reg(*str);
@@ -114,11 +113,11 @@ Instruction InstructionBuilder::build() const {
                 }
 
                 if (arg == InstArgType::IntRegP && !reg.in_compressed_range()) {
-                    return {}; // IntRegP must be in range x8-x15
+                    return {};
                 }
                 validated_args[i] = reg;
             } else {
-                return {}; // Expected register, got something else
+                return {};
             }
             continue;
         }

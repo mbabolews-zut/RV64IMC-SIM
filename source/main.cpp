@@ -2,15 +2,13 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <unordered_map>
 #include <rv64/VM.hpp>
 
 int main() {
     rv64::VM vm{};
-    asm_parsing::ParsedInstVec inst_vec{};
 
-    // Read standard input
     std::vector<std::string> lines;
-    lines.reserve(8);
     std::string whole_input;
     std::string line;
 
@@ -24,46 +22,43 @@ int main() {
     }
     lines.emplace_back(" ");
 
-    // Parse and load program
-    int parsed = asm_parsing::parse(inst_vec, whole_input);
-    if (parsed != 0) {
-        std::cerr << "Error: Failed to parse input assembly code.\n";
+    // Parse and resolve in one step
+    asm_parsing::ParsedInstVec inst_vec;
+    int result = asm_parsing::parse_and_resolve(whole_input, inst_vec, vm.m_cpu.get_pc());
+    if (result != 0) {
+        std::cerr << "Error: Failed to process assembly code (error code " << result << ")\n";
         return 1;
     }
     vm.load_program(inst_vec);
 
-    // Helper function to print separator
     auto print_separator = [](bool nl_before = false) {
         std::cout << (nl_before ? "\n\n" : "")
                 << "\033[0;32m----------------------------------------------"
                 "--------------------------------------------------\033[0m\n";
     };
 
-    // Helper function to print lines with current line indicator
-    auto print_lines = [&](size_t current_line) {
+    auto print_lines = [&](ssize_t current_lineno) {
         for (size_t i = 0; i < lines.size(); i++) {
-            std::cout << (i == current_line ? "\033[0;34m> \033[7m" : "  ")
+            bool is_current = (i == current_lineno - 1);
+            std::cout << (is_current ? "\033[0;34m> \033[7m" : "  ")
                     << std::format("{:<92}", lines.at(i)) << "\033[0m\n";
         }
     };
 
-    // Print initial state
     print_separator(true);
-    print_lines(0);
+    print_lines(1);
     print_separator();
     vm.m_cpu.print_cpu_state();
 
-    // Execute program step by step
-    size_t current_line = 1;
+    auto current_lineno = (ssize_t)vm.m_cpu.get_current_line();
     while (vm.get_state() != rv64::VMState::Error &&
            vm.get_state() != rv64::VMState::Finished) {
-        print_separator(true);
-        print_lines(current_line);
-        print_separator();
-
         vm.run_step();
+        current_lineno = vm.m_cpu.get_current_line();
+        print_separator(true);
+        print_lines(current_lineno);
+        print_separator();
         vm.m_cpu.print_cpu_state();
-        current_line = vm.m_cpu.get_current_line() + 1;
     }
 
     return 0;

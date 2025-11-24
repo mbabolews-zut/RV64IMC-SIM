@@ -1,5 +1,6 @@
 #pragma once
 #include <iostream>
+#include <source_location>
 #include <string_view>
 
 namespace ui {
@@ -16,12 +17,17 @@ namespace ui {
     }
 
 #ifdef DEBUG
-#define PRINT_ERROR(msg)\
-    *ui::_estrm << "[ERROR in " << __FILE__ << ":" << __LINE__ \
-    << " (" << __func__ << ")] " << msg << std::endl
+    inline void print_error(std::string_view msg, const std::source_location& loc = std::source_location::current()) {
+        *_estrm << "[ERROR] [" << loc.file_name() << ":" << loc.line()
+                << " (" << loc.function_name() << ")] " << std::endl;
+        *_estrm << "[ERROR] " << msg << std::endl;
+        _estrm->flush();
+    }
 #else
-#define PRINT_ERROR(msg) \
-    *ui::_estrm << "[ERROR]" << msg << std::endl
+    inline void print_error(std::string_view msg) {
+        *_estrm << "[ERROR] " << msg << std::endl;
+        _estrm->flush();
+    }
 #endif
 
     inline void print_output(std::string_view msg) {
