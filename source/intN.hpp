@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <bit>
 
 namespace helper {
     template<std::integral T = int64_t>

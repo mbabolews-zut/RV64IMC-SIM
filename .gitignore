@@ -1,7 +1,7 @@
 .idea
 .vscode
-cmake-build-debug
-cmake-build-release
+build
+cmake-build-*
 source/parser/lex.yy.cc
 source/parser/parser.tab.cc
 source/parser/parser.tab.hh

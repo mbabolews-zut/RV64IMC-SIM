@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include <unordered_map>
+#include <cstdint>
 #include <rv64/VM.hpp>
 
 int main() {
@@ -37,7 +38,7 @@ int main() {
                 "--------------------------------------------------\033[0m\n";
     };
 
-    auto print_lines = [&](ssize_t current_lineno) {
+    auto print_lines = [&](int64_t current_lineno) {
         for (size_t i = 0; i < lines.size(); i++) {
             bool is_current = (i == current_lineno - 1);
             std::cout << (is_current ? "\033[0;34m> \033[7m" : "  ")
@@ -50,7 +51,7 @@ int main() {
     print_separator();
     vm.m_cpu.print_cpu_state();
 
-    auto current_lineno = (ssize_t)vm.get_current_line();
+    auto current_lineno = (int64_t)vm.get_current_line();
     while (vm.get_state() != rv64::VMState::Error &&
            vm.get_state() != rv64::VMState::Finished) {
         vm.run_step();

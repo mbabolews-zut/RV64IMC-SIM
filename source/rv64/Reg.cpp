@@ -47,6 +47,7 @@ namespace rv64 {
                     return std::format("t{}", m_idx - 25);
                 assert(false && "unknown register");
         }
+        return "unknown";
     }
 
     Reg::Reg(int idx) : m_idx(idx) {
