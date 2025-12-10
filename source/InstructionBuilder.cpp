@@ -7,9 +7,9 @@ concept HasMIN = requires { T::MIN; };
 template<typename T>
 static bool in_range(int64_t value) {
     if constexpr (!HasMIN<T>) {
-        return value >= 0 && static_cast<uint64_t>(value) <= static_cast<uint64_t>(T::MAX);
+        return value >= 0 && value <= T::MAX;
     } else {
-        return value <= static_cast<int64_t>(T::MAX) && value >= static_cast<int64_t>(T::MIN);
+        return value <= T::MAX && value >= T::MIN;
     }
 }
 

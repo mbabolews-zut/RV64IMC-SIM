@@ -98,9 +98,11 @@ target_sources(parser_interface INTERFACE
     ${GEN_DIR}/parser.tab.cc
     ${GEN_DIR}/parser.tab.hh
     ${GEN_DIR}/lex.yy.cc
-    ${GEN_DIR}/FlexLexer.h
 )
 
+if(WIN32)
+    target_sources(parser_interface INTERFACE ${GEN_DIR}/FlexLexer.h)
+endif()
 ############################################
 # MAIN EXECUTABLE
 ############################################
