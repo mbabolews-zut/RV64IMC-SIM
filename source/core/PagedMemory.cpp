@@ -1,4 +1,4 @@
-#include "PagedMemory.hpp"
+#include <PagedMemory.hpp>
 #include <algorithm>
 #include <array>
 #include <cassert>
@@ -11,15 +11,17 @@ PagedMemory::Iterator::Iterator(const Iterator &) noexcept = default;
 
 PagedMemory::Iterator::Iterator(Iterator &&) noexcept = default;
 
-PagedMemory::Iterator & PagedMemory::Iterator::operator=(const Iterator &) noexcept = default;
+PagedMemory::Iterator &PagedMemory::Iterator::operator=(const Iterator &) noexcept = default;
 
-PagedMemory::Iterator & PagedMemory::Iterator::operator=(Iterator &&) noexcept = default;
+PagedMemory::Iterator &PagedMemory::Iterator::operator=(Iterator &&) noexcept = default;
 
-PagedMemory::Iterator::Iterator(PagedMemory *paged_memory, size_t pos): m_pos(pos), m_paged_mem(paged_memory) {}
+PagedMemory::Iterator::Iterator(PagedMemory *paged_memory, size_t pos) : m_pos(pos), m_paged_mem(paged_memory) {
+}
 
-PagedMemory::PagedMemory(size_t memory_size, std::endian endianness): m_page_table(memory_size / PageSize + 1),
-                                                                      m_endianness(endianness),
-                                                                      m_mem_size(memory_size) {}
+PagedMemory::PagedMemory(size_t memory_size, std::endian endianness) : m_page_table(memory_size / PageSize + 1),
+                                                                       m_endianness(endianness),
+                                                                       m_mem_size(memory_size) {
+}
 
 bool PagedMemory::store(uint64_t addr, std::integral auto val) noexcept {
     if (addr + sizeof(val) > size())
@@ -31,7 +33,7 @@ bool PagedMemory::store(uint64_t addr, std::integral auto val) noexcept {
         val = endianness::swap_on_le_platform(val);
 
     try {
-        std::copy_n(reinterpret_cast<uint8_t*>(&val), sizeof(val), begin() + ptrdiff_t(addr));
+        std::copy_n(reinterpret_cast<uint8_t *>(&val), sizeof(val), begin() + ptrdiff_t(addr));
         return true;
     } catch (...) {
         return false;
@@ -44,7 +46,7 @@ bool PagedMemory::load(uint64_t addr, T &val) noexcept {
         return false;
 
     try {
-        std::array<uint8_t, sizeof(val)> tmp{};
+        std::array<uint8_t, sizeof(T)> tmp{};
         std::ranges::copy_n(begin() + ptrdiff_t(addr), sizeof(val), tmp.begin());
         val = std::bit_cast<T>(tmp);
 
@@ -90,7 +92,7 @@ size_t PagedMemory::page_count() const noexcept {
     return m_page_table.size();
 }
 
-PagedMemory::Iterator & PagedMemory::Iterator::operator++() {
+PagedMemory::Iterator &PagedMemory::Iterator::operator++() {
     ++m_pos;
     return *this;
 }
@@ -101,7 +103,7 @@ PagedMemory::Iterator PagedMemory::Iterator::operator++(int) {
     return tmp;
 }
 
-PagedMemory::Iterator & PagedMemory::Iterator::operator--() {
+PagedMemory::Iterator &PagedMemory::Iterator::operator--() {
     --m_pos;
     return *this;
 }
@@ -112,12 +114,12 @@ PagedMemory::Iterator PagedMemory::Iterator::operator--(int) {
     return tmp;
 }
 
-PagedMemory::Iterator & PagedMemory::Iterator::operator+=(difference_type n) {
+PagedMemory::Iterator &PagedMemory::Iterator::operator+=(difference_type n) {
     m_pos += n;
     return *this;
 }
 
-PagedMemory::Iterator & PagedMemory::Iterator::operator-=(difference_type n) {
+PagedMemory::Iterator &PagedMemory::Iterator::operator-=(difference_type n) {
     m_pos -= n;
     return *this;
 }
@@ -188,7 +190,8 @@ PagedMemory::Iterator operator-(PagedMemory::Iterator it, PagedMemory::Iterator:
 }
 
 PagedMemory::Iterator::difference_type operator-(const PagedMemory::Iterator &a, const PagedMemory::Iterator &b) {
-    return static_cast<PagedMemory::Iterator::difference_type>(a.m_pos) - static_cast<PagedMemory::Iterator::difference_type>(b.m_pos);
+    return static_cast<PagedMemory::Iterator::difference_type>(a.m_pos) - static_cast<
+               PagedMemory::Iterator::difference_type>(b.m_pos);
 }
 
 #define INSTANTIATE_STORE(T) template bool PagedMemory::store(uint64_t addr, T) noexcept;

@@ -14,9 +14,8 @@ enum class MemErr {
     NotTermStr = 2,
     OutOfMemory = 3,
     NegativeSizeOfHeap = 4,
-    ProgramExit = 5,
-    InvalidInstructionAddress = 6, ///< i.e. padding fetch
-    UnalignedAccess = 7
+    InvalidInstructionAddress = 5, ///< i.e. padding fetch
+    ProgramExit = 6,
 };
 
 class Memory {
@@ -48,13 +47,14 @@ public:
 public:
     explicit Memory(const Layout &layout, std::span<const uint8_t> program_data = {});
 
-    template<std::integral T>
-    T load(uint64_t address, MemErr &err) const;
+    [[nodiscard]] static std::string err_to_string(MemErr err);
 
     template<std::integral T>
-    [[nodiscard]] MemErr store(uint64_t address, T value);
+    [[nodiscard]] T load(uint64_t address, MemErr &err) const;
 
-    std::string load_string(uint64_t address, MemErr &err) const;
+    [[nodiscard]] MemErr store(uint64_t address, std::integral auto value);
+
+    [[nodiscard]] std::string load_string(uint64_t address, MemErr &err) const;
 
     void load_program(const asm_parsing::ParsedInstVec &instructions);
 
@@ -67,8 +67,6 @@ public:
     [[nodiscard]] InstructionFetch get_instruction_at(uint64_t address, MemErr &err) const;
 
     [[nodiscard]] uint64_t get_instruction_end_addr() const;
-
-    [[nodiscard]] static std::string err_to_string(MemErr err);
 
     uint64_t sbrk(int64_t inc, MemErr &err);
     [[nodiscard]] uint64_t get_brk() const;

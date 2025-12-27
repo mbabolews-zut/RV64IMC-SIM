@@ -1,5 +1,5 @@
 #include <catch2/catch_all.hpp>
-#include <rv64/Memory.hpp>
+#include <Memory.hpp>
 #include <rv64/VM.hpp>
 
 TEST_CASE("Memory alignment requirements", "[memory][alignment]") {

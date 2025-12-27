@@ -4,7 +4,6 @@
 #include <cassert>
 #include <format>
 #include <rv64/Cpu.hpp>
-#include <rv64/Memory.hpp>
 
 #include "VM.hpp"
 
@@ -384,7 +383,7 @@ namespace rv64 {
         }
 
         auto offset = int64_t(imm6) << 2;
-        load_instruction_tmpl<uint32_t>(rd, x2_reg(), offset);
+        load_instruction_tmpl<int32_t>(rd, x2_reg(), offset);
     }
 
     void Interpreter::c_ldsp(GPIntReg &rd, int6 imm6) {
@@ -393,7 +392,7 @@ namespace rv64 {
             return;
         }
         auto offset = int64_t(imm6) << 3;
-        load_instruction_tmpl<uint32_t>(rd, x2_reg(), offset);
+        load_instruction_tmpl<int64_t>(rd, x2_reg(), offset);
     }
 
     void Interpreter::c_fldsp(GPIntReg &rd, int6 imm6) {
@@ -402,7 +401,7 @@ namespace rv64 {
 
     void Interpreter::c_swsp(const GPIntReg &rs2, int6 imm6) {
         auto offset = int64_t(imm6) << 2;
-        store_instruction_tmpl<uint32_t>(rs2, x2_reg(), offset);
+        store_instruction_tmpl<int32_t>(rs2, x2_reg(), offset);
     }
 
     void Interpreter::c_sdsp(const GPIntReg &rs2, int6 imm6) {
@@ -418,14 +417,14 @@ namespace rv64 {
         assert(rdp.in_compressed_range() && rs1p.in_compressed_range());
 
         auto offset = int64_t(imm5) << 2;
-        load_instruction_tmpl<uint32_t>(rdp, rs1p, offset);
+        load_instruction_tmpl<int32_t>(rdp, rs1p, offset);
     }
 
     void Interpreter::c_ld(GPIntReg &rdp, const GPIntReg &rs1p, int5 imm5) {
         assert(rdp.in_compressed_range() && rs1p.in_compressed_range());
 
         auto offset = int64_t(imm5) << 3;
-        store_instruction_tmpl<uint64_t>(rdp, rs1p, offset);
+        load_instruction_tmpl<uint64_t>(rdp, rs1p, offset);
     }
 
     void Interpreter::c_fld(GPIntReg &rdp, const GPIntReg &rs1p, int5 imm5) {
@@ -478,7 +477,7 @@ namespace rv64 {
 
     void Interpreter::c_bnez(const GPIntReg &rs1p, int8 imm8) {
         assert(rs1p.in_compressed_range());
-        if (rs1p == 0) {
+        if (rs1p != 0) {
             auto offset = int64_t(imm8) << 1;
             m_vm.m_cpu.move_pc(offset);
         }
@@ -540,7 +539,7 @@ namespace rv64 {
             handle_error("nzuimm8 cannot be zero in c.addi4spn instruction");
             return;
         }
-        rdp = x2_reg().sval() + nzuimm8;
+        rdp = x2_reg().sval() + (int64_t(nzuimm8) << 2);
     }
 
     void Interpreter::c_slli(GPIntReg &rd, uint6 nzuimm6) {

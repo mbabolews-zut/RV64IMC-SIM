@@ -2,6 +2,6 @@
 .vscode
 build
 cmake-build-*
-source/parser/lex.yy.cc
-source/parser/parser.tab.cc
-source/parser/parser.tab.hh
+source/core/parser/lex.yy.cc
+source/core/parser/parser.tab.cc
+source/core/parser/parser.tab.hh

@@ -10,6 +10,16 @@ namespace rv64 {
         return m_pc;
     }
 
+    void Cpu::set_pc(uint64_t new_pc) {
+        m_pc = new_pc & ~UINT64_C(1); // ensure LSB is 0
+    }
+
+    void Cpu::move_pc(int64_t offset) {
+        m_pc += offset;
+        m_pc &= ~UINT64_C(1); // ensure LSB is 0
+    }
+
+
     void Cpu::print_cpu_state() const {
         std::cout << std::format("pc = 0x{:<16X}\n", get_pc());
         for (size_t i = 0; i < m_int_regs.size(); i++) {

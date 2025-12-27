@@ -114,8 +114,6 @@ std::string Memory::err_to_string(MemErr err) {
             return "Hypervisor could not allocate memory";
         case MemErr::NegativeSizeOfHeap:
             return "Heap size became negative";
-        case MemErr::UnalignedAccess:
-            return "Unaligned memory access";
         case MemErr::InvalidInstructionAddress:
             return "Invalid instruction address (between instructions)";
         case MemErr::ProgramExit:
@@ -189,14 +187,6 @@ T Memory::load(uint64_t address, MemErr &err) const {
     err = MemErr::None;
     T value = 0;
 
-    // Check alignment for multi-byte values (RISC-V requirement)
-    if constexpr (sizeof(T) > 1) {
-        if (address % sizeof(T) != 0) {
-            err = MemErr::UnalignedAccess;
-            return 0;
-        }
-    }
-
     // Check stack first (more commonly accessed)
     if (in_stack(address, sizeof(T))) {
         if (!m_stack->load(to_stack_offset(address), value)) {
@@ -221,12 +211,6 @@ T Memory::load(uint64_t address, MemErr &err) const {
 
 template<std::integral T>
 MemErr Memory::store(uint64_t address, T value) {
-    // Check alignment for multi-byte values (RISC-V requirement)
-    if constexpr (sizeof(T) > 1) {
-        if (address % sizeof(T) != 0) {
-            return MemErr::UnalignedAccess;
-        }
-    }
 
     // Check stack first (more commonly accessed for writes)
     if (in_stack(address, sizeof(T))) {

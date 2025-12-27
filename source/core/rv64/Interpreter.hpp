@@ -1,7 +1,7 @@
 #pragma once
 
 #include <unordered_map>
-#include <rv64/Memory.hpp>
+#include <Memory.hpp>
 #include <rv64/instruction_sets/Rv64IMC.hpp>
 
 namespace rv64 {

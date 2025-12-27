@@ -1,4 +1,4 @@
-#include <Instruction.hpp>
+#include "Instruction.hpp"
 #include <rv64/instruction_sets/Rv64IMC.hpp>
 
 #include "rv64/Cpu.hpp"

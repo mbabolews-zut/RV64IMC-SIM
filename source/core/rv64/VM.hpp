@@ -1,6 +1,6 @@
 #pragma once
 #include <rv64/Cpu.hpp>
-#include <rv64/Memory.hpp>
+#include <Memory.hpp>
 #include <parser/ParserProcessor.hpp>
 
 namespace rv64 {

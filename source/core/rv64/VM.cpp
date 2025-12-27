@@ -41,6 +41,9 @@ namespace rv64 {
 
     void VM::error_stop() {
         m_state = VMState::Error;
+#ifdef TESTING
+        throw std::runtime_error("VM encountered an error and stopped execution.");
+#endif
     }
 
     void VM::breakpoint_hit() {

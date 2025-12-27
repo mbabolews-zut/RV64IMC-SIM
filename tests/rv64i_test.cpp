@@ -5,7 +5,7 @@
 
 using namespace rv64;
 
-TEST_CASE("Interpreter arithmetic immediate instructions", "[interpreter][arithmetic][immediate]") {
+TEST_CASE("RV64I arithmetic immediate instructions", "[rv64i][arithmetic][immediate]") {
     VM vm{};
     Interpreter interp{vm};
     auto &cpu = vm.m_cpu;
@@ -15,12 +15,10 @@ TEST_CASE("Interpreter arithmetic immediate instructions", "[interpreter][arithm
         interp.addi(cpu.reg(2), cpu.reg(1), 50);
         REQUIRE(cpu.reg(2) == 150);
 
-        // Negative immediate
         cpu.reg(3) = 200;
         interp.addi(cpu.reg(4), cpu.reg(3), -50);
         REQUIRE(cpu.reg(4) == 150);
 
-        // Overflow behavior (wraps around)
         cpu.reg(5) = UINT64_MAX;
         interp.addi(cpu.reg(6), cpu.reg(5), 1);
         REQUIRE(cpu.reg(6) == 0);
@@ -35,7 +33,6 @@ TEST_CASE("Interpreter arithmetic immediate instructions", "[interpreter][arithm
         interp.slti(cpu.reg(4), cpu.reg(3), 20);
         REQUIRE(cpu.reg(4) == 0);
 
-        // Signed comparison with negative
         cpu.reg(5) = static_cast<uint64_t>(-10);
         interp.slti(cpu.reg(6), cpu.reg(5), 0);
         REQUIRE(cpu.reg(6) == 1);
@@ -86,7 +83,7 @@ TEST_CASE("Interpreter arithmetic immediate instructions", "[interpreter][arithm
     }
 }
 
-TEST_CASE("Interpreter shift immediate instructions", "[interpreter][shift][immediate]") {
+TEST_CASE("RV64I shift immediate instructions", "[rv64i][shift][immediate]") {
     VM vm{};
     Interpreter interp{vm};
     auto &cpu = vm.m_cpu;
@@ -134,7 +131,7 @@ TEST_CASE("Interpreter shift immediate instructions", "[interpreter][shift][imme
     }
 }
 
-TEST_CASE("Interpreter upper immediate instructions", "[interpreter][upper][immediate]") {
+TEST_CASE("RV64I upper immediate instructions", "[rv64i][upper][immediate]") {
     VM vm{};
     Interpreter interp{vm};
     auto &cpu = vm.m_cpu;
@@ -158,7 +155,7 @@ TEST_CASE("Interpreter upper immediate instructions", "[interpreter][upper][imme
     }
 }
 
-TEST_CASE("Interpreter arithmetic register instructions", "[interpreter][arithmetic][register]") {
+TEST_CASE("RV64I arithmetic register instructions", "[rv64i][arithmetic][register]") {
     VM vm{};
     Interpreter interp{vm};
     auto &cpu = vm.m_cpu;
@@ -217,7 +214,7 @@ TEST_CASE("Interpreter arithmetic register instructions", "[interpreter][arithme
     }
 }
 
-TEST_CASE("Interpreter bitwise register instructions", "[interpreter][bitwise][register]") {
+TEST_CASE("RV64I bitwise register instructions", "[rv64i][bitwise][register]") {
     VM vm{};
     Interpreter interp{vm};
     auto &cpu = vm.m_cpu;
@@ -249,7 +246,7 @@ TEST_CASE("Interpreter bitwise register instructions", "[interpreter][bitwise][r
     }
 }
 
-TEST_CASE("Interpreter shift register instructions", "[interpreter][shift][register]") {
+TEST_CASE("RV64I shift register instructions", "[rv64i][shift][register]") {
     VM vm{};
     Interpreter interp{vm};
     auto &cpu = vm.m_cpu;
@@ -291,7 +288,7 @@ TEST_CASE("Interpreter shift register instructions", "[interpreter][shift][regis
     }
 }
 
-TEST_CASE("Interpreter 32-bit arithmetic instructions", "[interpreter][arithmetic][32bit]") {
+TEST_CASE("RV64I 32-bit arithmetic instructions", "[rv64i][arithmetic][32bit]") {
     VM vm{};
     Interpreter interp{vm};
     auto &cpu = vm.m_cpu;
@@ -370,7 +367,7 @@ TEST_CASE("Interpreter 32-bit arithmetic instructions", "[interpreter][arithmeti
     }
 }
 
-TEST_CASE("Interpreter load/store instructions", "[interpreter][memory][load][store]") {
+TEST_CASE("RV64I load/store instructions", "[rv64i][memory][load][store]") {
     VM vm{};
     Interpreter interp{vm};
     auto &cpu = vm.m_cpu;
@@ -485,7 +482,7 @@ TEST_CASE("Interpreter load/store instructions", "[interpreter][memory][load][st
     }
 }
 
-TEST_CASE("Interpreter branch instructions", "[interpreter][branch]") {
+TEST_CASE("RV64I branch instructions", "[rv64i][branch]") {
     VM vm{};
     Interpreter interp{vm};
     auto &cpu = vm.m_cpu;
@@ -584,7 +581,7 @@ TEST_CASE("Interpreter branch instructions", "[interpreter][branch]") {
     }
 }
 
-TEST_CASE("Interpreter jump instructions", "[interpreter][jump]") {
+TEST_CASE("RV64I jump instructions", "[rv64i][jump]") {
     VM vm{};
     Interpreter interp{vm};
     auto &cpu = vm.m_cpu;
@@ -613,207 +610,7 @@ TEST_CASE("Interpreter jump instructions", "[interpreter][jump]") {
     }
 }
 
-TEST_CASE("Interpreter multiplication instructions", "[interpreter][mul]") {
-    VM vm{};
-    Interpreter interp{vm};
-    auto &cpu = vm.m_cpu;
-
-    SECTION("mul - multiply") {
-        cpu.reg(1) = 10;
-        cpu.reg(2) = 20;
-        interp.mul(cpu.reg(3), cpu.reg(1), cpu.reg(2));
-        REQUIRE(cpu.reg(3) == 200);
-
-        cpu.reg(4) = UINT64_MAX;
-        cpu.reg(5) = 2;
-        interp.mul(cpu.reg(6), cpu.reg(4), cpu.reg(5));
-        REQUIRE(cpu.reg(6) == UINT64_MAX - 1);
-    }
-
-    SECTION("mulh - multiply high signed") {
-        cpu.reg(1) = static_cast<uint64_t>(-1);
-        cpu.reg(2) = static_cast<uint64_t>(-1);
-        interp.mulh(cpu.reg(3), cpu.reg(1), cpu.reg(2));
-        REQUIRE(cpu.reg(3) == 0);
-
-        cpu.reg(4) = 0x8000000000000000;
-        cpu.reg(5) = 2;
-        interp.mulh(cpu.reg(6), cpu.reg(4), cpu.reg(5));
-        REQUIRE(cpu.reg(6) == -1);
-    }
-
-    SECTION("mulhu - multiply high unsigned") {
-        cpu.reg(1) = UINT64_MAX;
-        cpu.reg(2) = UINT64_MAX;
-        interp.mulhu(cpu.reg(3), cpu.reg(1), cpu.reg(2));
-        REQUIRE(cpu.reg(3) == UINT64_MAX - 1);
-
-        cpu.reg(4) = 0x8000000000000000;
-        cpu.reg(5) = 2;
-        interp.mulhu(cpu.reg(6), cpu.reg(4), cpu.reg(5));
-        REQUIRE(cpu.reg(6) == 1);
-    }
-
-    SECTION("mulhsu - multiply high signed-unsigned") {
-        cpu.reg(1) = static_cast<uint64_t>(-1);
-        cpu.reg(2) = 2;
-        interp.mulhsu(cpu.reg(3), cpu.reg(1), cpu.reg(2));
-        REQUIRE(cpu.reg(3).sval() == -1);
-
-        cpu.reg(4) = 0x7FFFFFFFFFFFFFFF;
-        cpu.reg(5) = 2;
-        interp.mulhsu(cpu.reg(6), cpu.reg(4), cpu.reg(5));
-        REQUIRE(cpu.reg(6) == 0);
-    }
-
-    SECTION("mulw - multiply word") {
-        cpu.reg(1) = 0x10000;
-        cpu.reg(2) = 0x10000;
-        interp.mulw(cpu.reg(3), cpu.reg(1), cpu.reg(2));
-        REQUIRE(cpu.reg(3) == 0);
-
-        cpu.reg(4) = 100;
-        cpu.reg(5) = 200;
-        interp.mulw(cpu.reg(6), cpu.reg(4), cpu.reg(5));
-        REQUIRE(cpu.reg(6) == 20000);
-    }
-}
-
-TEST_CASE("Interpreter division instructions", "[interpreter][div]") {
-    VM vm{};
-    Interpreter interp{vm};
-    auto &cpu = vm.m_cpu;
-
-    SECTION("div - divide signed") {
-        cpu.reg(1) = 100;
-        cpu.reg(2) = 10;
-        interp.div(cpu.reg(3), cpu.reg(1), cpu.reg(2));
-        REQUIRE(cpu.reg(3) == 10);
-
-        cpu.reg(4) = static_cast<uint64_t>(-100);
-        cpu.reg(5) = 10;
-        interp.div(cpu.reg(6), cpu.reg(4), cpu.reg(5));
-        REQUIRE(cpu.reg(6) == -10);
-
-        cpu.reg(7) = 100;
-        cpu.reg(8) = static_cast<uint64_t>(-10);
-        interp.div(cpu.reg(9), cpu.reg(7), cpu.reg(8));
-        REQUIRE(cpu.reg(9) == -10);
-    }
-
-    SECTION("div - division by zero") {
-        cpu.reg(1) = 100;
-        cpu.reg(2) = 0;
-        interp.div(cpu.reg(3), cpu.reg(1), cpu.reg(2));
-        REQUIRE(cpu.reg(3) == -1);
-    }
-
-    SECTION("div - overflow case") {
-        cpu.reg(1) = 0x8000000000000000;
-        cpu.reg(2) = static_cast<uint64_t>(-1);
-        interp.div(cpu.reg(3), cpu.reg(1), cpu.reg(2));
-        REQUIRE(cpu.reg(3) == 0x8000000000000000);
-    }
-
-    SECTION("divu - divide unsigned") {
-        cpu.reg(1) = 100;
-        cpu.reg(2) = 10;
-        interp.divu(cpu.reg(3), cpu.reg(1), cpu.reg(2));
-        REQUIRE(cpu.reg(3) == 10);
-
-        cpu.reg(4) = UINT64_MAX;
-        cpu.reg(5) = 2;
-        interp.divu(cpu.reg(6), cpu.reg(4), cpu.reg(5));
-        REQUIRE(cpu.reg(6) == 0x7FFFFFFFFFFFFFFF);
-    }
-
-    SECTION("divu - division by zero") {
-        cpu.reg(1) = 100;
-        cpu.reg(2) = 0;
-        interp.divu(cpu.reg(3), cpu.reg(1), cpu.reg(2));
-        REQUIRE(cpu.reg(3) == UINT64_MAX);
-    }
-
-    SECTION("rem - remainder signed") {
-        cpu.reg(1) = 100;
-        cpu.reg(2) = 30;
-        interp.rem(cpu.reg(3), cpu.reg(1), cpu.reg(2));
-        auto reg3_val = cpu.reg(3).sval();
-        REQUIRE(reg3_val == 10);
-
-        cpu.reg(4) = static_cast<uint64_t>(-100);
-        cpu.reg(5) = 30;
-        interp.rem(cpu.reg(6), cpu.reg(4), cpu.reg(5));
-        REQUIRE(cpu.reg(6) == -10);
-    }
-
-    SECTION("rem - remainder by zero") {
-        cpu.reg(1) = 100;
-        cpu.reg(2) = 0;
-        interp.rem(cpu.reg(3), cpu.reg(1), cpu.reg(2));
-        auto reg3_val = cpu.reg(3).sval();
-        REQUIRE(reg3_val == 100);
-    }
-
-    SECTION("remu - remainder unsigned") {
-        cpu.reg(1) = 100;
-        cpu.reg(2) = 30;
-        interp.remu(cpu.reg(3), cpu.reg(1), cpu.reg(2));
-        REQUIRE(cpu.reg(3) == 10);
-
-        cpu.reg(4) = UINT64_MAX;
-        cpu.reg(5) = 10;
-        interp.remu(cpu.reg(6), cpu.reg(4), cpu.reg(5));
-        REQUIRE(cpu.reg(6) == 5);
-    }
-
-    SECTION("remu - remainder by zero") {
-        cpu.reg(1) = 100;
-        cpu.reg(2) = 0;
-        interp.remu(cpu.reg(3), cpu.reg(1), cpu.reg(2));
-        REQUIRE(cpu.reg(3) == 100);
-    }
-
-    SECTION("divw - divide word signed") {
-        cpu.reg(1) = 100;
-        cpu.reg(2) = 10;
-        interp.divw(cpu.reg(3), cpu.reg(1), cpu.reg(2));
-        REQUIRE(cpu.reg(3) == 10);
-
-        cpu.reg(4).val() = 0x80000000;
-        cpu.reg(5) = static_cast<uint64_t>(-1);
-        interp.divw(cpu.reg(6), cpu.reg(4), cpu.reg(5));
-        REQUIRE(cpu.reg(6) == 0xFFFFFFFF80000000);
-    }
-
-    SECTION("divuw - divide word unsigned") {
-        cpu.reg(1) = 100;
-        cpu.reg(2) = 10;
-        interp.divuw(cpu.reg(3), cpu.reg(1), cpu.reg(2));
-        REQUIRE(cpu.reg(3) == 10);
-
-        cpu.reg(4).val() = 0xFFFFFFFF;
-        cpu.reg(5) = 2;
-        interp.divuw(cpu.reg(6), cpu.reg(4), cpu.reg(5));
-        REQUIRE(cpu.reg(6) == 0x7FFFFFFF);
-    }
-
-    SECTION("remw - remainder word signed") {
-        cpu.reg(1) = 100;
-        cpu.reg(2) = 30;
-        interp.remw(cpu.reg(3), cpu.reg(1), cpu.reg(2));
-        REQUIRE(cpu.reg(3) == 10);
-    }
-
-    SECTION("remuw - remainder word unsigned") {
-        cpu.reg(1) = 100;
-        cpu.reg(2) = 30;
-        interp.remuw(cpu.reg(3), cpu.reg(1), cpu.reg(2));
-        REQUIRE(cpu.reg(3) == 10);
-    }
-}
-
-TEST_CASE("Interpreter register x0 is always zero", "[interpreter][register][zero]") {
+TEST_CASE("RV64I register x0 is always zero", "[rv64i][register][zero]") {
     VM vm{};
     Interpreter interp{vm};
     auto &cpu = vm.m_cpu;
@@ -841,7 +638,7 @@ TEST_CASE("Interpreter register x0 is always zero", "[interpreter][register][zer
     }
 }
 
-TEST_CASE("Interpreter sign extension behavior", "[interpreter][sign_extension]") {
+TEST_CASE("RV64I sign extension behavior", "[rv64i][sign_extension]") {
     VM vm{};
     Interpreter interp{vm};
     auto &cpu = vm.m_cpu;
@@ -897,7 +694,7 @@ TEST_CASE("Interpreter sign extension behavior", "[interpreter][sign_extension]"
     }
 }
 
-TEST_CASE("Interpreter immediate sign extension", "[interpreter][immediate]") {
+TEST_CASE("RV64I immediate sign extension", "[rv64i][immediate]") {
     VM vm{};
     Interpreter interp{vm};
     auto &cpu = vm.m_cpu;
@@ -921,7 +718,7 @@ TEST_CASE("Interpreter immediate sign extension", "[interpreter][immediate]") {
     }
 }
 
-TEST_CASE("Interpreter edge cases", "[interpreter][edge_cases]") {
+TEST_CASE("RV64I edge cases", "[rv64i][edge_cases]") {
     VM vm{};
     Interpreter interp{vm};
     auto &cpu = vm.m_cpu;
@@ -965,9 +762,6 @@ TEST_CASE("Interpreter edge cases", "[interpreter][edge_cases]") {
         interp.sub(cpu.reg(4), cpu.reg(2), cpu.reg(1));
         REQUIRE(cpu.reg(4) == 100);
 
-        interp.mul(cpu.reg(5), cpu.reg(1), cpu.reg(2));
-        REQUIRE(cpu.reg(5) == 0);
-
         interp.and_(cpu.reg(6), cpu.reg(1), cpu.reg(2));
         REQUIRE(cpu.reg(6) == 0);
 
@@ -993,7 +787,7 @@ TEST_CASE("Interpreter edge cases", "[interpreter][edge_cases]") {
     }
 }
 
-TEST_CASE("Interpreter PC manipulation", "[interpreter][pc]") {
+TEST_CASE("RV64I PC manipulation", "[rv64i][pc]") {
     VM vm{};
     Interpreter interp{vm};
     auto &cpu = vm.m_cpu;
@@ -1006,7 +800,7 @@ TEST_CASE("Interpreter PC manipulation", "[interpreter][pc]") {
 
         uint64_t pc_before = cpu.get_pc();
         interp.beq(cpu.reg(1), cpu.reg(2), 16);
-        REQUIRE(cpu.get_pc() == pc_before + 32); // 4-byte instruction size
+        REQUIRE(cpu.get_pc() == pc_before + 32);
     }
 
     SECTION("Branch instructions don't modify PC when condition is false") {
@@ -1022,7 +816,7 @@ TEST_CASE("Interpreter PC manipulation", "[interpreter][pc]") {
     SECTION("jal modifies PC and stores return address") {
         cpu.set_pc(initial_pc);
         interp.jal(cpu.reg(1), 100);
-        REQUIRE(cpu.get_pc() == initial_pc + 200); // 4-byte instruction size
+        REQUIRE(cpu.get_pc() == initial_pc + 200);
         REQUIRE(cpu.reg(1) == initial_pc);
     }
 
@@ -1042,7 +836,7 @@ TEST_CASE("Interpreter PC manipulation", "[interpreter][pc]") {
     }
 }
 
-TEST_CASE("Interpreter fence and system instructions", "[interpreter][system]") {
+TEST_CASE("RV64I fence and system instructions", "[rv64i][system]") {
     VM vm{};
     Interpreter interp{vm};
 

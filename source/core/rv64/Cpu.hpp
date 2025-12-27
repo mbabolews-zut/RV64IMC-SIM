@@ -13,15 +13,15 @@ namespace rv64 {
 
         explicit Cpu(VM &vm);
 
-        void set_pc(uint64_t pc);
-
+        void set_pc(uint64_t new_pc);
         void move_pc(int64_t offset);
+        [[nodiscard]] uint64_t get_pc() const;
 
         [[nodiscard]] GPIntReg &reg(int i) noexcept;
         [[nodiscard]] const GPIntReg &reg(int i) const noexcept;
         [[nodiscard]] GPIntReg &reg(Reg reg) noexcept;
         [[nodiscard]] const GPIntReg &reg(Reg reg) const noexcept;
-        [[nodiscard]] uint64_t get_pc() const;
+
 
         void print_cpu_state() const;
 
