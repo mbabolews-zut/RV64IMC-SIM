@@ -9,6 +9,8 @@
     #include <string>
     #include <sstream>
     #include <parser/ParserProcessor.hpp>
+    #include <ui.hpp>
+    #include <format>
 }
 %code {
     extern size_t yylineno;
@@ -32,6 +34,13 @@
 program
     : /* empty */
     | program line
+    | program final_line
+    ;
+
+final_line
+    : statement
+    | Label statement_opt
+        { m_pproc.add_label($1); }
     ;
 
 line
@@ -76,7 +85,7 @@ operand
 %%
 
 void yy::parser::error(const std::string& msg){
-    std::cerr << "Parsing error (line:" << yylineno << "): " << msg << '\n';
+    ui::print_error(std::format("[parsing] line: {}:{}", yylineno, msg));
 }
 
 namespace asm_parsing {
@@ -87,9 +96,10 @@ namespace asm_parsing {
 
         yy::parser parser;
         yylineno = 0;
-        parser.parse();
-
-        return m_pproc.get_parsing_result();
+        auto parsing_error = parser.parse();
+        auto result = m_pproc.get_parsing_result();
+        result.error_code = parsing_error;
+        return result;
     }
 
     int parse_and_resolve(const std::string &source, ParsedInstVec &out_instructions) {

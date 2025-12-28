@@ -7,6 +7,6 @@ add_subdirectory(App)
 add_subdirectory(Dependencies)
 
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE
-    RISC_VISIM_APP
-    RISC_VISIM_APPContent
+    RISC_VISIM_APPplugin
+    RISC_VISIM_APPContentplugin
     QtQuickDesignerComponents)

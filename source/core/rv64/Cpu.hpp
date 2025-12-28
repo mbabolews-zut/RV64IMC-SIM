@@ -12,6 +12,8 @@ namespace rv64 {
         static constexpr size_t INT_REG_CNT = 32;
 
         explicit Cpu(VM &vm);
+        Cpu(const Cpu &other);
+        Cpu &operator=(Cpu &&other) noexcept;
 
         void set_pc(uint64_t new_pc);
         void move_pc(int64_t offset);

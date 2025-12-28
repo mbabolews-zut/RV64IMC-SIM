@@ -4,6 +4,7 @@
 #include <cassert>
 #include <format>
 #include <rv64/Cpu.hpp>
+#include <ui.hpp>
 
 #include "VM.hpp"
 
@@ -15,6 +16,12 @@
 
 
 namespace rv64 {
+    Interpreter &Interpreter::operator=(Interpreter &&other) {
+        m_vm = std::move(other.m_vm);
+        m_current_line = other.m_current_line;
+        return *this;
+    }
+
     void Interpreter::addi(GPIntReg &rd, const GPIntReg &rs, int12 imm12) {
         rd = rs.sval() + imm12;
     }

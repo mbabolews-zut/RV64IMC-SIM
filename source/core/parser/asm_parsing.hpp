@@ -31,6 +31,7 @@ namespace asm_parsing {
         InstBuilderVec unresolved_instructions;
         SymbolTable symbol_table;
 
+        int error_code = 0;
         [[nodiscard]] int resolve_instructions(ParsedInstVec &out_instructions, uint64_t data_off = 0) const;
     };
 

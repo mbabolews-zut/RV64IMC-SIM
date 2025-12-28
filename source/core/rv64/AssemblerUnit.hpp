@@ -7,7 +7,7 @@
 namespace rv64 {
     class AssemblerUnit {
     public:
-        std::vector<uint8_t> assemble(std::span<const Instruction> insts,
-                                      std::endian endian = std::endian::native);
+        static std::vector<uint8_t> assemble(std::span<const Instruction> insts,
+                                             std::endian endian = std::endian::native);
     };
 }

@@ -1,6 +1,7 @@
 #include "Cpu.hpp"
 #include <cassert>
 #include <format>
+#include <ui.hpp>
 
 #include "VM.hpp"
 
@@ -67,5 +68,23 @@ namespace rv64 {
     Cpu::Cpu(VM &vm)
         : m_int_regs(reg_array_construct(std::make_index_sequence<INT_REG_CNT>{})),
           m_interpreter(vm), m_vm(vm) {
+    }
+
+    Cpu::Cpu(const Cpu &other) : m_interpreter(other.m_vm),
+                                 m_int_regs(other.m_int_regs),
+                                 m_pc(other.m_pc),
+                                 m_vm(other.m_vm),
+                                 m_int_regs_prev_vals(other.m_int_regs_prev_vals) {
+    }
+
+    Cpu &Cpu::operator=(Cpu &&other) noexcept {
+        if (this != &other) {
+            m_int_regs = other.m_int_regs;
+            m_pc = other.m_pc;
+            m_int_regs_prev_vals = other.m_int_regs_prev_vals;
+            m_vm = std::move(other.m_vm);
+            m_interpreter = std::move(other.m_interpreter);
+        }
+        return *this;
     }
 }

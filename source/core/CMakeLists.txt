@@ -119,6 +119,7 @@ set(PROJECT_SOURCES
         Memory.hpp
         PagedMemory.cpp
         PagedMemory.hpp
+        ui.cpp
         ui.hpp
         rv64/AssemblerUnit.cpp
         rv64/AssemblerUnit.hpp

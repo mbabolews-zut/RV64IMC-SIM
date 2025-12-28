@@ -25,6 +25,7 @@ namespace rv64 {
         void terminate(int exit_code);
         void error_stop();
         void breakpoint_hit();
+        void reset();
 
         [[nodiscard]] VMState get_state() const noexcept;
         [[nodiscard]] const Memory::Layout &get_memory_layout() const noexcept;

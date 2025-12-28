@@ -16,6 +16,8 @@ class Interpreter final
 public:
     explicit Interpreter(VM &vm) : m_vm(vm) {}
 
+    Interpreter &operator=(Interpreter &&other);
+
     // current source line (moved from Cpu)
     [[nodiscard]] size_t get_current_line() const noexcept { return m_current_line; }
     void set_current_line(size_t ln) noexcept { m_current_line = ln; }

@@ -9,6 +9,9 @@ Rectangle {
     // --- Public Properties ---
     property alias text: codeEditor.text
     property alias font: codeEditor.font
+    readonly property bool hasContent: codeEditor.text.trim().length > 0
+    property int highlightedLine: -1  // -1 means no highlight
+    property color highlightColor: "#fcec0d"  // #fcec0d yellow highlight
 
     // Default size so it's visible
     implicitWidth: 400
@@ -150,9 +153,23 @@ Rectangle {
                 }
             }
 
+            // Line highlight rectangle
+            Rectangle {
+                id: lineHighlight
+                visible: root.highlightedLine >= 0
+                x: 0
+                y: root.highlightedLine * root.lineHeight
+                width: Math.max(codeEditor.contentWidth, editorFlickable.width)
+                height: root.lineHeight
+                color: root.highlightColor
+                opacity: 0.6
+            }
+
             TextEdit {
                 id: codeEditor
                 width: editorFlickable.width
+
+                readOnly: backend.editorLocked
 
                 textFormat: TextEdit.PlainText
                 font.family: "Courier New"

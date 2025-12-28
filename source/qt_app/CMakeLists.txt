@@ -22,7 +22,7 @@ set(QML_IMPORT_PATH ${QT_QML_OUTPUT_DIRECTORY}
     CACHE STRING "Import paths for Qt Creator's code model"
     FORCE
 )
-find_package(Qt6 6.8 REQUIRED COMPONENTS Core Gui Widgets Qml Quick QuickTimeline ShaderTools PATHS "$ENV{HOME}/Qt/6.10.1/gcc_64" NO_DEFAULT_PATH)
+find_package(Qt6 6.8 REQUIRED COMPONENTS Core Gui Widgets Qml Quick QuickTimeline ShaderTools Concurrent PATHS "$ENV{HOME}/Qt/6.10.1/gcc_64" NO_DEFAULT_PATH)
 qt_standard_project_setup()
 
 

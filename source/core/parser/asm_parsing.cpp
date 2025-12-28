@@ -18,12 +18,12 @@ namespace asm_parsing {
             InstructionBuilder builder = uinst.builder;
 
             if (!builder.resolve_symbols(sym_map, current_pc)) {
-                return 1;
+                return 2;
             }
 
             auto inst = builder.build();
             if (!inst.is_valid()) {
-                return 2;
+                return 3;
             }
 
             result.push_back(ParsedInst{uinst.lineno, inst});
@@ -36,6 +36,9 @@ namespace asm_parsing {
 
     int parse_and_resolve(const std::string &source, ParsedInstVec &out_instructions, uint64_t data_offset) {
         auto result = parse(source);
+        if (result.error_code != 0)
+            return 1;
+
         return result.resolve_instructions(out_instructions, data_offset);
     }
 }

@@ -3,17 +3,30 @@
 
 #include <QApplication>
 #include <QQmlApplicationEngine>
-#include <rv64/VM.hpp>
+#include <QQmlContext>
+#include "Backend.hpp"
+#include <ui.hpp>
 
 #include "autogen/environment.h"
 
 int main(int argc, char *argv[])
 {
-    rv64::VM vm{};
     set_qt_environment();
     QApplication app(argc, argv);
 
+    // Set up backend and UI callbacks
+    Backend backend;
+    ui::set_output_callback([&](auto sv) {
+        backend.appendOutput(QString(sv.data()));
+    });
+    ui::set_error_msg_callback([&](auto sv) {
+        backend.appendOutput(QString(sv.data()));
+    });
+
+
     QQmlApplicationEngine engine;
+    engine.rootContext()->setContextProperty("backend", &backend);
+
     const QUrl url(mainQmlFile);
     QObject::connect(
                 &engine, &QQmlApplicationEngine::objectCreated, &app,

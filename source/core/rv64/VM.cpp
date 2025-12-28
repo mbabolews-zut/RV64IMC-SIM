@@ -1,8 +1,9 @@
 #include "VM.hpp"
 #include <cassert>
 #include <format>
+#include <ui.hpp>
 
-#include "../common.hpp"
+#include <common.hpp>
 
 namespace rv64 {
 
@@ -48,6 +49,12 @@ namespace rv64 {
 
     void VM::breakpoint_hit() {
         m_state = VMState::Breakpoint;
+    }
+
+    void VM::reset() {
+        m_state = VMState::Initializing;
+        m_memory = Memory(m_memory.get_layout());
+        m_cpu = Cpu(*this);
     }
 
     VMState VM::get_state() const noexcept {
