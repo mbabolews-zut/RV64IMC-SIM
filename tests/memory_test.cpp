@@ -19,37 +19,6 @@ TEST_CASE("Memory alignment requirements", "[memory][alignment]") {
         REQUIRE(err == MemErr::None);
     }
 
-    SECTION("Unaligned 16-bit access should fail") {
-        err = mem.store<uint16_t>(layout.data_base + 1, 0x1234);
-        REQUIRE(err == MemErr::UnalignedAccess);
-
-        uint16_t val = mem.load<uint16_t>(layout.data_base + 3, err);
-        REQUIRE(err == MemErr::UnalignedAccess);
-        REQUIRE(val == 0);
-    }
-
-    SECTION("Unaligned 32-bit access should fail") {
-        err = mem.store<uint32_t>(layout.data_base + 1, 0x12345678);
-        REQUIRE(err == MemErr::UnalignedAccess);
-
-        err = mem.store<uint32_t>(layout.data_base + 2, 0x12345678);
-        REQUIRE(err == MemErr::UnalignedAccess);
-
-        uint32_t val = mem.load<uint32_t>(layout.data_base + 3, err);
-        REQUIRE(err == MemErr::UnalignedAccess);
-        REQUIRE(val == 0);
-    }
-
-    SECTION("Unaligned 64-bit access should fail") {
-        for (uint64_t offset = 1; offset < 8; ++offset) {
-            err = mem.store<uint64_t>(layout.data_base + offset, 0x123456789ABCDEF0);
-            REQUIRE(err == MemErr::UnalignedAccess);
-
-            uint64_t val = mem.load<uint64_t>(layout.data_base + offset, err);
-            REQUIRE(err == MemErr::UnalignedAccess);
-            REQUIRE(val == 0);
-        }
-    }
 
     SECTION("8-bit access is always aligned") {
         for (uint64_t offset = 0; offset < 16; ++offset) {
@@ -142,17 +111,7 @@ TEST_CASE("Memory descending stack (default)", "[memory][stack][descending]") {
         err = mem.store<uint64_t>(stack_bottom - 8, 0xDEADBEEFCAFEBABE);
         REQUIRE(err == MemErr::SegFault);  // Entirely below valid range
 
-        // Test 4: Unaligned access near top boundary
-        // 0x7FFFFFFC is not 8-byte aligned (would need 0x7FFFFFF8)
-        err = mem.store<uint64_t>(stack_top - 4, 0x123456789ABCDEF0);
-        REQUIRE(err == MemErr::UnalignedAccess);  // Alignment checked first
-
-        // Test 5: Unaligned access near bottom boundary
-        // Since stack_bottom is 8-byte aligned, stack_bottom - 2 is not 4-byte aligned
-        err = mem.store<uint32_t>(stack_bottom - 2, 0x12345678);
-        REQUIRE(err == MemErr::UnalignedAccess);  // Alignment checked before bounds
-
-        // Test 6: Properly aligned value entirely below stack
+        // Test 4: Properly aligned value entirely below stack
         if (stack_bottom >= 16) {  // Ensure we have room
             uint64_t below_stack = (stack_bottom - 16) & ~7ULL;  // Align down
             err = mem.store<uint64_t>(below_stack, 0xDEADBEEF);

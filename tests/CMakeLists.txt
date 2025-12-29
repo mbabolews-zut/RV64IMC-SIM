@@ -10,16 +10,16 @@ include(FetchContent)
 FetchContent_Declare(
     Catch2
     GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-    GIT_TAG v3.5.0
+    GIT_TAG v3.12.0
 )
 
 FetchContent_MakeAvailable(Catch2)
 
 file(GLOB TEST_FILES
-    ${CMAKE_SOURCE_DIR}/tests/rv64c_test.cpp
-    ${CMAKE_SOURCE_DIR}/tests/rv64i_test.cpp
-    ${CMAKE_SOURCE_DIR}/tests/rv64m_test.cpp
-    ${CMAKE_SOURCE_DIR}/tests/memory_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/rv64c_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/rv64i_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/rv64m_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/memory_test.cpp
 )
 
 list(FILTER PROJECT_SOURCES EXCLUDE REGEX ".*main\\.cpp$")
@@ -38,8 +38,8 @@ target_link_libraries(RV64_SIM_TESTS PRIVATE
 )
 
 target_include_directories(RV64_SIM_TESTS PRIVATE
-    ${CMAKE_SOURCE_DIR}/source/core
-    ${CMAKE_BINARY_DIR}/generated/parser
+    ${CMAKE_CURRENT_SOURCE_DIR}/../source/core
+    ${CMAKE_BINARY_DIR}/core/generated/parser
 )
 
 include(Catch)

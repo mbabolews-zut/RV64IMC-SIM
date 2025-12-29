@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <bit>
+#include <concepts>
 
 namespace helper {
     template<std::integral T = int64_t>
@@ -23,7 +24,7 @@ struct intN {
 
     [[nodiscard]] constexpr uint64_t zero_extended() const;
 
-    static constexpr uint64_t MAX = helper::_2sqr_n(NBits - 1) - 1;
+    static constexpr int64_t MAX = helper::_2sqr_n(NBits - 1) - 1;
     static constexpr int64_t MIN = -helper::_2sqr_n(NBits - 1);
 
 private:

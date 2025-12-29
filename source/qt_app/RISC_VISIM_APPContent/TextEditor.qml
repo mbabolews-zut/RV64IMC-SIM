@@ -54,8 +54,6 @@ Rectangle {
                 interactive: false
                 clip: true
 
-                // contentY is now synced from editorFlickable.onContentYChanged
-
                 Column {
                     id: gutterColumn
                     width: parent.width

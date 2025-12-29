@@ -45,6 +45,7 @@ Rectangle {
 
                 TextEditor {
                     id: mainEditor
+                    highlightedLine: backend.currentLine
                     SplitView.fillHeight: true
                     SplitView.fillWidth: true
                     SplitView.minimumHeight: 150

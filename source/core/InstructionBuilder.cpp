@@ -1,4 +1,7 @@
 #include "InstructionBuilder.hpp"
+
+#include <format>
+
 #include "rv64/instruction_sets/Rv64IMC.hpp"
 
 template<typename T>
@@ -9,6 +12,8 @@ static bool in_range(int64_t value) {
     if constexpr (!HasMIN<T>) {
         return value >= 0 && value <= T::MAX;
     } else {
+        std::clog << std::format("value={}, T::MIN={}, T::MAX={}, value <= T::MAX: {}, value >= T::MIN={}\n",
+            value, T::MIN, T::MAX, value <= T::MAX, value >= T::MIN);
         return value <= T::MAX && value >= T::MIN;
     }
 }

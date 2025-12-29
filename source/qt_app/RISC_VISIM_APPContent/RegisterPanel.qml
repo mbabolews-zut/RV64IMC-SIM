@@ -57,5 +57,12 @@ Rectangle {
             }
         }
     }
+
+    Connections {
+        target: backend
+        function onRegistersChanged() {
+            regModel.updateValues();
+        }
+    }
 }
 

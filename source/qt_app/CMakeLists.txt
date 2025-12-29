@@ -13,6 +13,11 @@ option(BUILD_QDS_COMPONENTS "Build design studio components" ON)
 
 project(RISC_VISIM_QT LANGUAGES CXX)
 
+# Ensure debug symbols for Debug builds
+if(CMAKE_BUILD_TYPE MATCHES "Debug")
+    add_compile_options(-g -O0)
+endif()
+
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 set(CMAKE_AUTOMOC ON)

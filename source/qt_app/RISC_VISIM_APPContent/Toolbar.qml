@@ -64,18 +64,22 @@ Rectangle {
                 id: resetBtn
                 text: "↻ Reset"
                 Layout.preferredHeight: 40
+                enabled: !backend.resetLocked
                 onClicked: backend.reset()
             }
 
             NavButton {
                 id: stepBtn
                 text: "▶| Step"
+                enabled: !backend.runLocked
                 Layout.preferredHeight: 40
+                onClicked: backend.step()
             }
 
             NavButton {
                 id: runBtn
                 text: "▶▶ Run"
+                enabled: !backend.runLocked
                 Layout.preferredHeight: 40
             }
         }
