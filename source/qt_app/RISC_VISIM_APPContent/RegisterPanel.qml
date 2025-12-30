@@ -63,6 +63,11 @@ Rectangle {
         function onRegistersChanged() {
             regModel.updateValues();
         }
+        function onAppStateChanged(newState) {
+            if (newState === 0) { // AppState::Idle
+                regModel.resetModified();
+            }
+        }
     }
 }
 

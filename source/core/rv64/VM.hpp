@@ -27,15 +27,20 @@ namespace rv64 {
         void breakpoint_hit();
         void reset();
 
+        /// @return True if breakpoint was added, false if removed
+        bool toggle_breakpoint(size_t line);
+        [[nodiscard]] bool has_breakpoint(size_t line) const;
+        void clear_breakpoints();
+        [[nodiscard]] bool check_breakpoint() const;
+
         [[nodiscard]] VMState get_state() const noexcept;
         [[nodiscard]] const Memory::Layout &get_memory_layout() const noexcept;
+        [[nodiscard]] size_t get_current_line() const noexcept;
 
     public:
         Memory m_memory; // memory subsystem
         Cpu m_cpu{*this}; // CPU and interpreter
 
-        // Access the interpreter's current source line directly
-        [[nodiscard]] size_t get_current_line() const noexcept;
     private:
         VMState m_state = VMState::Initializing;
     };

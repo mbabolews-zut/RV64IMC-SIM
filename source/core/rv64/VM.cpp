@@ -3,13 +3,9 @@
 #include <format>
 #include <ui.hpp>
 
-#include <common.hpp>
-
 namespace rv64 {
-
     VM::VM(const Memory::Layout &layout)
-        : m_memory(layout)
-    {
+        : m_memory(layout) {
         m_state = VMState::Initializing;
     }
 
@@ -20,7 +16,11 @@ namespace rv64 {
     }
 
     void VM::run_step() {
-        assert(m_state == VMState::Loaded || m_state == VMState::Running || m_state == VMState::Stopped);
+        assert(m_state == VMState::Loaded ||
+            m_state == VMState::Running ||
+            m_state == VMState::Stopped ||
+            m_state == VMState::Breakpoint);
+
         m_state = VMState::Running;
 
         if (!m_cpu.next_cycle()) {
@@ -55,6 +55,24 @@ namespace rv64 {
         m_state = VMState::Initializing;
         m_memory = Memory(m_memory.get_layout());
         m_cpu = Cpu(*this);
+    }
+
+    bool VM::toggle_breakpoint(size_t line) {
+        bool has = m_cpu.has_breakpoint(line);
+        m_cpu.set_breakpoint(line, !has);
+        return !has;
+    }
+
+    bool VM::has_breakpoint(size_t line) const {
+        return m_cpu.has_breakpoint(line);
+    }
+
+    void VM::clear_breakpoints() {
+        m_cpu.clear_breakpoints();
+    }
+
+    bool VM::check_breakpoint() const {
+        return m_cpu.has_breakpoint(get_current_line());
     }
 
     VMState VM::get_state() const noexcept {

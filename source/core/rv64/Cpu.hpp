@@ -1,8 +1,8 @@
 #pragma once
-#include <cstdint>
 #include <string>
 #include <array>
 #include <rv64/GPIntReg.hpp>
+#include <set>
 
 #include "Interpreter.hpp"
 
@@ -15,6 +15,13 @@ namespace rv64 {
         Cpu(const Cpu &other);
         Cpu &operator=(Cpu &&other) noexcept;
 
+        /// @brief Sets or removes a breakpoint at the specified line
+        /// @param enable True to set breakpoint, false to remove
+        /// @return True if operation succeeded, false otherwise
+        bool set_breakpoint(size_t line, bool enable) noexcept;
+        bool has_breakpoint(size_t line) const noexcept;
+        void clear_breakpoints() noexcept;
+
         void set_pc(uint64_t new_pc);
         void move_pc(int64_t offset);
         [[nodiscard]] uint64_t get_pc() const;
@@ -23,7 +30,6 @@ namespace rv64 {
         [[nodiscard]] const GPIntReg &reg(int i) const noexcept;
         [[nodiscard]] GPIntReg &reg(Reg reg) noexcept;
         [[nodiscard]] const GPIntReg &reg(Reg reg) const noexcept;
-
 
         void print_cpu_state() const;
 
@@ -45,5 +51,6 @@ namespace rv64 {
         VM &m_vm;
 
         std::array<uint64_t, INT_REG_CNT> m_int_regs_prev_vals = {};
+        std::set<size_t> m_breakpoints{};
     };
 }

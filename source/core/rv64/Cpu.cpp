@@ -62,19 +62,26 @@ namespace rv64 {
             m_interpreter.set_current_line(SIZE_MAX);
         }
 
+        // check for breakpoint hit
+        if (m_breakpoints.contains(m_vm.get_current_line())) {
+            m_vm.breakpoint_hit();
+        }
+
         return m_pc < m_vm.m_memory.get_instruction_end_addr();
     }
 
     Cpu::Cpu(VM &vm)
-        : m_int_regs(reg_array_construct(std::make_index_sequence<INT_REG_CNT>{})),
-          m_interpreter(vm), m_vm(vm) {
+        : m_interpreter(vm),
+          m_int_regs(reg_array_construct(std::make_index_sequence<INT_REG_CNT>{})),
+          m_vm(vm) {
     }
 
     Cpu::Cpu(const Cpu &other) : m_interpreter(other.m_vm),
                                  m_int_regs(other.m_int_regs),
                                  m_pc(other.m_pc),
                                  m_vm(other.m_vm),
-                                 m_int_regs_prev_vals(other.m_int_regs_prev_vals) {
+                                 m_int_regs_prev_vals(other.m_int_regs_prev_vals),
+                                 m_breakpoints(other.m_breakpoints) {
     }
 
     Cpu &Cpu::operator=(Cpu &&other) noexcept {
@@ -84,7 +91,31 @@ namespace rv64 {
             m_int_regs_prev_vals = other.m_int_regs_prev_vals;
             m_vm = std::move(other.m_vm);
             m_interpreter = std::move(other.m_interpreter);
+            m_breakpoints = std::move(other.m_breakpoints);
         }
         return *this;
+    }
+
+    bool Cpu::set_breakpoint(size_t line, bool enable) noexcept {
+        auto it = m_breakpoints.find(line);
+        if (enable) {
+            if (it != m_breakpoints.end()) {
+                return false; // breakpoint already exists
+            }
+            m_breakpoints.insert(line);
+            return true;
+        }
+        if (it == m_breakpoints.end())
+            return false;
+        m_breakpoints.erase(it);
+        return true;
+    }
+
+    bool Cpu::has_breakpoint(size_t line) const noexcept {
+        return m_breakpoints.contains(line);
+    }
+
+    void Cpu::clear_breakpoints() noexcept {
+        m_breakpoints.clear();
     }
 }

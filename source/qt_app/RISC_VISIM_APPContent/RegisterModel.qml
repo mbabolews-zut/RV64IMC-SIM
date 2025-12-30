@@ -40,13 +40,30 @@ ListModel {
 
     Component.onCompleted: {
         for (var i = 0; i < regData.length; i++) {
-            append({ reg: regData[i].reg, abi: regData[i].abi, value: backend.registers[i] });
+            append({
+                reg: regData[i].reg,
+                abi: regData[i].abi,
+                value: backend.registers[i],
+                modified: false,
+                originalValue: backend.registers[i]
+            });
         }
     }
 
     function updateValues() {
         for (var i = 0; i < count; i++) {
             setProperty(i, "value", backend.registers[i]);
+        }
+    }
+
+    function setModified(index, isModified) {
+        setProperty(index, "modified", isModified);
+    }
+
+    function resetModified() {
+        for (var i = 0; i < count; i++) {
+            setProperty(i, "modified", false);
+            setProperty(i, "originalValue", backend.registers[i]);
         }
     }
 }

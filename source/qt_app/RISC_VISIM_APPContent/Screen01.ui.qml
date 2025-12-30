@@ -62,8 +62,8 @@ Rectangle {
 
             RegisterPanel {
                 id: registerPanel
-                SplitView.preferredWidth: 520
-                SplitView.minimumWidth: 400
+                SplitView.preferredWidth: 330
+                SplitView.minimumWidth: 320
             }
         }
     }

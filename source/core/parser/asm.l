@@ -20,12 +20,15 @@ enum FlexToken {
         LeftParenToken,
         RightParenToken,
         NewLineToken,
-        SyntaxErrorToken
+        SyntaxErrorToken,
     };
 
 %}
 
 %%
+
+
+<<EOF>>                                            { return 0; }
 
 [a-zA-Z_][a-zA-Z0-9_]*:                             { return LabelToken;          }
 [a-zA-Z_][a-zA-Z0-9_]*                              { return IdentifierToken;     }
@@ -56,7 +59,7 @@ yy::parser::symbol_type yylex() {
     int token = scanner.yylex();
     std::string text = scanner.YYText();
 
-    if(token == NewLineToken) yylineno++;
+    if(token == NewLineToken || token == 0) yylineno++;
 
 
     switch(token) {
@@ -73,4 +76,3 @@ yy::parser::symbol_type yylex() {
         default:               return yy::parser::token::SyntaxError;
     }
 }
-

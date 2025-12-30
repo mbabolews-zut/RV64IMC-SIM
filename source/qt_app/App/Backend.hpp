@@ -1,41 +1,38 @@
 #pragma once
 
-#include <QObject>
 #include <QString>
 #include <QStringList>
 #include <QVariantList>
-#include <memory>
+#include <QSet>
+#include <atomic>
 #include "rv64/VM.hpp"
 
 enum class AppState {
-    Idle,
-    Building,
-    Ready,
-    Running,
-    Stopped,
-    Finished,
-    Error
+    Idle = 0, Building = 1, Ready = 2, Running = 3, Stopped = 4, Finished = 5, Error = 6
 };
-
 
 class Backend : public QObject {
     Q_OBJECT
     Q_PROPERTY(QString output READ getOutput NOTIFY outputUpdated)
     Q_PROPERTY(QVariantList registers READ getRegisters NOTIFY registersChanged)
+    Q_PROPERTY(int regDisplayFormat READ getRegDisplayFormat NOTIFY registersChanged)
     // Buttons and editor locking
     Q_PROPERTY(bool editorLocked READ isEditorLocked NOTIFY editorLockChanged)
     Q_PROPERTY(bool buildingEnabled READ isBuildingEnabled NOTIFY appStateChanged)
     Q_PROPERTY(bool runLocked READ isRunLocked NOTIFY appStateChanged) // also for step button
     Q_PROPERTY(bool resetLocked READ isResetLocked NOTIFY appStateChanged)
     Q_PROPERTY(int64_t currentLine READ getCurrentLine NOTIFY appStateChanged)
+
 public:
     explicit Backend(QObject *parent = nullptr);
     ~Backend() override = default;
 
-    bool isEditorLocked() const { return m_lock_editor; }
+    bool isEditorLocked() const;
     bool isBuildingEnabled() const;
+    int getRegDisplayFormat() const;
     bool isResetLocked() const;
     bool isRunLocked() const;
+    bool isModificationAllowed() const;
 
     QString getOutput() const { return m_output; }
     QVariantList getRegisters() const;
@@ -52,11 +49,17 @@ public:
 public slots:
     void build(const QString &source_code);
     void step();
-    // void run();
-    // void stop();
+    void run();
+    void stop();
     void reset();
 
+    bool modifyRegister(int reg_index, QString value_str);
     void setRegDisplayFormat(int base); // 10: Dec, 16: Hex, 2: Bin
+
+    // Breakpoint management
+    bool toggleBreakpoint(int line);
+    bool hasBreakpoint(int line) const;
+    void clearBreakpoints();
 
 signals:
     void editorLockChanged(bool locked);
@@ -65,8 +68,14 @@ signals:
     void outputUpdated(QStringView output);
     void appStateChanged(AppState new_state);
     void registersChanged();
+    void breakpointToggled(int line, bool enabled);
+    void breakpointHit(int line);
 
 private:
+    void resetVm();
+
+    void stepImpl();
+
     void setAppState(AppState state);
 
     static QString colorizeText(const QString &text, const QString &color_code);
@@ -75,6 +84,9 @@ private:
     enum class NumDispFormat { Dec = 10, Hex = 16, Bin = 2 };
 
     rv64::VM m_vm;
+    QSet<int> m_breakpoints;
+
+    std::atomic_bool m_stop_requested{false};
 
     bool m_lock_editor = false;
     QString m_output;

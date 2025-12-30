@@ -15,7 +15,6 @@
         <file>RISC_VISIM_APPContent/RegisterTableHeader.qml</file>
         <file>RISC_VISIM_APPContent/Screen01.ui.qml</file>
         <file>RISC_VISIM_APPContent/TextEditor.qml</file>
-        <file>RISC_VISIM_APPContent/TextEditorController.js</file>
         <file>RISC_VISIM_APPContent/Toolbar.qml</file>
         <file>qtquickcontrols2.conf</file>
     </qresource>

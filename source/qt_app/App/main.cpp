@@ -20,7 +20,7 @@ int main(int argc, char *argv[])
         backend.appendOutput(QString(sv.data()));
     });
     ui::set_error_msg_callback([&](auto sv) {
-        backend.appendOutput(QString(sv.data()));
+        backend.printError(QString(sv.data()));
     });
 
 

@@ -81,6 +81,7 @@ Rectangle {
                 text: "▶▶ Run"
                 enabled: !backend.runLocked
                 Layout.preferredHeight: 40
+                onClicked: backend.run()
             }
         }
     }

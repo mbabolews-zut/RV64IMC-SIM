@@ -7,8 +7,9 @@ Rectangle {
 
     required property ListView listView
 
-    property int regColumnWidth: 82
-    property int abiColumnWidth: 98
+    property int regColumnWidth: 50
+    property int abiColumnWidth: 60
+    property int spacing: 8
 
     Layout.fillWidth: true
     Layout.preferredHeight: 30
@@ -18,6 +19,7 @@ Rectangle {
         anchors.fill: parent
         anchors.leftMargin: 8
         anchors.rightMargin: 8
+        spacing: root.spacing
 
         Text {
             width: root.regColumnWidth
@@ -25,6 +27,7 @@ Rectangle {
             text: "Reg"
             font { bold: true; family: "Courier New"; pointSize: 11 }
             verticalAlignment: Text.AlignVCenter
+            horizontalAlignment: Text.AlignHCenter
         }
 
         Text {
@@ -33,14 +36,16 @@ Rectangle {
             text: "ABI"
             font { bold: true; family: "Courier New"; pointSize: 11 }
             verticalAlignment: Text.AlignVCenter
+            horizontalAlignment: Text.AlignHCenter
         }
 
         Text {
-            width: parent.width - root.regColumnWidth - root.abiColumnWidth
+            width: parent.width - root.regColumnWidth - root.abiColumnWidth - root.spacing * 2
             height: parent.height
             text: "Value"
             font { bold: true; family: "Courier New"; pointSize: 11 }
             verticalAlignment: Text.AlignVCenter
+            horizontalAlignment: Text.AlignHCenter
         }
     }
 }

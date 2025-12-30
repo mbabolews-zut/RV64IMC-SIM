@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import "TextEditorController.js" as Logic
 
 Rectangle {
     id: root
@@ -13,6 +12,9 @@ Rectangle {
     property int highlightedLine: -1  // -1 means no highlight
     property color highlightColor: "#fcec0d"  // #fcec0d yellow highlight
 
+    // Breakpoint state - single source of truth
+    property var breakpoints: ({})
+
     // Default size so it's visible
     implicitWidth: 400
     implicitHeight: 300
@@ -21,13 +23,9 @@ Rectangle {
     border.color: "#cccccc"
     border.width: 1
 
-    // --- Internal State ---
-    property var breakpointState: ({})
-
     // Calculate actual line height matching TextEdit's lineCount
     property real lineHeight: {
         if (codeEditor.lineCount === 0) return 20
-        // Calculate based on actual content height divided by line count
         return codeEditor.contentHeight / Math.max(1, codeEditor.lineCount)
     }
 
@@ -61,9 +59,13 @@ Rectangle {
 
                     Repeater {
                         id: gutterRepeater
-                        model: ListModel { id: internalGutterModel }
+                        model: codeEditor.lineCount > 0 ? codeEditor.lineCount : 1
 
                         delegate: Rectangle {
+                            id: gutterLine
+                            required property int index
+                            property bool hasBreakpoint: root.breakpoints[index] === true
+
                             width: gutterColumn.width
                             height: root.lineHeight
                             color: "transparent"
@@ -84,15 +86,14 @@ Rectangle {
                                         radius: 6
                                         color: "#ff4444"
                                         anchors.centerIn: parent
-                                        visible: model.hasBreakpoint
+                                        visible: gutterLine.hasBreakpoint
                                     }
 
                                     MouseArea {
                                         anchors.fill: parent
                                         cursorShape: Qt.PointingHandCursor
                                         onClicked: {
-                                            root.breakpointState = Logic.toggleBreakpoint(root.breakpointState, index)
-                                            Logic.updateGutterModel(internalGutterModel.count, root.breakpointState, internalGutterModel)
+                                            backend.toggleBreakpoint(gutterLine.index)
                                         }
                                     }
                                 }
@@ -101,7 +102,7 @@ Rectangle {
                                 Text {
                                     width: 30
                                     height: parent.height
-                                    text: model.lineNumber
+                                    text: gutterLine.index + 1
                                     color: "#999999"
                                     font: codeEditor.font
                                     horizontalAlignment: Text.AlignRight
@@ -123,35 +124,34 @@ Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
             clip: true
+            interactive: false
 
             contentWidth: codeEditor.contentWidth
             contentHeight: Math.max(codeEditor.contentHeight, editorFlickable.height)
 
             ScrollBar.vertical: ScrollBar {
                 policy: ScrollBar.AsNeeded
+                interactive: true
             }
             ScrollBar.horizontal: ScrollBar {
                 policy: ScrollBar.AsNeeded
+                interactive: true
             }
 
-            // Sync gutter scrolling when editor scrolls
             onContentYChanged: {
                 gutterFlickable.contentY = contentY
             }
 
-            // Background MouseArea to catch clicks below text
             MouseArea {
                 width: editorFlickable.width
                 height: editorFlickable.contentHeight
                 cursorShape: Qt.IBeamCursor
-                onClicked: function(mouse) {
+                onClicked: {
                     codeEditor.forceActiveFocus()
-                    // Move cursor to end of text
                     codeEditor.cursorPosition = codeEditor.length
                 }
             }
 
-            // Line highlight rectangle
             Rectangle {
                 id: lineHighlight
                 visible: root.highlightedLine >= 0
@@ -173,7 +173,6 @@ Rectangle {
                 font.family: "Courier New"
                 font.pointSize: 12
 
-                // Critical: Remove all padding to align with gutter
                 leftPadding: 10
                 topPadding: 0
                 bottomPadding: 0
@@ -182,29 +181,35 @@ Rectangle {
                 selectByMouse: true
                 wrapMode: TextEdit.NoWrap
 
-                onTextChanged: {
-                    var lines = text.split("\n").length
-                    if (lines !== internalGutterModel.count) {
-                        Logic.updateGutterModel(lines, root.breakpointState, internalGutterModel)
-                    }
-                }
-
-                // Auto-scroll on new line
                 onCursorRectangleChanged: {
-                    // Check if cursor is below visible area
                     if (cursorRectangle.y + cursorRectangle.height > editorFlickable.contentY + editorFlickable.height) {
                         editorFlickable.contentY = cursorRectangle.y + cursorRectangle.height - editorFlickable.height
                     }
-                    // Check if cursor is above visible area
                     else if (cursorRectangle.y < editorFlickable.contentY) {
                         editorFlickable.contentY = cursorRectangle.y
+                    }
+
+                    if (cursorRectangle.x + cursorRectangle.width > editorFlickable.contentX + editorFlickable.width) {
+                        editorFlickable.contentX = cursorRectangle.x + cursorRectangle.width - editorFlickable.width + 20
+                    }
+                    else if (cursorRectangle.x < editorFlickable.contentX) {
+                        editorFlickable.contentX = Math.max(0, cursorRectangle.x - 20)
                     }
                 }
             }
         }
     }
 
-    Component.onCompleted: {
-        Logic.updateGutterModel(1, root.breakpointState, internalGutterModel)
+    Connections {
+        target: backend
+        function onBreakpointToggled(line, enabled) {
+            var newBreakpoints = Object.assign({}, root.breakpoints)
+            if (enabled) {
+                newBreakpoints[line] = true
+            } else {
+                delete newBreakpoints[line]
+            }
+            root.breakpoints = newBreakpoints
+        }
     }
 }
