@@ -142,238 +142,247 @@ std::unordered_map<std::string_view, IEncoding> enc_map {
 
 namespace rv64 {
     std::vector<uint8_t> AssemblerUnit::assemble(std::span<const Instruction> insts, std::endian endian) {
-        // calculate total size
         size_t bytecode_size = std::transform_reduce(
             insts.begin(), insts.end(), size_t{0}, std::plus{},
-            [](auto &inst) { return inst.byte_size(); }
+            [](const auto &inst) { return inst.byte_size(); }
         );
 
         std::vector<uint8_t> bytecode(bytecode_size);
         size_t offset = 0;
 
-        for (const auto &inst: insts) {
-            if (!inst.is_valid()) {
-                // should be handled earlier in the pipeline
-                throw std::runtime_error("Invalid assembler instruction");
-            }
-            size_t size = inst.byte_size();
-            const auto &args = inst.get_args();
-            auto mnemonic = inst.get_prototype().mnemonic;
-
-            assert(enc_map.contains(mnemonic));
-            auto [format, opcode, functHi, functLo] = enc_map[mnemonic];
-
-            uint32_t encoded = opcode;
-
-            std::array<int, 3> r = {0}; // register indices
-            for (size_t i = 0; i < 3; ++i) {
-                if (std::holds_alternative<Reg>(args[i])) {
-                    r[i] = std::get<Reg>(args[i]).idx();
-                }
-            }
-
-            switch (format) {
-                case IFormat::R: {
-                    encoded |= r[0] << 7; //     rd
-                    encoded |= functLo << 12; // funct3
-                    encoded |= r[1] << 15; //    rs1
-                    encoded |= r[2] << 20; //    rs2
-                    encoded |= functHi << 25; // funct7
-                    break;
-                }
-                case IFormat::I: {
-                    if (mnemonic == "ecall") {
-                        encoded |= 0 << 20; // imm=0
-                    } else if (mnemonic == "ebreak") {
-                        encoded |= 1 << 20; // imm=1
-                    }
-                    encoded |= r[0] << 7; //     rd
-                    encoded |= functHi << 12; // funct3
-                    encoded |= r[1] << 15; //    rs1
-                    encoded |= std::get<int12>(args[2]) << 20; // imm12
-                    break;
-                }
-                case IFormat::S: {
-                    uint32_t imm = std::get<int12>(args[2]);
-
-                    encoded |= (imm & 0x1F) << 7; // imm[4:0]
-                    encoded |= functHi << 12; //       funct3
-                    encoded |= r[0] << 15; //          rs1
-                    encoded |= r[1] << 20; //          rs2
-                    encoded |= (imm >> 5) << 25; //  imm[11:5]
-                    break;
-                }
-                case IFormat::B: {
-                    // imm [12:1], no imm[0]
-                    uint32_t imm = std::get<int12>(args[2]);
-
-                    encoded |= ((imm >> 11) & 0x1) << 31; // imm[12]
-                    encoded |= ((imm >> 4) & 0x3F) << 25; // imm[10:5]
-                    encoded |= ((imm) & 0xF) << 8; // imm[4:1]
-                    encoded |= ((imm >> 10) & 0x1) << 7; // imm[11]
-
-                    encoded |= functHi << 12; // funct3
-                    encoded |= r[0] << 15; // rs1
-                    encoded |= r[1] << 20; // rs2
-                    break;
-                }
-                case IFormat::U: {
-                    uint32_t imm = std::get<int20>(args[2]);
-                    encoded |= r[0] << 7; // rd
-                    encoded |= (imm << 12); // imm[31:12]
-                    break;
-                }
-                case IFormat::J: {
-                    // imm[20:1], no imm[0]
-                    uint32_t imm = std::get<int20>(args[1]);
-
-                    encoded |= ((imm >> 19) & 0x1) << 31; // imm[20]
-                    encoded |= ((imm >> 9) & 0x3FF) << 21; // imm[10:1]
-                    encoded |= ((imm >> 10) & 0x1) << 20; // imm[11]
-                    encoded |= ((imm >> 11) & 0x3FF) << 12; // imm[19:12]
-
-                    encoded |= r[0] << 7; // rd
-                    break;
-                }
-                case IFormat::Shift: {
-                    uint32_t shamt = std::get<uint6>(args[2]);
-                    encoded |= r[0] << 7; //     rd
-                    encoded |= functLo << 12; // funct3
-                    encoded |= r[1] << 15; //    rs1
-                    encoded |= shamt << 20; //   shamt
-                    encoded |= functHi << 26; // funct6
-                    break;
-                }
-                case IFormat::ShiftW: {
-                    uint32_t shamt = std::get<uint5>(args[2]);
-                    encoded |= r[0] << 7; //     rd
-                    encoded |= functLo << 12; // funct3
-                    encoded |= r[1] << 15; //    rs1
-                    encoded |= shamt << 20; //   shamt
-                    encoded |= functHi << 25; // funct7
-                    break;
-                }
-                // === Compressed Instruction Formats (16-bit) ===
-                case IFormat::CR: {
-                    // funct4[15:12], rd/rs1[11:7], rs2[6:2], op[1:0]
-                    encoded |= r[1] << 2; // rs2
-                    encoded |= r[0] << 7; // rd/rs1
-                    encoded |= functHi << 12; // funct4
-                    break;
-                }
-                case IFormat::CI: {
-                    // funct3[15:13], imm[12], rd/rs1[11:7], imm[6:2], op[1:0]
-                    uint32_t imm = std::get<int6>(args[1]);
-                    encoded |= (imm & 0x1F) << 2; // imm[4:0]
-                    encoded |= r[0] << 7; // rd/rs1
-                    encoded |= ((imm >> 5) & 0x1) << 12; // imm[5]
-                    encoded |= functHi << 13; // funct3
-                    break;
-                }
-                case IFormat::CSS: {
-                    // funct3[15:13], imm[12:7], rs2[6:2], op[1:0]
-                    uint32_t imm = std::get<uint6>(args[1]);
-                    encoded |= r[0] << 2; // rs2
-                    encoded |= (imm & 0x3F) << 7; // imm[5:0]
-                    encoded |= functHi << 13; // funct3
-                    break;
-                }
-                case IFormat::CIW: {
-                    // funct3[15:13], imm[12:5], rd'[4:2], op[1:0]
-                    uint32_t imm = std::get<uint8>(args[1]);
-                    uint32_t rd_prime = r[0] - 8; // x8-x15 -> 0-7
-                    encoded |= rd_prime << 2; // rd'
-                    encoded |= (imm & 0xFF) << 5; // imm[7:0]
-                    encoded |= functHi << 13; // funct3
-                    break;
-                }
-                case IFormat::CL: {
-                    // funct3[15:13], imm[12:10], rs1'[9:7], imm[6:5], rd'[4:2], op[1:0]
-                    uint32_t imm = std::get<uint5>(args[2]);
-                    uint32_t rs1_prime = r[1] - 8;
-                    uint32_t rd_prime = r[0] - 8;
-                    encoded |= rd_prime << 2; // rd'
-                    encoded |= ((imm >> 3) & 0x3) << 5; // imm[4:3] -> bits[6:5]
-                    encoded |= rs1_prime << 7; // rs1'
-                    encoded |= ((imm) & 0x7) << 10; // imm[2:0] -> bits[12:10]
-                    encoded |= functHi << 13; // funct3
-                    break;
-                }
-                case IFormat::CS: {
-                    // funct3[15:13], imm[12:10], rs1'[9:7], imm[6:5], rs2'[4:2], op[1:0]
-                    uint32_t imm = std::get<uint5>(args[2]);
-                    uint32_t rs1_prime = r[0] - 8;
-                    uint32_t rs2_prime = r[1] - 8;
-                    encoded |= rs2_prime << 2; // rs2'
-                    encoded |= ((imm >> 3) & 0x3) << 5; // imm[4:3] -> bits[6:5]
-                    encoded |= rs1_prime << 7; // rs1'
-                    encoded |= ((imm) & 0x7) << 10; // imm[2:0] -> bits[12:10]
-                    encoded |= functHi << 13; // funct3
-                    break;
-                }
-                case IFormat::CA: {
-                    // funct6[15:10], rd'/rs1'[9:7], funct2[6:5], rs2'[4:2], op[1:0]
-                    uint32_t rd_prime = r[0] - 8;
-                    uint32_t rs2_prime = r[1] - 8;
-                    encoded |= rs2_prime << 2; // rs2'
-                    encoded |= functLo << 5; // funct2
-                    encoded |= rd_prime << 7; // rd'/rs1'
-                    encoded |= functHi << 10; // funct6
-                    break;
-                }
-                case IFormat::CB: {
-                    // funct3[15:13], offset[12:10], rs1'[9:7], offset[6:2], op[1:0]
-                    // For c.beqz/c.bnez: imm[8:1], no imm[0] (already divided)
-                    // For c.srli/c.srai/c.andi: shamt/imm[5:0]
-                    uint32_t rs1_prime = r[0] - 8;
-                    if (mnemonic == "c.beqz" || mnemonic == "c.bnez") {
-                        int32_t imm = std::get<int8>(args[1]);
-                        encoded |= ((imm >> 4) & 0x1) << 2; // imm[5]
-                        encoded |= ((imm) & 0x3) << 3; // imm[2:1]
-                        encoded |= ((imm >> 5) & 0x3) << 5; // imm[7:6]
-                        encoded |= rs1_prime << 7; // rs1'
-                        encoded |= ((imm >> 2) & 0x3) << 10; // imm[4:3]
-                        encoded |= ((imm >> 7) & 0x1) << 12; // imm[8]
-                        encoded |= functHi << 13; // funct3
-                    } else {
-                        // c.srli, c.srai, c.andi
-                        uint32_t imm = std::get<uint6>(args[1]);
-                        encoded |= (imm & 0x1F) << 2; // imm[4:0]
-                        encoded |= rs1_prime << 7; // rs1'
-                        encoded |= functLo << 10; // funct2
-                        encoded |= ((imm >> 5) & 0x1) << 12; // imm[5]
-                        encoded |= functHi << 13; // funct3
-                    }
-                    break;
-                }
-                case IFormat::CJ: {
-                    // funct3[15:13], target[12:2], op[1:0]
-                    // imm[11:1], no imm[0] (already divided)
-                    int32_t imm = std::get<int11>(args[0]);
-                    encoded |= ((imm >> 4) & 0x1) << 2; // imm[5]
-                    encoded |= ((imm) & 0x7) << 3; // imm[3:1]
-                    encoded |= ((imm >> 6) & 0x1) << 6; // imm[7]
-                    encoded |= ((imm >> 5) & 0x1) << 7; // imm[6]
-                    encoded |= ((imm >> 9) & 0x1) << 8; // imm[10]
-                    encoded |= ((imm >> 7) & 0x3) << 9; // imm[9:8]
-                    encoded |= ((imm >> 3) & 0x1) << 11; // imm[4]
-                    encoded |= ((imm >> 10) & 0x1) << 12; // imm[11]
-                    encoded |= functHi << 13; // funct3
-                    break;
-                }
-            }
-
-            // write to bytecode vector
-            if (size == 2)
-                encoded <<= 16; // align to lower half-word for 2-byte instructions
-            if (endian != std::endian::native) {
-                encoded = endianness::swap_endian(encoded);
-                if (size == 2) encoded <<= 16;
-            }
-            std::memcpy(&bytecode[offset], &encoded, size);
-            offset += size;
+        for (const auto &inst : insts) {
+            auto encoded = encode_instruction(inst, endian);
+            std::visit([&](const auto &data) {
+                std::memcpy(&bytecode[offset], data.data(), data.size());
+                offset += data.size();
+            }, encoded);
         }
 
         return bytecode;
+    }
+
+    std::vector<uint8_t> AssemblerUnit::assemble(const asm_parsing::ParsedInstVec &insts, std::endian endian) {
+        std::vector<uint8_t> bytecode;
+
+        for (const auto &parsed : insts) {
+            if (parsed.is_padding()) continue;
+
+            auto encoded = encode_instruction(parsed.inst, endian);
+            std::visit([&](const auto &data) {
+                bytecode.insert(bytecode.end(), data.begin(), data.end());
+            }, encoded);
+        }
+
+        return bytecode;
+    }
+
+    std::variant<std::array<uint8_t, 2>, std::array<uint8_t, 4>>
+    AssemblerUnit::encode_instruction(const Instruction &inst, std::endian endian) {
+        if (!inst.is_valid()) {
+            throw std::runtime_error("Invalid assembler instruction");
+        }
+
+        size_t size = inst.byte_size();
+        const auto &args = inst.get_args();
+        auto mnemonic = inst.get_prototype().mnemonic;
+
+        assert(enc_map.contains(mnemonic));
+        auto [format, opcode, functHi, functLo] = enc_map[mnemonic];
+
+        uint32_t encoded = opcode;
+
+        std::array<int, 3> r{};
+        for (size_t i = 0; i < 3; ++i) {
+            if (std::holds_alternative<Reg>(args[i])) {
+                r[i] = std::get<Reg>(args[i]).idx();
+            }
+        }
+
+        switch (format) {
+            case IFormat::R:
+                encoded |= r[0] << 7;
+                encoded |= functLo << 12;
+                encoded |= r[1] << 15;
+                encoded |= r[2] << 20;
+                encoded |= functHi << 25;
+                break;
+
+            case IFormat::I: {
+                encoded |= r[0] << 7;
+                encoded |= functHi << 12;
+                encoded |= r[1] << 15;
+                if (mnemonic == "ecall") encoded |= 0 << 20;
+                else if (mnemonic == "ebreak") encoded |= 1 << 20;
+                else encoded |= std::get<int12>(args[2]) << 20;
+                break;
+            }
+            case IFormat::S: {
+                uint32_t imm = std::get<int12>(args[2]);
+                encoded |= (imm & 0x1F) << 7;
+                encoded |= functHi << 12;
+                encoded |= r[0] << 15;
+                encoded |= r[1] << 20;
+                encoded |= (imm >> 5) << 25;
+                break;
+            }
+            case IFormat::B: {
+                uint32_t imm = std::get<int12>(args[2]);
+                encoded |= ((imm >> 11) & 0x1) << 31;
+                encoded |= ((imm >> 4) & 0x3F) << 25;
+                encoded |= (imm & 0xF) << 8;
+                encoded |= ((imm >> 10) & 0x1) << 7;
+                encoded |= functHi << 12;
+                encoded |= r[0] << 15;
+                encoded |= r[1] << 20;
+                break;
+            }
+            case IFormat::U: {
+                uint32_t imm = std::get<int20>(args[2]);
+                encoded |= r[0] << 7;
+                encoded |= imm << 12;
+                break;
+            }
+            case IFormat::J: {
+                uint32_t imm = std::get<int20>(args[1]);
+                encoded |= ((imm >> 19) & 0x1) << 31;
+                encoded |= ((imm >> 9) & 0x3FF) << 21;
+                encoded |= ((imm >> 10) & 0x1) << 20;
+                encoded |= ((imm >> 11) & 0x3FF) << 12;
+                encoded |= r[0] << 7;
+                break;
+            }
+            case IFormat::Shift: {
+                uint32_t shamt = std::get<uint6>(args[2]);
+                encoded |= r[0] << 7;
+                encoded |= functLo << 12;
+                encoded |= r[1] << 15;
+                encoded |= shamt << 20;
+                encoded |= functHi << 26;
+                break;
+            }
+            case IFormat::ShiftW: {
+                uint32_t shamt = std::get<uint5>(args[2]);
+                encoded |= r[0] << 7;
+                encoded |= functLo << 12;
+                encoded |= r[1] << 15;
+                encoded |= shamt << 20;
+                encoded |= functHi << 25;
+                break;
+            }
+            case IFormat::CR:
+                encoded |= r[1] << 2;
+                encoded |= r[0] << 7;
+                encoded |= functHi << 12;
+                break;
+
+            case IFormat::CI: {
+                uint32_t imm = std::get<int6>(args[1]);
+                encoded |= (imm & 0x1F) << 2;
+                encoded |= r[0] << 7;
+                encoded |= ((imm >> 5) & 0x1) << 12;
+                encoded |= functHi << 13;
+                break;
+            }
+            case IFormat::CSS: {
+                uint32_t imm = std::get<uint6>(args[1]);
+                encoded |= r[0] << 2;
+                encoded |= (imm & 0x3F) << 7;
+                encoded |= functHi << 13;
+                break;
+            }
+            case IFormat::CIW: {
+                uint32_t imm = std::get<uint8>(args[1]);
+                uint32_t rd_prime = r[0] - 8;
+                encoded |= rd_prime << 2;
+                encoded |= (imm & 0xFF) << 5;
+                encoded |= functHi << 13;
+                break;
+            }
+            case IFormat::CL: {
+                uint32_t imm = std::get<uint5>(args[2]);
+                uint32_t rs1_prime = r[1] - 8;
+                uint32_t rd_prime = r[0] - 8;
+                encoded |= rd_prime << 2;
+                encoded |= ((imm >> 3) & 0x3) << 5;
+                encoded |= rs1_prime << 7;
+                encoded |= (imm & 0x7) << 10;
+                encoded |= functHi << 13;
+                break;
+            }
+            case IFormat::CS: {
+                uint32_t imm = std::get<uint5>(args[2]);
+                uint32_t rs1_prime = r[0] - 8;
+                uint32_t rs2_prime = r[1] - 8;
+                encoded |= rs2_prime << 2;
+                encoded |= ((imm >> 3) & 0x3) << 5;
+                encoded |= rs1_prime << 7;
+                encoded |= (imm & 0x7) << 10;
+                encoded |= functHi << 13;
+                break;
+            }
+            case IFormat::CA: {
+                uint32_t rd_prime = r[0] - 8;
+                uint32_t rs2_prime = r[1] - 8;
+                encoded |= rs2_prime << 2;
+                encoded |= functLo << 5;
+                encoded |= rd_prime << 7;
+                encoded |= functHi << 10;
+                break;
+            }
+            case IFormat::CB: {
+                uint32_t rs1_prime = r[0] - 8;
+                if (mnemonic == "c.beqz" || mnemonic == "c.bnez") {
+                    int32_t imm = std::get<int8>(args[1]);
+                    encoded |= ((imm >> 4) & 0x1) << 2;
+                    encoded |= (imm & 0x3) << 3;
+                    encoded |= ((imm >> 5) & 0x3) << 5;
+                    encoded |= rs1_prime << 7;
+                    encoded |= ((imm >> 2) & 0x3) << 10;
+                    encoded |= ((imm >> 7) & 0x1) << 12;
+                    encoded |= functHi << 13;
+                } else {
+                    uint32_t imm = std::get<uint6>(args[1]);
+                    encoded |= (imm & 0x1F) << 2;
+                    encoded |= rs1_prime << 7;
+                    encoded |= functLo << 10;
+                    encoded |= ((imm >> 5) & 0x1) << 12;
+                    encoded |= functHi << 13;
+                }
+                break;
+            }
+            case IFormat::CJ: {
+                int32_t imm = std::get<int11>(args[0]);
+                encoded |= ((imm >> 4) & 0x1) << 2;
+                encoded |= (imm & 0x7) << 3;
+                encoded |= ((imm >> 6) & 0x1) << 6;
+                encoded |= ((imm >> 5) & 0x1) << 7;
+                encoded |= ((imm >> 9) & 0x1) << 8;
+                encoded |= ((imm >> 7) & 0x3) << 9;
+                encoded |= ((imm >> 3) & 0x1) << 11;
+                encoded |= ((imm >> 10) & 0x1) << 12;
+                encoded |= functHi << 13;
+                break;
+            }
+        }
+
+        if (size == 2) {
+            if (endian != std::endian::native) {
+                encoded = endianness::swap_endian(static_cast<uint16_t>(encoded));
+            }
+            return std::array<uint8_t, 2>{
+                static_cast<uint8_t>(encoded),
+                static_cast<uint8_t>(encoded >> 8)
+            };
+        }
+
+        if (endian != std::endian::native) {
+            encoded = endianness::swap_endian(encoded);
+        }
+        return std::array<uint8_t, 4>{
+            static_cast<uint8_t>(encoded),
+            static_cast<uint8_t>(encoded >> 8),
+            static_cast<uint8_t>(encoded >> 16),
+            static_cast<uint8_t>(encoded >> 24)
+        };
     }
 }

@@ -22,10 +22,22 @@ class Backend : public QObject {
     Q_PROPERTY(bool runLocked READ isRunLocked NOTIFY appStateChanged) // also for step button
     Q_PROPERTY(bool resetLocked READ isResetLocked NOTIFY appStateChanged)
     Q_PROPERTY(int64_t currentLine READ getCurrentLine NOTIFY appStateChanged)
+    Q_PROPERTY(int memoryRowCount READ memoryRowCount NOTIFY memoryChanged)
+    Q_PROPERTY(uint64_t dataBaseAddress READ getDataBaseAddress NOTIFY memoryLayoutChanged)
+    Q_PROPERTY(uint64_t stackBaseAddress READ getStackBaseAddress NOTIFY memoryLayoutChanged)
+    Q_PROPERTY(int dataRowCount READ dataRowCount NOTIFY memoryChanged)
+    Q_PROPERTY(int stackRowCount READ stackRowCount NOTIFY memoryChanged)
+    Q_PROPERTY(int memoryRevision READ memoryRevision NOTIFY memoryChanged)
 
 public:
     explicit Backend(QObject *parent = nullptr);
     ~Backend() override = default;
+
+    Q_INVOKABLE int getDataByte(uint64_t offset) const;
+    Q_INVOKABLE int getStackByte(uint64_t offset) const;
+    Q_INVOKABLE bool modifyMemoryByte(uint64_t address, int value);
+    Q_INVOKABLE bool modifyMemoryValue(uint64_t address, int typeIndex, const QString &valueStr);
+    Q_INVOKABLE void loadDataTypesForAddress(uint64_t address);
 
     bool isEditorLocked() const;
     bool isBuildingEnabled() const;
@@ -37,6 +49,12 @@ public:
     QString getOutput() const { return m_output; }
     QVariantList getRegisters() const;
     int64_t getCurrentLine() const { return m_line; }
+    int memoryRowCount() const;
+    uint64_t getDataBaseAddress() const;
+    uint64_t getStackBaseAddress() const;
+    int dataRowCount() const;
+    int stackRowCount() const;
+    int memoryRevision() const { return m_memory_revision; }
 
     // Output methods with color formatting
     void appendOutput(const QString &text);
@@ -71,6 +89,10 @@ signals:
     void breakpointToggled(int line, bool enabled);
     void breakpointHit(int line);
 
+    void dataTypesLoaded(QVariantList values);
+    void memoryChanged();
+    void memoryLayoutChanged();
+
 private:
     void resetVm();
 
@@ -93,4 +115,5 @@ private:
     AppState m_app_state = AppState::Idle;
     NumDispFormat m_disp_format = NumDispFormat::Dec;
     int64_t m_line = -1;
+    int m_memory_revision = 0;
 };

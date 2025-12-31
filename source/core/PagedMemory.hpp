@@ -58,8 +58,11 @@ public:
 public:
     explicit PagedMemory(size_t memory_size, std::endian endianness = std::endian::native);
 
+    PagedMemory(PagedMemory&&) noexcept = default;
+    PagedMemory& operator=(PagedMemory&&) noexcept = default;
+
     [[nodiscard]] bool store(uint64_t addr, std::integral auto val) noexcept;
-    [[nodiscard]] bool load(uint64_t addr, std::integral auto &val) noexcept;
+    [[nodiscard]] bool load(uint64_t addr, std::integral auto &val) const noexcept;
 
     Iterator begin() noexcept;
     Iterator end() noexcept;
@@ -68,6 +71,9 @@ public:
 
     /// @brief Access byte at address (allocates page if needed)
     [[nodiscard]] uint8_t operator[](uint64_t addr);
+
+    /// @brief Read byte at address without allocating (returns 0 for unallocated)
+    [[nodiscard]] uint8_t read_byte(uint64_t addr) const noexcept;
 
 private:
     /// @brief Calculate page index for address
@@ -80,5 +86,5 @@ private:
 
     std::vector<std::unique_ptr<uint8_t[]> > m_page_table;
     std::endian m_endianness = std::endian::little;
-    const size_t m_mem_size; // Total memory size
+    size_t m_mem_size; // Total memory size
 };

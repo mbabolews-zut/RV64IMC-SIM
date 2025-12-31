@@ -2,7 +2,11 @@
 #include "common.hpp"
 
 #include <cassert>
+#include <cstring>
 #include <format>
+#include <span>
+
+#include "rv64/AssemblerUnit.hpp"
 
 namespace {
     constexpr size_t MIN_INSTR_SIZE = 2; // Compressed instructions are 2 bytes
@@ -14,16 +18,14 @@ Memory::Memory(const Layout &layout, std::span<const uint8_t> program_data)
     , m_stack_bottom(layout.stack_base)
     , m_heap_start(layout.data_base + program_data.size())
     , m_data_size(program_data.size() + layout.initial_heap_size)
+    , m_stack(layout.stack_size, layout.endianness)
+    , m_data(PROGRAM_MEM_LIMIT, layout.endianness)
 {
     assert(m_data_size <= PROGRAM_MEM_LIMIT);
 
-    // Allocate paged memory for stack and data segments
-    m_stack = std::make_unique<PagedMemory>(layout.stack_size, layout.endianness);
-    m_data = std::make_unique<PagedMemory>(PROGRAM_MEM_LIMIT, layout.endianness);
-
     // Load program data into memory
     for (size_t i = 0; i < program_data.size(); ++i) {
-        [[maybe_unused]] bool ok = m_data->store(i, program_data[i]);
+        [[maybe_unused]] bool ok = m_data.store(i, program_data[i]);
         assert(ok);
     }
 }
@@ -38,12 +40,12 @@ std::string Memory::load_string(uint64_t address, MemErr &err) const {
 
         // Try data segment first, then stack
         if (in_data(byte_addr, 1)) {
-            if (!m_data->load(to_data_offset(byte_addr), ch)) {
+            if (!m_data.load(to_data_offset(byte_addr), ch)) {
                 err = MemErr::SegFault;
                 return "";
             }
         } else if (in_stack(byte_addr, 1)) {
-            if (!m_stack->load(to_stack_offset(byte_addr), ch)) {
+            if (!m_stack.load(to_stack_offset(byte_addr), ch)) {
                 err = MemErr::SegFault;
                 return "";
             }
@@ -65,6 +67,16 @@ std::string Memory::load_string(uint64_t address, MemErr &err) const {
 
 void Memory::load_program(const asm_parsing::ParsedInstVec &instructions) {
     m_instructions = instructions;
+    auto bytecode = rv64::AssemblerUnit::assemble(instructions, m_layout.endianness);
+    m_data_size += bytecode.size();
+    if (m_data_size > PROGRAM_MEM_LIMIT) {
+        throw std::runtime_error("Program exceeds memory limit after loading");
+    }
+    // Load bytecode into data segment
+    std::ranges::copy(bytecode, m_data.begin());
+
+    // Update heap start
+    m_heap_start = m_layout.data_base + bytecode.size();
 }
 
 Memory::InstructionFetch Memory::get_instruction_at(uint64_t address, MemErr &err) const {
@@ -189,7 +201,7 @@ T Memory::load(uint64_t address, MemErr &err) const {
 
     // Check stack first (more commonly accessed)
     if (in_stack(address, sizeof(T))) {
-        if (!m_stack->load(to_stack_offset(address), value)) {
+        if (!m_stack.load(to_stack_offset(address), value)) {
             err = MemErr::SegFault;
             return 0;
         }
@@ -198,7 +210,7 @@ T Memory::load(uint64_t address, MemErr &err) const {
 
     // Then check data segment
     if (in_data(address, sizeof(T))) {
-        if (!m_data->load(to_data_offset(address), value)) {
+        if (!m_data.load(to_data_offset(address), value)) {
             err = MemErr::SegFault;
             return 0;
         }
@@ -214,14 +226,14 @@ MemErr Memory::store(uint64_t address, T value) {
 
     // Check stack first (more commonly accessed for writes)
     if (in_stack(address, sizeof(T))) {
-        return m_stack->store(to_stack_offset(address), value)
+        return m_stack.store(to_stack_offset(address), value)
                    ? MemErr::None
                    : MemErr::SegFault;
     }
 
     // Then check data segment
     if (in_data(address, sizeof(T))) {
-        return m_data->store(to_data_offset(address), value)
+        return m_data.store(to_data_offset(address), value)
                    ? MemErr::None
                    : MemErr::SegFault;
     }

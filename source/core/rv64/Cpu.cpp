@@ -89,7 +89,6 @@ namespace rv64 {
             m_int_regs = other.m_int_regs;
             m_pc = other.m_pc;
             m_int_regs_prev_vals = other.m_int_regs_prev_vals;
-            m_vm = std::move(other.m_vm);
             m_interpreter = std::move(other.m_interpreter);
             m_breakpoints = std::move(other.m_breakpoints);
         }

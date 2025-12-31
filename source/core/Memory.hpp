@@ -46,6 +46,7 @@ public:
 
 public:
     explicit Memory(const Layout &layout, std::span<const uint8_t> program_data = {});
+    Memory& operator=(Memory&&) noexcept = default;
 
     [[nodiscard]] static std::string err_to_string(MemErr err);
 
@@ -87,8 +88,8 @@ private:
     uint64_t m_heap_start;
     size_t m_data_size;
 
-    std::unique_ptr<PagedMemory> m_stack;
-    std::unique_ptr<PagedMemory> m_data;
+    PagedMemory m_stack;
+    PagedMemory m_data;
 
     asm_parsing::ParsedInstVec m_instructions;
 };

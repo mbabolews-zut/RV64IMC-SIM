@@ -17,7 +17,6 @@
 
 namespace rv64 {
     Interpreter &Interpreter::operator=(Interpreter &&other) {
-        m_vm = std::move(other.m_vm);
         m_current_line = other.m_current_line;
         return *this;
     }

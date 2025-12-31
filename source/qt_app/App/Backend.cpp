@@ -104,6 +104,8 @@ void Backend::build(const QString &source_code) {
                 printSuccess("Build successful\n");
                 m_line = 0;
                 setAppState(AppState::Ready);
+                ++m_memory_revision;
+                emit memoryChanged();
             });
 }
 
@@ -265,3 +267,122 @@ QString Backend::colorizeText(const QString &text, const QString &color_code) {
             .arg(color_code, text.toHtmlEscaped()
                  .replace("\n", "<br>"));
 }
+
+int Backend::memoryRowCount() const {
+    return 256; // 256 rows * 16 bytes = 4KB visible memory
+}
+
+uint64_t Backend::getDataBaseAddress() const {
+    return m_vm.get_memory_layout().data_base;
+}
+
+uint64_t Backend::getStackBaseAddress() const {
+    return m_vm.get_memory_layout().stack_base;
+}
+
+int Backend::dataRowCount() const {
+    auto dataSize = m_vm.m_memory.get_data_size();
+    return static_cast<int>((dataSize + 15) / 16);
+}
+
+int Backend::stackRowCount() const {
+    return static_cast<int>(m_vm.get_memory_layout().stack_size / 16);
+}
+
+int Backend::getDataByte(uint64_t offset) const {
+    MemErr err;
+    auto val = m_vm.m_memory.load<uint8_t>(m_vm.get_memory_layout().data_base + offset, err);
+    return err == MemErr::None ? static_cast<int>(val) : -1;
+}
+
+int Backend::getStackByte(uint64_t offset) const {
+    MemErr err;
+    auto val = m_vm.m_memory.load<uint8_t>(m_vm.get_memory_layout().stack_base + offset, err);
+    return err == MemErr::None ? static_cast<int>(val) : -1;
+}
+
+bool Backend::modifyMemoryByte(uint64_t address, int value) {
+    if (!isModificationAllowed() || value < 0 || value > 255) return false;
+    if (m_vm.m_memory.store(address, static_cast<uint8_t>(value)) != MemErr::None) return false;
+    ++m_memory_revision;
+    emit memoryChanged();
+    return true;
+}
+
+namespace {
+template<std::integral T>
+bool parseAndStore(Memory &mem, uint64_t addr, const QString &str, int base = 10) {
+    bool ok;
+    T val = std::is_signed_v<T>
+        ? static_cast<T>(str.toLongLong(&ok, base))
+        : static_cast<T>(str.toULongLong(&ok, base));
+    return ok && mem.store(addr, val) == MemErr::None;
+}
+}
+
+bool Backend::modifyMemoryValue(uint64_t address, int typeIndex, const QString &valueStr) {
+    if (!isModificationAllowed()) return false;
+
+    bool ok = [&] {
+        switch (typeIndex) {
+            case 0: return parseAndStore<uint8_t>(m_vm.m_memory, address, valueStr, 2);
+            case 1: return parseAndStore<int8_t>(m_vm.m_memory, address, valueStr);
+            case 2: return parseAndStore<uint8_t>(m_vm.m_memory, address, valueStr);
+            case 3: return parseAndStore<int16_t>(m_vm.m_memory, address, valueStr);
+            case 4: return parseAndStore<uint16_t>(m_vm.m_memory, address, valueStr);
+            case 5: return parseAndStore<int32_t>(m_vm.m_memory, address, valueStr);
+            case 6: return parseAndStore<uint32_t>(m_vm.m_memory, address, valueStr);
+            case 7: return parseAndStore<int64_t>(m_vm.m_memory, address, valueStr);
+            case 8: return parseAndStore<uint64_t>(m_vm.m_memory, address, valueStr);
+            default: return false;
+        }
+    }();
+
+    if (!ok) return false;
+    ++m_memory_revision;
+    emit memoryChanged();
+    return true;
+}
+
+void Backend::loadDataTypesForAddress(uint64_t address) {
+    QVariantList values;
+    MemErr err;
+
+    // Binary (8-bit)
+    auto u8 = m_vm.m_memory.load<uint8_t>(address, err);
+    values.append(err == MemErr::None ? QString("%1").arg(u8, 8, 2, QChar('0')) : "N/A");
+
+
+    // Signed (8-bit)
+    values.append(err == MemErr::None ? QString::number(static_cast<int8_t>(u8)) : "N/A");
+
+    // Unsigned (8-bit)
+    values.append(err == MemErr::None ? QString::number(u8) : "N/A");
+
+    // Signed (16-bit)
+    auto i16 = m_vm.m_memory.load<int16_t>(address, err);
+    values.append(err == MemErr::None ? QString::number(i16) : "N/A");
+
+    // Unsigned (16-bit)
+    auto u16 = m_vm.m_memory.load<uint16_t>(address, err);
+    values.append(err == MemErr::None ? QString::number(u16) : "N/A");
+
+    // Signed (32-bit)
+    auto i32 = m_vm.m_memory.load<int32_t>(address, err);
+    values.append(err == MemErr::None ? QString::number(i32) : "N/A");
+
+    // Unsigned (32-bit)
+    auto u32 = m_vm.m_memory.load<uint32_t>(address, err);
+    values.append(err == MemErr::None ? QString::number(u32) : "N/A");
+
+    // Signed (64-bit)
+    auto i64 = m_vm.m_memory.load<int64_t>(address, err);
+    values.append(err == MemErr::None ? QString::number(i64) : "N/A");
+
+    // Unsigned (64-bit)
+    auto u64 = m_vm.m_memory.load<uint64_t>(address, err);
+    values.append(err == MemErr::None ? QString::number(u64) : "N/A");
+
+    emit dataTypesLoaded(values);
+}
+

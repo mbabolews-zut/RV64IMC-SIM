@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
+#include <type_traits>
 #include <endianness.hpp>
 #include <common.hpp>
 
@@ -40,25 +41,23 @@ bool PagedMemory::store(uint64_t addr, std::integral auto val) noexcept {
     }
 }
 
-template<std::integral T>
-bool PagedMemory::load(uint64_t addr, T &val) noexcept {
-    if (addr + sizeof(val) > size())
+bool PagedMemory::load(uint64_t addr, std::integral auto &val) const noexcept {
+    using T = std::remove_reference_t<decltype(val)>;
+    if (addr + sizeof(T) > size())
         return false;
 
-    try {
-        std::array<uint8_t, sizeof(T)> tmp{};
-        std::ranges::copy_n(begin() + ptrdiff_t(addr), sizeof(val), tmp.begin());
-        val = std::bit_cast<T>(tmp);
-
-        if (m_endianness == std::endian::little)
-            val = endianness::swap_on_be_platform(val);
-        else if (m_endianness == std::endian::big)
-            val = endianness::swap_on_le_platform(val);
-
-        return true;
-    } catch (...) {
-        return false;
+    std::array<uint8_t, sizeof(T)> tmp{};
+    for (size_t i = 0; i < sizeof(T); ++i) {
+        tmp[i] = read_byte(addr + i);
     }
+    val = std::bit_cast<T>(tmp);
+
+    if (m_endianness == std::endian::little)
+        val = endianness::swap_on_be_platform(val);
+    else if (m_endianness == std::endian::big)
+        val = endianness::swap_on_le_platform(val);
+
+    return true;
 }
 
 PagedMemory::Iterator PagedMemory::begin() noexcept { return {this, 0}; }
@@ -72,6 +71,13 @@ uint8_t PagedMemory::operator[](uint64_t addr) {
         throw std::out_of_range("PagedMemory: address out of range");
     }
     auto page = which_page_w_alloc(addr);
+    return m_page_table[page][addr % PageSize];
+}
+
+uint8_t PagedMemory::read_byte(uint64_t addr) const noexcept {
+    if (addr >= size()) return 0;
+    auto page = which_page(addr);
+    if (m_page_table[page] == nullptr) return 0;
     return m_page_table[page][addr % PageSize];
 }
 
@@ -195,6 +201,6 @@ PagedMemory::Iterator::difference_type operator-(const PagedMemory::Iterator &a,
 }
 
 #define INSTANTIATE_STORE(T) template bool PagedMemory::store(uint64_t addr, T) noexcept;
-#define INSTANTIATE_LOAD(T) template bool PagedMemory::load(uint64_t addr, T&) noexcept;
+#define INSTANTIATE_LOAD(T) template bool PagedMemory::load(uint64_t addr, T&) const noexcept;
 FOR_EACH_INT(INSTANTIATE_STORE)
 FOR_EACH_INT(INSTANTIATE_LOAD)
