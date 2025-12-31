@@ -142,16 +142,6 @@ Rectangle {
                 gutterFlickable.contentY = contentY
             }
 
-            MouseArea {
-                width: editorFlickable.width
-                height: editorFlickable.contentHeight
-                cursorShape: Qt.IBeamCursor
-                onClicked: {
-                    codeEditor.forceActiveFocus()
-                    codeEditor.cursorPosition = codeEditor.length
-                }
-            }
-
             Rectangle {
                 id: lineHighlight
                 visible: root.highlightedLine >= 0
@@ -166,6 +156,7 @@ Rectangle {
             TextEdit {
                 id: codeEditor
                 width: editorFlickable.width
+                height: Math.max(contentHeight, editorFlickable.height)
 
                 readOnly: backend.editorLocked
 
