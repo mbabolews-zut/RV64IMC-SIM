@@ -1,92 +1,46 @@
 import QtQuick
 import QtQuick.Controls
 
-TabBar {
+Row {
     id: root
+    spacing: 0
 
-    enum Format { Decimal, Hex, Binary }
+    readonly property var formats: [
+        { label: "Dec", format: 10, radius: [7, 0, 0, 7] },
+        { label: "Hex", format: 16, radius: [0, 0, 0, 0] },
+        { label: "Bin", format: 2, radius: [0, 7, 7, 0] }
+    ]
 
-    property int selectedFormat: FormatToggle.Format.Decimal
+    Repeater {
+        model: root.formats
 
-    spacing: 2
+        TabButton {
+            required property var modelData
+            required property int index
 
-    TabButton {
-        id: decBtn
-        text: "Dec"
-        checkable: true
-        checked: root.selectedFormat === FormatToggle.Format.Decimal
-        implicitWidth: 50
-        implicitHeight: 28
-        onClicked: {
-            root.selectedFormat = FormatToggle.Format.Decimal
-            backend.setRegDisplayFormat(10)
-        }
+            text: modelData.label
+            checkable: true
+            checked: registerModel.format === modelData.format
+            implicitWidth: 50
+            implicitHeight: 28
 
-        background: Rectangle {
-            color: decBtn.checked ? "#2E43FF" : "#6B6B6B"
-            topLeftRadius: 7
-            bottomLeftRadius: 7
-        }
+            onClicked: registerModel.format = modelData.format
 
-        contentItem: Text {
-            text: decBtn.text
-            color: "white"
-            font.pointSize: 10
-            horizontalAlignment: Text.AlignHCenter
-            verticalAlignment: Text.AlignVCenter
-        }
-    }
+            background: Rectangle {
+                color: parent.checked ? "#2E43FF" : "#6B6B6B"
+                topLeftRadius: modelData.radius[0]
+                topRightRadius: modelData.radius[1]
+                bottomRightRadius: modelData.radius[2]
+                bottomLeftRadius: modelData.radius[3]
+            }
 
-    TabButton {
-        id: hexBtn
-        text: "Hex"
-        checkable: true
-        checked: root.selectedFormat === FormatToggle.Format.Hex
-        implicitWidth: 50
-        implicitHeight: 28
-        onClicked: {
-            root.selectedFormat = FormatToggle.Format.Hex
-            backend.setRegDisplayFormat(16)
-        }
-
-        background: Rectangle {
-            color: hexBtn.checked ? "#2E43FF" : "#6B6B6B"
-        }
-
-        contentItem: Text {
-            text: hexBtn.text
-            color: "white"
-            font.pointSize: 10
-            horizontalAlignment: Text.AlignHCenter
-            verticalAlignment: Text.AlignVCenter
-        }
-    }
-
-    TabButton {
-        id: binBtn
-        text: "Bin"
-        checkable: true
-        checked: root.selectedFormat === FormatToggle.Format.Binary
-        implicitWidth: 50
-        implicitHeight: 28
-        onClicked: {
-            root.selectedFormat = FormatToggle.Format.Binary
-            backend.setRegDisplayFormat(2)
-        }
-
-        background: Rectangle {
-            color: binBtn.checked ? "#2E43FF" : "#6B6B6B"
-            topRightRadius: 7
-            bottomRightRadius: 7
-        }
-
-        contentItem: Text {
-            text: binBtn.text
-            color: "white"
-            font.pointSize: 10
-            horizontalAlignment: Text.AlignHCenter
-            verticalAlignment: Text.AlignVCenter
+            contentItem: Text {
+                text: parent.text
+                color: "white"
+                font.pointSize: 10
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+            }
         }
     }
 }
-

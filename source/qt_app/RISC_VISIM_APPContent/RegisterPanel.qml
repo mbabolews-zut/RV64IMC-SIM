@@ -5,10 +5,6 @@ import QtQuick.Layouts
 Rectangle {
     id: root
 
-    property alias formatToggle: formatToggle
-    property alias registerList: registerListView
-    property alias registerModel: regModel
-
     color: "#f0f0f0"
     border.color: "#cccccc"
     border.width: 1
@@ -19,7 +15,6 @@ Rectangle {
         spacing: 8
 
         FormatToggle {
-            id: formatToggle
             Layout.alignment: Qt.AlignRight
         }
 
@@ -34,9 +29,7 @@ Rectangle {
                 anchors.fill: parent
                 spacing: 0
 
-                RegisterTableHeader {
-                    listView: registerListView
-                }
+                RegisterTableHeader {}
 
                 ListView {
                     id: registerListView
@@ -50,24 +43,24 @@ Rectangle {
                         policy: ScrollBar.AsNeeded
                     }
 
-                    model: RegisterModel { id: regModel }
+                    model: registerModel
 
-                    delegate: RegisterRow {}
+                    delegate: RegisterRow {
+                        required property int index
+                        required property string reg
+                        required property string abi
+                        required property string value
+                        required property bool modified
+
+                        regIndex: index
+                        regName: reg
+                        abiName: abi
+                        regValue: value
+                        isModified: modified
+                        width: registerListView.width
+                    }
                 }
             }
         }
     }
-
-    Connections {
-        target: backend
-        function onRegistersChanged() {
-            regModel.updateValues();
-        }
-        function onAppStateChanged(newState) {
-            if (newState === 0) { // AppState::Idle
-                regModel.resetModified();
-            }
-        }
-    }
 }
-

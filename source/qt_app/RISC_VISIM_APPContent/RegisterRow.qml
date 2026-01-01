@@ -1,66 +1,65 @@
 import QtQuick
+import QtQuick.Layouts
 
 Rectangle {
     id: root
 
-    required property int index
-    required property string reg
-    required property string abi
-    required property string value
-    required property bool modified
-    required property string originalValue
+    required property int regIndex
+    required property string regName
+    required property string abiName
+    required property string regValue
+    required property bool isModified
 
-    property int regColumnWidth: 50
-    property int abiColumnWidth: 60
-    property int spacing: 8
-
-    width: ListView.view ? ListView.view.width : 200
     height: 28
-    color: index % 2 === 0 ? "#ffffff" : "#f8f8f8"
+    color: regIndex % 2 === 0 ? "#ffffff" : "#f8f8f8"
 
-    Row {
+    readonly property font monoFont: Qt.font({
+        family: "Courier New",
+        pointSize: 11,
+        bold: isModified
+    })
+
+    RowLayout {
         anchors.fill: parent
         anchors.leftMargin: 8
         anchors.rightMargin: 8
-        spacing: root.spacing
+        spacing: 8
 
         Text {
-            width: root.regColumnWidth
-            height: parent.height
-            text: root.reg
-            font { family: "Courier New"; pointSize: 11 }
-            verticalAlignment: Text.AlignVCenter
+            Layout.preferredWidth: 50
+            text: root.regName
+            font: root.monoFont
             horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
         }
 
         Text {
-            width: root.abiColumnWidth
-            height: parent.height
-            text: root.abi
-            font { family: "Courier New"; pointSize: 11 }
-            verticalAlignment: Text.AlignVCenter
+            Layout.preferredWidth: 60
+            text: root.abiName
+            font: root.monoFont
             horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
         }
 
         Item {
-            width: parent.width - root.regColumnWidth - root.abiColumnWidth - root.spacing * 2
-            height: parent.height
+            Layout.fillWidth: true
+            Layout.fillHeight: true
 
             Text {
                 id: valueDisplay
                 anchors.fill: parent
-                text: root.value
-                font { family: "Courier New"; pointSize: 11; bold: root.modified }
-                verticalAlignment: Text.AlignVCenter
-                horizontalAlignment: Text.AlignHCenter
-                elide: Text.ElideLeft
                 visible: !valueEdit.visible
+                text: root.regValue
+                font: root.monoFont
+                horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
+                elide: Text.ElideLeft
 
                 MouseArea {
                     anchors.fill: parent
                     onClicked: {
+                        valueEdit.text = root.regValue
                         valueEdit.visible = true
-                        valueEdit.text = root.value
                         valueEdit.forceActiveFocus()
                         valueEdit.selectAll()
                     }
@@ -71,40 +70,37 @@ Rectangle {
                 id: valueEdit
                 anchors.fill: parent
                 visible: false
-                font { family: "Courier New"; pointSize: 11; bold: root.modified }
-                verticalAlignment: Text.AlignVCenter
+                font: root.monoFont
                 horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
                 selectByMouse: true
-                maximumLength: backend.regDisplayFormat === 2 ? 64 :
-                               (backend.regDisplayFormat === 16 ? 18 : 20) // 0x + 16 hex digits, or 20 dec digits
+                maximumLength: registerModel.maxInputLength()
 
                 validator: RegularExpressionValidator {
-                    regularExpression: backend.regDisplayFormat === 2 ? /[01]+/ :
-                                      (backend.regDisplayFormat === 16 ? /0?[xX]?[0-9a-fA-F]*/ : /-?[0-9]*/)
+                    id: regexValidator
                 }
 
-                onEditingFinished: {
-                    visible = false
-                    if (text !== root.value) {
-                        if (backend.modifyRegister(root.index, text)) {
-                            var model = root.ListView.view.model
-                            model.setModified(root.index, text !== root.originalValue)
-                        }
+                Connections {
+                    target: registerModel
+                    function onFormatChanged() {
+                        regexValidator.regularExpression = new RegExp(registerModel.validatorPattern())
                     }
                 }
 
-                onActiveFocusChanged: {
-                    if (!activeFocus) {
-                        visible = false
-                    }
+                Component.onCompleted: {
+                    regexValidator.regularExpression = new RegExp(registerModel.validatorPattern())
                 }
 
-                Keys.onEscapePressed: {
-                    text = root.value
+                onEditingFinished: commit()
+                onActiveFocusChanged: if (!activeFocus) visible = false
+                Keys.onEscapePressed: { visible = false }
+
+                function commit() {
                     visible = false
+                    if (text !== root.regValue)
+                        registerModel.modify(root.regIndex, text)
                 }
             }
         }
     }
 }
-

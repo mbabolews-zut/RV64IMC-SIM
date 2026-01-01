@@ -41,7 +41,7 @@ Rectangle {
             Layout.preferredHeight: 56
             editorHasContent: mainEditor.hasContent
 
-            settingsButton.onClicked: settingsDialog.show()
+            settingsButton.onClicked: settingsDialog.open()
         }
 
         SplitView {

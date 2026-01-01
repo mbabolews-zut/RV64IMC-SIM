@@ -1,46 +1,50 @@
 cmake_minimum_required(VERSION 3.21)
 
-project(RV64_SIM_TESTS LANGUAGES CXX)
-set(CMAKE_CXX_STANDARD 20)
+# Standalone build support
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+    project(RV64_SIM_TESTS LANGUAGES CXX)
+    set(CMAKE_CXX_STANDARD 20)
+    set(CMAKE_CXX_STANDARD_REQUIRED ON)
+    enable_testing()
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../source/core ${CMAKE_BINARY_DIR}/core)
+endif()
 
-enable_testing()
-
+############################################
+# FETCH CATCH2
+############################################
 include(FetchContent)
 
 FetchContent_Declare(
     Catch2
     GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-    GIT_TAG v3.12.0
+    GIT_TAG v3.7.1
 )
 
 FetchContent_MakeAvailable(Catch2)
 
-file(GLOB TEST_FILES
-    ${CMAKE_CURRENT_SOURCE_DIR}/rv64c_test.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/rv64i_test.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/rv64m_test.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/memory_test.cpp
+############################################
+# TEST EXECUTABLE
+############################################
+add_executable(rv64_tests
+    rv64c_test.cpp
+    rv64i_test.cpp
+    rv64m_test.cpp
+    memory_test.cpp
 )
 
-list(FILTER PROJECT_SOURCES EXCLUDE REGEX ".*main\\.cpp$")
+target_compile_definitions(rv64_tests PRIVATE TESTING=1)
 
-add_executable(RV64_SIM_TESTS
-    ${TEST_FILES}
-)
-add_definitions(-DTESTING=1)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../source/core ${CMAKE_BINARY_DIR}/core)
-target_link_libraries(RV64_SIM_TESTS PRIVATE RV64_SIM_CORE)
-
-
-target_link_libraries(RV64_SIM_TESTS PRIVATE
-    parser_interface
+target_link_libraries(rv64_tests PRIVATE
+    RV64_SIM_CORE
     Catch2::Catch2WithMain
 )
 
-target_include_directories(RV64_SIM_TESTS PRIVATE
+target_include_directories(rv64_tests PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../source/core
-    ${CMAKE_BINARY_DIR}/core/generated/parser
 )
 
+############################################
+# REGISTER TESTS WITH CTEST
+############################################
 include(Catch)
-catch_discover_tests(RV64_SIM_TESTS)
+catch_discover_tests(rv64_tests)

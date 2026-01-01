@@ -20,12 +20,13 @@ int main(int argc, char *argv[])
         backend.appendOutput(QString(sv.data()));
     });
     ui::set_error_msg_callback([&](auto sv) {
-        backend.printError(QString(sv.data()));
+        backend.appendError(QString(sv.data()));
     });
-
 
     QQmlApplicationEngine engine;
     engine.rootContext()->setContextProperty("backend", &backend);
+    engine.rootContext()->setContextProperty("registerModel", backend.registerModel());
+    engine.rootContext()->setContextProperty("memoryController", backend.memoryController());
 
     const QUrl url(mainQmlFile);
     QObject::connect(

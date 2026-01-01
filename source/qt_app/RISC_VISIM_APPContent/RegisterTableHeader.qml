@@ -5,8 +5,6 @@ import QtQuick.Layouts
 Rectangle {
     id: root
 
-    required property ListView listView
-
     property int regColumnWidth: 50
     property int abiColumnWidth: 60
     property int spacing: 8

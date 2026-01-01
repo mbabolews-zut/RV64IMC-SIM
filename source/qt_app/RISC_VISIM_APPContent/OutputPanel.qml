@@ -5,36 +5,13 @@ import QtQuick.Layouts
 Rectangle {
     id: root
 
-    property alias outputArea: outputTextArea
-    property alias currentTabIndex: tabBar.currentIndex
-
-    property var selectedAddress: -1
+    property int selectedAddress: -1
     property var dataTypesValues: []
-    property bool canEdit: !backend.runLocked
-
-    implicitWidth: 940
-    implicitHeight: 600
+    readonly property bool canEdit: !backend.runLocked
 
     color: "#1a1a5e"
     border.color: "#1a1a5e"
     border.width: 4
-
-    function onAddressSelected(addr) {
-        selectedAddress = addr
-        backend.loadDataTypesForAddress(addr)
-    }
-
-    function onByteModified(addr, value) {
-        backend.modifyMemoryByte(addr, value)
-        if (selectedAddress >= 0) backend.loadDataTypesForAddress(selectedAddress)
-    }
-
-    function onTypeValueEdited(address, typeIndex, value) {
-        if (address >= 0) {
-            backend.modifyMemoryValue(address, typeIndex, value)
-            backend.loadDataTypesForAddress(selectedAddress >= 0 ? selectedAddress : address)
-        }
-    }
 
     ColumnLayout {
         anchors.fill: parent
@@ -48,7 +25,6 @@ Rectangle {
 
             ScrollView {
                 TextArea {
-                    id: outputTextArea
                     background: Rectangle { color: "#ffffff" }
                     readOnly: true
                     textFormat: TextEdit.RichText
@@ -66,14 +42,22 @@ Rectangle {
                     SplitView.fillWidth: true
                     SplitView.fillHeight: true
                     SplitView.minimumWidth: 200
-                    baseAddress: backend.dataBaseAddress
-                    rowCount: backend.dataRowCount
-                    revision: backend.memoryRevision
-                    getByteFunc: offset => backend.getDataByte(offset)
+                    baseAddress: memoryController.dataBaseAddress
+                    rowCount: memoryController.dataRowCount
+                    revision: memoryController.revision
+                    getByteFunc: addr => memoryController.getByte(memoryController.dataBaseAddress + addr)
                     selectedAddress: root.selectedAddress
                     canEdit: root.canEdit
-                    onAddressSelected: addr => root.onAddressSelected(addr)
-                    onByteModified: (addr, value) => root.onByteModified(addr, value)
+
+                    onAddressSelected: addr => {
+                        root.selectedAddress = addr
+                        memoryController.loadDataTypes(addr)
+                    }
+                    onByteModified: (addr, value) => {
+                        memoryController.modifyByte(addr, value)
+                        if (root.selectedAddress >= 0)
+                            memoryController.loadDataTypes(root.selectedAddress)
+                    }
                 }
 
                 DataTypesPanel {
@@ -83,7 +67,11 @@ Rectangle {
                     selectedAddress: root.selectedAddress
                     canEdit: root.canEdit
                     values: root.dataTypesValues
-                    onValueEdited: (addr, typeIndex, value) => root.onTypeValueEdited(addr, typeIndex, value)
+
+                    onValueEdited: (addr, typeIndex, value) => {
+                        memoryController.modifyValue(addr, typeIndex, value)
+                        memoryController.loadDataTypes(root.selectedAddress >= 0 ? root.selectedAddress : addr)
+                    }
                 }
             }
 
@@ -94,14 +82,22 @@ Rectangle {
                     SplitView.fillWidth: true
                     SplitView.fillHeight: true
                     SplitView.minimumWidth: 200
-                    baseAddress: backend.stackBaseAddress
-                    rowCount: backend.stackRowCount
-                    revision: backend.memoryRevision
-                    getByteFunc: offset => backend.getStackByte(offset)
+                    baseAddress: memoryController.stackBaseAddress
+                    rowCount: memoryController.stackRowCount
+                    revision: memoryController.revision
+                    getByteFunc: addr => memoryController.getByte(memoryController.stackBaseAddress + addr)
                     selectedAddress: root.selectedAddress
                     canEdit: root.canEdit
-                    onAddressSelected: addr => root.onAddressSelected(addr)
-                    onByteModified: (addr, value) => root.onByteModified(addr, value)
+
+                    onAddressSelected: addr => {
+                        root.selectedAddress = addr
+                        memoryController.loadDataTypes(addr)
+                    }
+                    onByteModified: (addr, value) => {
+                        memoryController.modifyByte(addr, value)
+                        if (root.selectedAddress >= 0)
+                            memoryController.loadDataTypes(root.selectedAddress)
+                    }
                 }
 
                 DataTypesPanel {
@@ -111,7 +107,11 @@ Rectangle {
                     selectedAddress: root.selectedAddress
                     canEdit: root.canEdit
                     values: root.dataTypesValues
-                    onValueEdited: (addr, typeIndex, value) => root.onTypeValueEdited(addr, typeIndex, value)
+
+                    onValueEdited: (addr, typeIndex, value) => {
+                        memoryController.modifyValue(addr, typeIndex, value)
+                        memoryController.loadDataTypes(root.selectedAddress >= 0 ? root.selectedAddress : addr)
+                    }
                 }
             }
         }
@@ -124,34 +124,28 @@ Rectangle {
 
             TabBar {
                 id: tabBar
-                contentHeight: parent.Layout.preferredHeight
+                contentHeight: 30
                 width: contentWidth + 1
-
                 background: Rectangle { color: "#000000" }
 
-                TabButton {
-                    text: "output"
-                    width: implicitWidth + 20
-                    background: Rectangle { color: parent.checked ? "#f6f6f6" : "#54547b" }
-                }
+                Repeater {
+                    model: ["output", "memory:data", "memory:stack"]
 
-                TabButton {
-                    text: "memory:data"
-                    width: implicitWidth + 20
-                    background: Rectangle { color: parent.checked ? "#f6f6f6" : "#54547b" }
-                }
-
-                TabButton {
-                    text: "memory:stack"
-                    width: implicitWidth + 20
-                    background: Rectangle { color: parent.checked ? "#f6f6f6" : "#54547b" }
+                    TabButton {
+                        required property string modelData
+                        text: modelData
+                        width: implicitWidth + 20
+                        background: Rectangle {
+                            color: parent.checked ? "#f6f6f6" : "#54547b"
+                        }
+                    }
                 }
             }
         }
     }
 
     Connections {
-        target: backend
+        target: memoryController
         function onDataTypesLoaded(values) {
             root.dataTypesValues = values
         }

@@ -1,295 +1,184 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import QtQuick.Window
+import QtQuick.Controls.Basic
+import QtQuick.Effects
 
-Window {
+Dialog {
     id: root
-    title: "Settings"
-    width: 500
-    height: 400
-    minimumWidth: 400
-    minimumHeight: 300
-    modality: Qt.ApplicationModal
-    flags: Qt.Dialog
+    width: 600
+    height: 450
+    modal: true
+    padding: 0
+    anchors.centerIn: Overlay.overlay
 
-    property int editorFontSize: 12
-    property int stackSizeKB: 64
-    property string highlightColor: "#fcec0d"
+    property int activeTab: 0
+
+    // --- PALETTE ---
+    readonly property color cBack:       "#FFFFFF"
+    readonly property color cSidebar:    "#F5F7FA"
+    readonly property color cHeader:     "#2A3172"
+    readonly property color cText:       "#2A3172"
+    readonly property color cAccent:     "#CC5500"
+    readonly property color cBorder:     "#DCE0E8"
+    readonly property color cMuted:      "#5C6580"
+
+    // Exposed settings values (bind to page properties)
+    property alias editorFontSize: editorPage.fontSize
+    property alias editorHighlightColor: editorPage.highlightColor
+    property alias stackSizeKB: memoryPage.stackSizeKB
 
     signal settingsApplied()
 
     function applySettings() {
-        editorFontSize = fontSizeSpinBox.value
-        stackSizeKB = stackSizeSpinBox.value
-        highlightColor = colorInput.text
         settingsApplied()
     }
 
-    onVisibleChanged: {
-        if (visible) {
-            fontSizeSpinBox.value = editorFontSize
-            stackSizeSpinBox.value = stackSizeKB
-            colorInput.text = highlightColor
+    background: Rectangle {
+        color: root.cBack
+        border.color: root.cBorder
+        radius: 6
+    }
+
+    // --- HEADER WITH SHADOW ---
+    header: Rectangle {
+        height: 48
+        color: root.cHeader
+        radius: 6
+        Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 10; color: parent.color }
+
+        Label {
+            id: sourceLabel
+            text: "SETTINGS"
+            visible: false
+            font.family: "Jura"; font.pixelSize: 13; font.letterSpacing: 2; font.bold: true
+        }
+
+        MultiEffect {
+            source: sourceLabel
+            anchors.centerIn: parent
+            width: sourceLabel.width
+            height: sourceLabel.height
+            shadowEnabled: true
+            shadowColor: "#80000000"
+            shadowBlur: 1.0
+            shadowVerticalOffset: 2
+            autoPaddingEnabled: true
+        }
+
+        Label {
+            text: "SETTINGS"
+            anchors.centerIn: parent
+            font.family: "Jura"; font.pixelSize: 13; font.letterSpacing: 2; font.bold: true
+            color: "white"
         }
     }
 
-    ColumnLayout {
-        anchors.fill: parent
-        anchors.margins: 0
+    contentItem: RowLayout {
         spacing: 0
 
-        TabBar {
-            id: tabBar
-            Layout.fillWidth: true
+        // Sidebar
+        Rectangle {
+            Layout.fillHeight: true
+            Layout.preferredWidth: 160
+            color: root.cSidebar
+            Rectangle { anchors.right: parent.right; width: 1; height: parent.height; color: root.cBorder }
 
-            TabButton { text: "Editor" }
-            TabButton { text: "Memory" }
-            TabButton { text: "About" }
+            ColumnLayout {
+                anchors.fill: parent
+                anchors.topMargin: 10
+                spacing: 2
+                ButtonGroup { id: navGroup }
+
+                Repeater {
+                    model: tabModel
+                    delegate: Button {
+                        id: navBtn
+                        checkable: true
+                        checked: root.activeTab === index
+                        ButtonGroup.group: navGroup
+                        Layout.fillWidth: true
+                        implicitHeight: 45
+                        onClicked: root.activeTab = index
+
+                        contentItem: Text {
+                            text: modelData
+                            font.family: "Jura"
+                            font.pixelSize: 13
+                            color: navBtn.checked ? root.cAccent : root.cMuted
+                            font.bold: navBtn.checked
+                            leftPadding: 20
+                            verticalAlignment: Text.AlignVCenter
+                        }
+
+                        background: Rectangle {
+                            color: navBtn.checked ? "white" : "transparent"
+                            Rectangle { visible: navBtn.checked; width: 4; height: parent.height; color: root.cAccent }
+                            Rectangle { visible: navBtn.checked; anchors.right: parent.right; anchors.rightMargin: -1; width: 2; height: parent.height; color: "white" }
+                        }
+                    }
+                }
+
+                Item { Layout.fillHeight: true }
+            }
         }
 
+        // Main Content
         StackLayout {
+            id: mainStack
             Layout.fillWidth: true
             Layout.fillHeight: true
-            currentIndex: tabBar.currentIndex
+            Layout.margins: 30
+            currentIndex: root.activeTab
 
-            // Editor Tab
-            ScrollView {
-                contentWidth: availableWidth
-
-                Pane {
-                    anchors.fill: parent
-
-                    ColumnLayout {
-                        anchors.fill: parent
-                        spacing: 20
-
-                        GridLayout {
-                            columns: 2
-                            columnSpacing: 20
-                            rowSpacing: 12
-                            Layout.fillWidth: true
-
-                            Label {
-                                text: "Font Size:"
-                                Layout.alignment: Qt.AlignRight
-                            }
-                            SpinBox {
-                                id: fontSizeSpinBox
-                                from: 8
-                                to: 32
-                                value: root.editorFontSize
-                                editable: true
-                            }
-
-                            Label {
-                                text: "Font Family:"
-                                Layout.alignment: Qt.AlignRight
-                            }
-                            ComboBox {
-                                id: fontFamilyCombo
-                                model: ["Courier New", "Consolas", "Monaco", "Monospace"]
-                                Layout.preferredWidth: 150
-                            }
-
-                            Label {
-                                text: "Highlight Color:"
-                                Layout.alignment: Qt.AlignRight
-                            }
-                            RowLayout {
-                                spacing: 10
-                                TextField {
-                                    id: colorInput
-                                    text: root.highlightColor
-                                    Layout.preferredWidth: 100
-                                    validator: RegularExpressionValidator {
-                                        regularExpression: /^#[0-9A-Fa-f]{6}$/
-                                    }
-                                }
-                                Rectangle {
-                                    width: 28
-                                    height: 28
-                                    color: colorInput.acceptableInput ? colorInput.text : "#cccccc"
-                                    border.color: "#666666"
-                                    border.width: 1
-                                    radius: 4
-                                }
-                            }
-
-                            Label {
-                                text: "Tab Width:"
-                                Layout.alignment: Qt.AlignRight
-                            }
-                            SpinBox {
-                                id: tabWidthSpinBox
-                                from: 2
-                                to: 8
-                                value: 4
-                                editable: true
-                            }
-                        }
-
-                        Item { Layout.fillHeight: true }
-                    }
-                }
-            }
-
-            // Memory Tab
-            ScrollView {
-                contentWidth: availableWidth
-
-                Pane {
-                    anchors.fill: parent
-
-                    ColumnLayout {
-                        anchors.fill: parent
-                        spacing: 20
-
-                        GridLayout {
-                            columns: 2
-                            columnSpacing: 20
-                            rowSpacing: 12
-                            Layout.fillWidth: true
-
-                            Label {
-                                text: "Stack Size:"
-                                Layout.alignment: Qt.AlignRight
-                            }
-                            RowLayout {
-                                spacing: 10
-                                SpinBox {
-                                    id: stackSizeSpinBox
-                                    from: 16
-                                    to: 4096
-                                    stepSize: 16
-                                    value: root.stackSizeKB
-                                    editable: true
-                                }
-                                Label { text: "KB" }
-                            }
-
-                            Label {
-                                text: "Data Segment Base:"
-                                Layout.alignment: Qt.AlignRight
-                            }
-                            TextField {
-                                text: "0x400000"
-                                readOnly: true
-                                Layout.preferredWidth: 120
-                            }
-
-                            Label {
-                                text: "Stack Base:"
-                                Layout.alignment: Qt.AlignRight
-                            }
-                            TextField {
-                                text: "0x7FF00000"
-                                readOnly: true
-                                Layout.preferredWidth: 120
-                            }
-                        }
-
-                        Label {
-                            text: "Note: Memory layout changes apply on next build."
-                            font.italic: true
-                            color: "#666666"
-                        }
-
-                        Item { Layout.fillHeight: true }
-                    }
-                }
-            }
-
-            // About Tab
-            ScrollView {
-                contentWidth: availableWidth
-
-                Pane {
-                    anchors.fill: parent
-
-                    ColumnLayout {
-                        anchors.fill: parent
-                        spacing: 16
-
-                        Label {
-                            text: "RISC-V 64 Simulator"
-                            font.pointSize: 18
-                            font.bold: true
-                        }
-
-                        Label {
-                            text: "Version 1.0"
-                            font.pointSize: 12
-                        }
-
-                        Label {
-                            text: "A visual RISC-V 64-bit instruction set simulator with assembly editor, memory viewer, and register inspection."
-                            wrapMode: Text.WordWrap
-                            Layout.fillWidth: true
-                        }
-
-                        Item { Layout.preferredHeight: 20 }
-
-                        Label {
-                            text: "Features:"
-                            font.bold: true
-                        }
-
-                        Label {
-                            text: "• Assembly code editor with syntax highlighting\n• Step-by-step execution with breakpoints\n• Memory viewer with hex and ASCII editing\n• Register display in Dec/Hex/Bin formats\n• Data type interpretation panel"
-                            wrapMode: Text.WordWrap
-                            Layout.fillWidth: true
-                        }
-
-                        Item { Layout.fillHeight: true }
-                    }
-                }
-            }
+            EditorSettingsPage { id: editorPage }
+            MemorySettingsPage { id: memoryPage }
+            SystemSettingsPage { id: systemPage }
         }
+    }
 
-        // Bottom buttons
-        Rectangle {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 50
-            color: "#f0f0f0"
+    footer: Pane {
+        padding: 15
+        background: Rectangle {
+            color: root.cSidebar
+            Rectangle { width: parent.width; height: 1; color: root.cBorder; anchors.top: parent.top }
+        }
+        contentItem: RowLayout {
+            spacing: 12
+            Item { Layout.fillWidth: true }
 
-            RowLayout {
-                anchors.fill: parent
-                anchors.margins: 10
-                spacing: 10
+            Repeater {
+                model: [
+                    { text: "Cancel", highlighted: false, action: function() { root.reject() } },
+                    { text: "Apply",  highlighted: false, action: function() { root.applySettings() } },
+                    { text: "OK",     highlighted: true,  action: function() { root.accept() } }
+                ]
+                delegate: Button {
+                    id: footerBtn
+                    text: modelData.text
+                    implicitWidth: 90
+                    implicitHeight: 32
+                    onClicked: modelData.action()
 
-                Button {
-                    text: "Reset to Defaults"
-                    onClicked: {
-                        fontSizeSpinBox.value = 12
-                        stackSizeSpinBox.value = 64
-                        colorInput.text = "#fcec0d"
-                        tabWidthSpinBox.value = 4
-                        fontFamilyCombo.currentIndex = 0
+                    contentItem: Text {
+                        text: footerBtn.text
+                        font.pixelSize: 12
+                        font.bold: true
+                        color: modelData.highlighted ? "white" : root.cText
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
                     }
-                }
 
-                Item { Layout.fillWidth: true }
-
-                Button {
-                    text: "Cancel"
-                    onClicked: root.close()
-                }
-
-                Button {
-                    text: "Apply"
-                    onClicked: root.applySettings()
-                }
-
-                Button {
-                    text: "OK"
-                    highlighted: true
-                    onClicked: {
-                        root.applySettings()
-                        root.close()
+                    background: Rectangle {
+                        color: modelData.highlighted ? root.cAccent : (footerBtn.hovered ? "white" : "transparent")
+                        border.color: modelData.highlighted ? root.cAccent : (footerBtn.hovered ? root.cAccent : root.cBorder)
+                        radius: 4
                     }
                 }
             }
         }
     }
+
+    // Tab configuration - add new tabs here
+    readonly property var tabModel: ["Editor", "Memory", "System"]
 }
