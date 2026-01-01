@@ -7,11 +7,17 @@
 
 namespace ui {
 
-    static inline bool g_hints_enabled = true;
-
     void set_output_callback(const std::function<void(std::string_view)> &clbk);
 
+    void set_warning_msg_callback(const std::function<void(std::string_view)> &clbk);
+
     void set_error_msg_callback(const std::function<void(std::string_view)> &clbk);
+
+    void set_hint_msg_callback(const std::function<void(std::string_view)> &clbk);
+
+    void set_info_msg_callback(const std::function<void(std::string_view)> &clbk);
+
+
 
     void print_error(std::string_view msg,
                      const std::source_location &loc = std::source_location::current());

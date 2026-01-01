@@ -22,6 +22,15 @@ Rectangle {
     property alias registerPanel: registerPanel
     readonly property bool editorHasContent: mainEditor.hasContent
 
+    SettingsDialog {
+        id: settingsDialog
+
+        onSettingsApplied: {
+            mainEditor.font.pointSize = settingsDialog.editorFontSize
+            mainEditor.highlightColor = settingsDialog.highlightColor
+        }
+    }
+
     ColumnLayout {
         anchors.fill: parent
         spacing: 0
@@ -31,6 +40,8 @@ Rectangle {
             Layout.fillWidth: true
             Layout.preferredHeight: 56
             editorHasContent: mainEditor.hasContent
+
+            settingsButton.onClicked: settingsDialog.show()
         }
 
         SplitView {
@@ -50,7 +61,7 @@ Rectangle {
                     SplitView.fillWidth: true
                     SplitView.minimumHeight: 150
                     font.family: "Courier New"
-                    font.pointSize: 12
+                    font.pointSize: settingsDialog.editorFontSize
                 }
 
                 OutputPanel {

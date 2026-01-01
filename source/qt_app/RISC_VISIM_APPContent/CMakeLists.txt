@@ -10,9 +10,7 @@ qt6_add_qml_module(RISC_VISIM_APPContent
     RESOURCE_PREFIX "/qt/qml"
     QML_FILES
         "App.qml"
-        "DataTypesPanel.qml"
         "FormatToggle.qml"
-        "MemoryGrid.qml"
         "NavButton.qml"
         "OutputPanel.qml"
         "RegisterModel.qml"
@@ -22,6 +20,9 @@ qt6_add_qml_module(RISC_VISIM_APPContent
         "Screen01.ui.qml"
         "TextEditor.qml"
         "Toolbar.qml"
+        "MemoryGrid.qml"
+        "DataTypesPanel.qml"
+        "SettingsDialog.qml"
     RESOURCES
         "TextEditorController.js"
 )

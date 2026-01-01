@@ -15,21 +15,42 @@ Rectangle {
     property var selectionStart: -1
     property var selectionEnd: -1
     property var editingAddress: -1
+    property bool editingAscii: false  // true = ASCII edit, false = hex edit
+    property var asciiCursorAddr: -1   // cursor position in ASCII edit mode
     property bool canEdit: false
     property bool isDragging: false
+
+    // Layout constants
+    readonly property int addrWidth: 130
+    readonly property int hexCellWidth: 28
+    readonly property int asciiCellWidth: 10
+    readonly property int separatorWidth: 16
+    readonly property int leftMargin: 8
+    readonly property int hexAreaStart: leftMargin + addrWidth
+    readonly property int hexAreaWidth: 16 * hexCellWidth
+    readonly property int asciiAreaStart: hexAreaStart + hexAreaWidth + separatorWidth
 
     signal addressSelected(var addr)
     signal byteModified(var addr, int value)
 
     property var pendingCommit: null
 
-    function startEdit(addr) { editingAddress = addr }
+    function startEdit(addr, ascii) {
+        editingAddress = addr
+        editingAscii = ascii
+        if (ascii) {
+            asciiCursorAddr = addr
+            asciiInput.forceActiveFocus()
+        }
+    }
     function stopEdit() {
         if (pendingCommit) {
             pendingCommit()
             pendingCommit = null
         }
         editingAddress = -1
+        editingAscii = false
+        asciiCursorAddr = -1
     }
 
     function isInSelection(addr) {
@@ -57,19 +78,50 @@ Rectangle {
         return bytes.join(' ')
     }
 
+    function getSelectedAscii() {
+        if (selectionStart < 0 || selectionEnd < 0) {
+            if (selectedAddress >= 0) {
+                let val = getByteFunc(selectedAddress - baseAddress)
+                return val >= 32 && val < 127 ? String.fromCharCode(val) : "."
+            }
+            return ""
+        }
+        let min = Math.min(selectionStart, selectionEnd)
+        let max = Math.max(selectionStart, selectionEnd)
+        let chars = []
+        for (let addr = min; addr <= max; addr++) {
+            let val = getByteFunc(addr - baseAddress)
+            chars.push(val >= 32 && val < 127 ? String.fromCharCode(val) : ".")
+        }
+        return chars.join('')
+    }
+
+    function byteToAscii(val) {
+        return (val >= 32 && val < 127) ? String.fromCharCode(val) : "."
+    }
+
+    // Returns {addr, isAscii} or null if not on a cell
     function cellAtPosition(x, y) {
-        // y is relative to listView container
         let rowIndex = Math.floor((y + listView.contentY) / 22)
-        if (rowIndex < 0 || rowIndex >= rowCount) return -1
+        if (rowIndex < 0 || rowIndex >= rowCount) return null
 
-        // Fixed layout: 8px margin + 130px address + 16 cells * 28px each
-        let colX = x - 8 - 130
-        if (colX < 0) return -1
+        // Check hex area
+        if (x >= hexAreaStart && x < hexAreaStart + hexAreaWidth) {
+            let colIndex = Math.floor((x - hexAreaStart) / hexCellWidth)
+            if (colIndex >= 0 && colIndex < 16) {
+                return { addr: baseAddress + rowIndex * 16 + colIndex, isAscii: false }
+            }
+        }
 
-        let colIndex = Math.floor(colX / 28)
-        if (colIndex < 0 || colIndex >= 16) return -1
+        // Check ASCII area
+        if (x >= asciiAreaStart && x < asciiAreaStart + 16 * asciiCellWidth) {
+            let colIndex = Math.floor((x - asciiAreaStart) / asciiCellWidth)
+            if (colIndex >= 0 && colIndex < 16) {
+                return { addr: baseAddress + rowIndex * 16 + colIndex, isAscii: true }
+            }
+        }
 
-        return baseAddress + rowIndex * 16 + colIndex
+        return null
     }
 
     Keys.onPressed: event => {
@@ -88,6 +140,91 @@ Rectangle {
         function setText(t) { text = t; selectAll(); copy() }
     }
 
+    // Hidden input for ASCII insert-mode editing
+    TextInput {
+        id: asciiInput
+        visible: false
+        focus: false
+
+        Keys.onPressed: event => {
+            if (!root.editingAscii || root.asciiCursorAddr < 0) return
+
+            if (event.key === Qt.Key_Escape) {
+                root.stopEdit()
+                event.accepted = true
+                return
+            }
+
+            if (event.key === Qt.Key_Left) {
+                if (root.asciiCursorAddr > root.baseAddress) {
+                    root.asciiCursorAddr--
+                }
+                event.accepted = true
+                return
+            }
+
+            if (event.key === Qt.Key_Right) {
+                let maxAddr = root.baseAddress + root.rowCount * 16 - 1
+                if (root.asciiCursorAddr < maxAddr) {
+                    root.asciiCursorAddr++
+                }
+                event.accepted = true
+                return
+            }
+
+            if (event.key === Qt.Key_Up) {
+                if (root.asciiCursorAddr >= root.baseAddress + 16) {
+                    root.asciiCursorAddr -= 16
+                }
+                event.accepted = true
+                return
+            }
+
+            if (event.key === Qt.Key_Down) {
+                let maxAddr = root.baseAddress + root.rowCount * 16 - 1
+                if (root.asciiCursorAddr + 16 <= maxAddr) {
+                    root.asciiCursorAddr += 16
+                }
+                event.accepted = true
+                return
+            }
+
+            if (event.key === Qt.Key_Backspace) {
+                if (root.asciiCursorAddr > root.baseAddress) {
+                    root.asciiCursorAddr--
+                    root.byteModified(root.asciiCursorAddr, 0)
+                }
+                event.accepted = true
+                return
+            }
+
+            if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                root.stopEdit()
+                event.accepted = true
+                return
+            }
+
+            // Printable character - write and advance
+            if (event.text.length === 1) {
+                let charCode = event.text.charCodeAt(0)
+                if (charCode >= 32 && charCode < 127) {
+                    root.byteModified(root.asciiCursorAddr, charCode)
+                    let maxAddr = root.baseAddress + root.rowCount * 16 - 1
+                    if (root.asciiCursorAddr < maxAddr) {
+                        root.asciiCursorAddr++
+                    }
+                    event.accepted = true
+                }
+            }
+        }
+
+        onActiveFocusChanged: {
+            if (!activeFocus && root.editingAscii) {
+                Qt.callLater(root.stopEdit)
+            }
+        }
+    }
+
     ColumnLayout {
         anchors.fill: parent
         spacing: 0
@@ -101,12 +238,12 @@ Rectangle {
 
             Row {
                 anchors.left: parent.left
-                anchors.leftMargin: 8
+                anchors.leftMargin: root.leftMargin
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 0
 
                 Text {
-                    width: 130
+                    width: root.addrWidth
                     height: 24
                     color: "#990000"
                     text: "Address"
@@ -119,7 +256,7 @@ Rectangle {
                 Repeater {
                     model: 16
                     Text {
-                        width: 28
+                        width: root.hexCellWidth
                         height: 24
                         color: "#990000"
                         text: index.toString(16).toUpperCase().padStart(2, '0')
@@ -128,6 +265,19 @@ Rectangle {
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                     }
+                }
+
+                Item { width: root.separatorWidth; height: 1 }
+
+                Text {
+                    width: 16 * root.asciiCellWidth
+                    height: 24
+                    color: "#990000"
+                    text: "ASCII"
+                    font.bold: true
+                    font.family: "Courier New"
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
                 }
             }
         }
@@ -154,12 +304,12 @@ Rectangle {
 
                     Row {
                         anchors.left: parent.left
-                        anchors.leftMargin: 8
+                        anchors.leftMargin: root.leftMargin
                         anchors.verticalCenter: parent.verticalCenter
                         spacing: 0
 
                         Text {
-                            width: 130
+                            width: root.addrWidth
                             height: 22
                             color: "#990000"
                             text: rowDelegate.rowAddr.toString(16).toUpperCase().padStart(16, '0')
@@ -169,16 +319,17 @@ Rectangle {
                             verticalAlignment: Text.AlignVCenter
                         }
 
+                        // Hex cells
                         Repeater {
                             model: 16
                             Rectangle {
-                                id: cell
+                                id: hexCell
                                 property var addr: rowDelegate.rowAddr + modelData
                                 property int offset: rowDelegate.rowIndex * 16 + modelData
                                 property bool isSelected: root.isInSelection(addr)
-                                property bool isEditing: addr === root.editingAddress
+                                property bool isEditing: addr === root.editingAddress && !root.editingAscii
 
-                                width: 28
+                                width: root.hexCellWidth
                                 height: 22
                                 color: isSelected ? "#cce5ff" : "transparent"
                                 border.color: isSelected ? "#0066cc" : "transparent"
@@ -187,11 +338,11 @@ Rectangle {
 
                                 Text {
                                     anchors.centerIn: parent
-                                    visible: !cell.isEditing
+                                    visible: !hexCell.isEditing
                                     color: "#333333"
                                     text: {
                                         void(root.revision)
-                                        let val = root.getByteFunc(cell.offset)
+                                        let val = root.getByteFunc(hexCell.offset)
                                         return val >= 0 ? val.toString(16).toUpperCase().padStart(2, '0') : "??"
                                     }
                                     font.family: "Courier New"
@@ -199,10 +350,10 @@ Rectangle {
                                 }
 
                                 TextInput {
-                                    id: editInput
+                                    id: hexEditInput
                                     anchors.centerIn: parent
                                     width: parent.width - 4
-                                    visible: cell.isEditing
+                                    visible: hexCell.isEditing
                                     horizontalAlignment: Text.AlignHCenter
                                     font.family: "Courier New"
                                     font.pointSize: 10
@@ -213,7 +364,7 @@ Rectangle {
 
                                     onVisibleChanged: {
                                         if (visible) {
-                                            originalValue = root.getByteFunc(cell.offset).toString(16).toUpperCase().padStart(2, '0')
+                                            originalValue = root.getByteFunc(hexCell.offset).toString(16).toUpperCase().padStart(2, '0')
                                             text = originalValue
                                             selectAll()
                                             forceActiveFocus()
@@ -227,9 +378,39 @@ Rectangle {
 
                                     function commitValue() {
                                         if (text.length > 0 && text !== originalValue) {
-                                            root.byteModified(cell.addr, parseInt(text, 16))
+                                            root.byteModified(hexCell.addr, parseInt(text, 16))
                                         }
                                     }
+                                }
+                            }
+                        }
+
+                        Item { width: root.separatorWidth; height: 1 }
+
+                        // ASCII cells (display only, editing handled by asciiEditor)
+                        Repeater {
+                            model: 16
+                            Rectangle {
+                                id: asciiCell
+                                property var addr: rowDelegate.rowAddr + modelData
+                                property int offset: rowDelegate.rowIndex * 16 + modelData
+                                property bool isSelected: root.isInSelection(addr)
+                                property bool isCursor: root.editingAscii && addr === root.asciiCursorAddr
+
+                                width: root.asciiCellWidth
+                                height: 22
+                                color: isCursor ? "#ffcc00" : (isSelected ? "#cce5ff" : "transparent")
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    color: "#333333"
+                                    text: {
+                                        void(root.revision)
+                                        let val = root.getByteFunc(asciiCell.offset)
+                                        return root.byteToAscii(val)
+                                    }
+                                    font.family: "Courier New"
+                                    font.pointSize: 10
                                 }
                             }
                         }
@@ -248,21 +429,26 @@ Rectangle {
                     }
 
                     root.forceActiveFocus()
-                    let addr = root.cellAtPosition(mouse.x, mouse.y)
-                    if (addr >= 0) {
+                    let result = root.cellAtPosition(mouse.x, mouse.y)
+                    if (result) {
                         root.isDragging = true
-                        root.selectedAddress = addr
-                        root.selectionStart = addr
-                        root.selectionEnd = addr
-                        root.addressSelected(addr)
+                        root.selectedAddress = result.addr
+                        root.selectionStart = result.addr
+                        root.selectionEnd = result.addr
+                        root.addressSelected(result.addr)
+
+                        // Single click on ASCII starts editing immediately
+                        if (result.isAscii && root.canEdit) {
+                            root.startEdit(result.addr, true)
+                        }
                     }
                 }
 
                 onPositionChanged: mouse => {
-                    if (root.isDragging) {
-                        let addr = root.cellAtPosition(mouse.x, mouse.y)
-                        if (addr >= 0) {
-                            root.selectionEnd = addr
+                    if (root.isDragging && !root.editingAscii) {
+                        let result = root.cellAtPosition(mouse.x, mouse.y)
+                        if (result) {
+                            root.selectionEnd = result.addr
                         }
                     }
                 }
@@ -272,9 +458,10 @@ Rectangle {
                 }
 
                 onDoubleClicked: mouse => {
-                    let addr = root.cellAtPosition(mouse.x, mouse.y)
-                    if (addr >= 0 && root.canEdit) {
-                        root.startEdit(addr)
+                    let result = root.cellAtPosition(mouse.x, mouse.y)
+                    if (result && root.canEdit && !result.isAscii) {
+                        // Double-click only for hex editing
+                        root.startEdit(result.addr, false)
                     }
                 }
             }
