@@ -1,7 +1,0 @@
-<RCC>
-    <qresource>
-        <file>QtDesignTest.qmlproject</file>
-        <file>RISC_VISIM_APP/qmldir</file>
-        <file>qtquickcontrols2.conf</file>
-    </qresource>
-</RCC>

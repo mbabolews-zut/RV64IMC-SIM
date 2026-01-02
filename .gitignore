@@ -2,6 +2,14 @@
 .vscode
 build
 cmake-build-*
-source/core/parser/lex.yy.cc
-source/core/parser/parser.tab.cc
-source/core/parser/parser.tab.hh
+
+# Parser generated files
+source/core/parser/generated/
+
+# Qt Design Studio
+.qtcreator/
+*.qmlproject.user
+*.qmlproject.qtds
+
+# Test artifacts
+tests/Testing/

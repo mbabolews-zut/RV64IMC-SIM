@@ -28,8 +28,6 @@ if(DEFINED ENV{Qt6_DIR} AND NOT Qt6_DIR)
     message(STATUS "Using Qt6_DIR from environment: ${Qt6_DIR}")
 endif()
 
-option(LINK_INSIGHT "Link Qt Insight Tracker library" ON)
-option(BUILD_QDS_COMPONENTS "Build design studio components" ON)
 
 project(RISC_VISIM_QT LANGUAGES CXX)
 
@@ -38,7 +36,7 @@ if(CMAKE_BUILD_TYPE MATCHES "Debug")
     add_compile_options(-g -O0)
 endif()
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
@@ -68,14 +66,6 @@ add_subdirectory(../core ${CMAKE_BINARY_DIR}/core)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE RV64_SIM_CORE)
 
 include(qds)
-
-if (BUILD_QDS_COMPONENTS)
-    include(qmlcomponents OPTIONAL)
-endif()
-
-if (LINK_INSIGHT)
-    include(insight OPTIONAL)
-endif ()
 
 include(GNUInstallDirs)
 install(TARGETS ${CMAKE_PROJECT_NAME}
