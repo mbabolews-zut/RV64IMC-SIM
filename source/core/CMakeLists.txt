@@ -247,6 +247,7 @@ endif()
 # CORE LIBRARY
 ############################################
 set(PROJECT_SOURCES
+    BuildError.hpp
     common.hpp
     endianness.hpp
     Instruction.cpp

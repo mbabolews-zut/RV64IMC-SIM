@@ -1,6 +1,8 @@
 #pragma once
 #include <parser/Symbol.hpp>
+#include <BuildError.hpp>
 #include <unordered_map>
+#include <optional>
 
 namespace asm_parsing {
     class SymbolTable {
@@ -9,7 +11,8 @@ namespace asm_parsing {
         explicit SymbolTable(uint64_t data_offset) : m_data_offset(data_offset) {}
         ~SymbolTable();
 
-        [[nodiscard]] bool add_label(std::string_view name, uint64_t address);
+        /// @return nullopt on success, BuildError on duplicate label
+        [[nodiscard]] std::optional<BuildError> add_label(std::string_view name, uint64_t address);
 
         void clear();
 

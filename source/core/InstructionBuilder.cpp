@@ -12,19 +12,21 @@ static bool in_range(int64_t value) {
     if constexpr (!HasMIN<T>) {
         return value >= 0 && value <= T::MAX;
     } else {
-        std::clog << std::format("value={}, T::MIN={}, T::MAX={}, value <= T::MAX: {}, value >= T::MIN={}\n",
-            value, T::MIN, T::MAX, value <= T::MAX, value >= T::MIN);
         return value <= T::MAX && value >= T::MIN;
     }
 }
 
 template<typename T>
-static bool try_parse_intN(int64_t value, InstArg &out) {
+static std::optional<BuildError> try_parse_intN(int64_t value, InstArg &out, std::string_view mnemonic) {
     if (in_range<T>(value)) {
         out = T(value);
-        return true;
+        return std::nullopt;
     }
-    return false;
+    return BuildError{
+        .kind = BuildErrorKind::ImmediateOutOfRange,
+        .message = std::format("Immediate {} out of range [{}, {}] for '{}'",
+                               value, T::MIN, T::MAX, mnemonic)
+    };
 }
 
 static bool try_parse_immediate(std::string_view str, int64_t &out) {
@@ -79,7 +81,7 @@ InstructionBuilder &InstructionBuilder::add_symbol(std::string_view symbol, int6
     return *this;
 }
 
-bool InstructionBuilder::resolve_symbols(const std::unordered_map<std::string, uint64_t> &symbol_table, uint64_t current_pc) {
+std::optional<BuildError> InstructionBuilder::resolve_symbols(const std::unordered_map<std::string, uint64_t> &symbol_table, uint64_t current_pc) {
     // PC-relative instruction metadata (jalr, c.jr, c.jalr are NOT here - they use absolute addressing)
     struct InstrMeta {
         int arg_index;      // which argument is the PC-relative offset
@@ -109,7 +111,10 @@ bool InstructionBuilder::resolve_symbols(const std::unordered_map<std::string, u
         if (auto *sym = std::get_if<UnresolvedSymbol>(&m_raw_args[i])) {
             auto it = symbol_table.find(sym->name);
             if (it == symbol_table.end()) {
-                return false; // Symbol not found
+                return BuildError{
+                    .kind = BuildErrorKind::UnresolvedSymbol,
+                    .message = std::format("Unresolved symbol '{}'", sym->name)
+                };
             }
 
             uint64_t target_address = it->second + sym->offset;
@@ -126,13 +131,16 @@ bool InstructionBuilder::resolve_symbols(const std::unordered_map<std::string, u
             }
         }
     }
-    return true;
+    return std::nullopt;
 }
 
-Instruction InstructionBuilder::build() const {
+std::variant<Instruction, BuildError> InstructionBuilder::build() const {
     auto proto = rv64::is::Rv64IMC::get_inst_proto(m_mnemonic);
     if (!proto) {
-        return {};
+        return BuildError{
+            .kind = BuildErrorKind::UnknownMnemonic,
+            .message = std::format("Unknown instruction '{}'", m_mnemonic)
+        };
     }
 
     std::array<InstArg, 3> validated_args;
@@ -144,22 +152,35 @@ Instruction InstructionBuilder::build() const {
         }
 
         if (i >= m_arg_count) {
-            return {};
+            return BuildError{
+                .kind = BuildErrorKind::MissingArgument,
+                .message = std::format("Missing argument {} for '{}'", i + 1, m_mnemonic)
+            };
         }
 
         if (arg == InstArgType::IntReg || arg == InstArgType::IntRegP) {
             if (auto *str = std::get_if<std::string>(&m_raw_args[i])) {
                 rv64::Reg reg(*str);
                 if (!reg.is_valid()) {
-                    return {};
+                    return BuildError{
+                        .kind = BuildErrorKind::InvalidRegister,
+                        .message = std::format("Invalid register '{}'", *str)
+                    };
                 }
 
                 if (arg == InstArgType::IntRegP && !reg.in_compressed_range()) {
-                    return {};
+                    return BuildError{
+                        .kind = BuildErrorKind::RegisterNotInCompressedRange,
+                        .message = std::format("Register '{}' not in compressed range (x8-x15) for '{}'",
+                                               *str, m_mnemonic)
+                    };
                 }
                 validated_args[i] = reg;
             } else {
-                return {};
+                return BuildError{
+                    .kind = BuildErrorKind::InvalidRegister,
+                    .message = std::format("Expected register for argument {} of '{}'", i + 1, m_mnemonic)
+                };
             }
             continue;
         }
@@ -171,57 +192,61 @@ Instruction InstructionBuilder::build() const {
             imm_value = *val;
         } else if (auto *str = std::get_if<std::string>(&m_raw_args[i])) {
             if (!try_parse_immediate(*str, imm_value)) {
-                return {};
+                return BuildError{
+                    .kind = BuildErrorKind::ImmediateOutOfRange,
+                    .message = std::format("Cannot parse '{}' as immediate", *str)
+                };
             }
-        } else {
-            return {}; // Unresolved symbol or invalid type
+        } else if (std::get_if<UnresolvedSymbol>(&m_raw_args[i])) {
+            return BuildError{
+                .kind = BuildErrorKind::UnresolvedSymbol,
+                .message = std::format("Unresolved symbol in argument {} of '{}'", i + 1, m_mnemonic)
+            };
         }
 
-        // Branch instructions encode PC-relative offsets differently
-        // The immediate is already encoded correctly by the assembler/parser
-        // so no need to divide by 2 here - that happens in the parser
-
         // Validate range and create typed immediate
+        std::optional<BuildError> range_err;
         switch (arg) {
             case InstArgType::Imm12:
-                if (!try_parse_intN<int12>(imm_value, validated_args[i])) return {};
+                range_err = try_parse_intN<int12>(imm_value, validated_args[i], m_mnemonic);
                 break;
             case InstArgType::Imm20:
-                if (!try_parse_intN<int20>(imm_value, validated_args[i])) return {};
+                range_err = try_parse_intN<int20>(imm_value, validated_args[i], m_mnemonic);
                 break;
             case InstArgType::UImm5:
-                if (!try_parse_intN<uint5>(imm_value, validated_args[i])) return {};
+                range_err = try_parse_intN<uint5>(imm_value, validated_args[i], m_mnemonic);
                 break;
             case InstArgType::UImm6:
-                if (!try_parse_intN<uint6>(imm_value, validated_args[i])) return {};
+                range_err = try_parse_intN<uint6>(imm_value, validated_args[i], m_mnemonic);
                 break;
             case InstArgType::UImm12:
-                if (!try_parse_intN<uint12>(imm_value, validated_args[i])) return {};
+                range_err = try_parse_intN<uint12>(imm_value, validated_args[i], m_mnemonic);
                 break;
             case InstArgType::UImm20:
-                if (!try_parse_intN<uint20>(imm_value, validated_args[i])) return {};
+                range_err = try_parse_intN<uint20>(imm_value, validated_args[i], m_mnemonic);
                 break;
             case InstArgType::Imm5:
-                if (!try_parse_intN<int5>(imm_value, validated_args[i])) return {};
+                range_err = try_parse_intN<int5>(imm_value, validated_args[i], m_mnemonic);
                 break;
             case InstArgType::Imm6:
-                if (!try_parse_intN<int6>(imm_value, validated_args[i])) return {};
+                range_err = try_parse_intN<int6>(imm_value, validated_args[i], m_mnemonic);
                 break;
             case InstArgType::Imm8:
-                if (!try_parse_intN<int8>(imm_value, validated_args[i])) return {};
+                range_err = try_parse_intN<int8>(imm_value, validated_args[i], m_mnemonic);
                 break;
             case InstArgType::Imm11:
-                if (!try_parse_intN<int11>(imm_value, validated_args[i])) return {};
+                range_err = try_parse_intN<int11>(imm_value, validated_args[i], m_mnemonic);
                 break;
             case InstArgType::UImm8:
-                if (!try_parse_intN<uint8>(imm_value, validated_args[i])) return {};
+                range_err = try_parse_intN<uint8>(imm_value, validated_args[i], m_mnemonic);
                 break;
             default:
                 assert(false && "Unhandled InstArgType in InstructionBuilder::build()");
         }
+        if (range_err) return *range_err;
     }
 
-    return {proto.id, validated_args};
+    return Instruction{proto.id, validated_args};
 }
 
 void InstructionBuilder::reset() {

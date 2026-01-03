@@ -1,16 +1,20 @@
 #include "SymbolTable.hpp"
+#include <format>
 
-bool asm_parsing::SymbolTable::add_label(std::string_view name, uint64_t address) {
+std::optional<BuildError> asm_parsing::SymbolTable::add_label(std::string_view name, uint64_t address) {
     auto str = std::string{name};
     if (m_symbols.contains(str)) {
-        return false; // Label already exists
+        return BuildError{
+            .kind = BuildErrorKind::DuplicateLabel,
+            .message = std::format("Duplicate label '{}'", str)
+        };
     }
     m_symbols[str] = Symbol{
         .type = Symbol::Type::Label,
         .name = str,
         .address = address + m_data_offset
     };
-    return true;
+    return std::nullopt;
 }
 
 void asm_parsing::SymbolTable::clear() {

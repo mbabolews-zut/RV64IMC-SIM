@@ -1,6 +1,9 @@
 #pragma once
 #include <Instruction.hpp>
+#include <BuildError.hpp>
 #include <unordered_map>
+#include <variant>
+#include <optional>
 
 /// @brief Builder for constructing instructions in stages
 class InstructionBuilder {
@@ -22,12 +25,12 @@ public:
     /// @brief resolves symbols using the provided symbol table
     /// @param symbol_table Map of symbol names to absolute addresses
     /// @param current_pc Current instruction's PC (for branch offset calculation)
-    /// @return true if all symbols were resolved
-    bool resolve_symbols(const std::unordered_map<std::string, uint64_t> &symbol_table, uint64_t current_pc = 0);
+    /// @return nullopt on success, BuildError on failure
+    std::optional<BuildError> resolve_symbols(const std::unordered_map<std::string, uint64_t> &symbol_table, uint64_t current_pc = 0);
 
     /// @brief validates and builds the final instruction
-    /// @return valid Instruction or invalid instruction if validation fails
-    [[nodiscard]] Instruction build() const;
+    /// @return Instruction on success, BuildError on failure
+    [[nodiscard]] std::variant<Instruction, BuildError> build() const;
 
     void reset();
 

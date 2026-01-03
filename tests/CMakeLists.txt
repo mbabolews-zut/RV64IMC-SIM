@@ -26,6 +26,7 @@ FetchContent_MakeAvailable(Catch2)
 # TEST EXECUTABLE
 ############################################
 add_executable(rv64_tests
+    error_handling_test.cpp
     rv64c_test.cpp
     rv64i_test.cpp
     rv64m_test.cpp

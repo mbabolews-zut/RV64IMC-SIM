@@ -1,5 +1,6 @@
 #include "ParserProcessor.hpp"
 #include <InstructionBuilder.hpp>
+#include <ui.hpp>
 #include <cassert>
 #include <algorithm>
 
@@ -16,7 +17,9 @@ void ParserProcessor::push_param(const std::string &str) {
 }
 
 void ParserProcessor::add_label(std::string_view name) {
-    (void)m_sym_table.add_label(name, m_byte_offset);
+    if (auto err = m_sym_table.add_label(name, m_byte_offset)) {
+        ui::print_error(err->format());
+    }
 }
 
 void ParserProcessor::push_instruction(std::string str, size_t line) {

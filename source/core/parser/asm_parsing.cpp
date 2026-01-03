@@ -1,4 +1,5 @@
 #include "asm_parsing.hpp"
+#include <ui.hpp>
 
 namespace asm_parsing {
     int ParsingResult::resolve_instructions(ParsedInstVec &out_instructions, uint64_t data_off) const {
@@ -17,15 +18,20 @@ namespace asm_parsing {
 
             InstructionBuilder builder = uinst.builder;
 
-            if (!builder.resolve_symbols(sym_map, current_pc)) {
+            if (auto err = builder.resolve_symbols(sym_map, current_pc)) {
+                err->line = uinst.lineno;
+                ui::print_error(err->format());
                 return 2;
             }
 
-            auto inst = builder.build();
-            if (!inst.is_valid()) {
+            auto build_result = builder.build();
+            if (auto *err = std::get_if<BuildError>(&build_result)) {
+                err->line = uinst.lineno;
+                ui::print_error(err->format());
                 return 3;
             }
 
+            auto &inst = std::get<Instruction>(build_result);
             result.push_back(ParsedInst{uinst.lineno, inst});
             current_pc += inst.byte_size();
         }
