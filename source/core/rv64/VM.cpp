@@ -10,8 +10,15 @@ namespace rv64 {
     }
 
     void VM::load_program(const asm_parsing::ParsedInstVec &instructions) {
+        auto sp_pos = config.get_sp_position();
         m_memory.load_program(instructions);
         m_cpu.set_pc(m_memory.get_layout().data_base);
+        m_cpu.reg(2) = sp_pos == SpPos::Zero
+                           ? 0
+                           : (sp_pos == SpPos::StackBottom
+                                  ? m_memory.get_layout().stack_base
+                                  : m_memory.get_layout().stack_base
+                                    + m_memory.get_layout().stack_size);
         m_state = VMState::Loaded;
     }
 
@@ -30,9 +37,9 @@ namespace rv64 {
 
     void VM::run_until_stop() {
         assert(m_state == VMState::Loaded || m_state == VMState::Running);
-        while (m_state == VMState::Running) {
+        do {
             run_step();
-        }
+        } while (m_state == VMState::Running);
     }
 
     void VM::terminate(int exit_code) {
@@ -54,7 +61,7 @@ namespace rv64 {
     void VM::reset() {
         m_state = VMState::Initializing;
         m_memory = Memory(m_memory.get_layout());
-        m_cpu = Cpu(*this);
+        m_cpu.reset();
     }
 
     bool VM::toggle_breakpoint(size_t line) {
@@ -84,4 +91,12 @@ namespace rv64 {
     }
 
     size_t VM::get_current_line() const noexcept { return m_cpu.m_interpreter.get_current_line(); }
+
+    void VM::Config::set_sp_position(SpPos pos) {
+        m_sp_pos = pos;
+    }
+
+    SpPos VM::Config::get_sp_position() const {
+        return m_sp_pos;
+    }
 } // rv64

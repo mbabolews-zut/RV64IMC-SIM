@@ -15,6 +15,8 @@ namespace rv64 {
         Cpu(const Cpu &other);
         Cpu &operator=(Cpu &&other) noexcept;
 
+        void reset(bool clear_breakpoints = false);
+
         /// @brief Sets or removes a breakpoint at the specified line
         /// @param enable True to set breakpoint, false to remove
         /// @return True if operation succeeded, false otherwise

@@ -8,15 +8,19 @@ Rectangle {
     required property string regName
     required property string abiName
     required property string regValue
-    required property bool isModified
+    required property bool isUserModified
+    required property bool isCoreModified
 
     height: 28
-    color: regIndex % 2 === 0 ? "#ffffff" : "#f8f8f8"
+
+    readonly property color baseColor: regIndex % 2 === 0 ? "#ffffff" : "#f8f8f8"
+    readonly property color highlightColor: "#fff3cd"
+    color: isCoreModified ? highlightColor : baseColor
 
     readonly property font monoFont: Qt.font({
         family: "Courier New",
         pointSize: 11,
-        bold: isModified
+        bold: isUserModified
     })
 
     RowLayout {

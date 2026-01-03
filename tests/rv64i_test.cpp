@@ -434,7 +434,7 @@ TEST_CASE("RV64I load/store instructions", "[rv64i][memory][load][store]") {
     SECTION("sb - store byte") {
         cpu.reg(1) = layout.data_base;
         cpu.reg(2) = 0xFFFFFFFFFFFFFF42;
-        REQUIRE_NOTHROW(interp.sb(cpu.reg(1), cpu.reg(2), 0));
+        REQUIRE_NOTHROW(interp.sb(cpu.reg(2), cpu.reg(1), 0));
 
         auto val = mem.load<uint8_t>(layout.data_base, err);
         REQUIRE(err == MemErr::None);
@@ -444,7 +444,7 @@ TEST_CASE("RV64I load/store instructions", "[rv64i][memory][load][store]") {
     SECTION("sh - store halfword") {
         cpu.reg(1) = layout.data_base;
         cpu.reg(2) = 0xFFFFFFFFFFFF1234;
-        REQUIRE_NOTHROW(interp.sh(cpu.reg(1), cpu.reg(2), 0));
+        REQUIRE_NOTHROW(interp.sh(cpu.reg(2), cpu.reg(1), 0));
 
         auto val = mem.load<uint16_t>(layout.data_base, err);
         REQUIRE(err == MemErr::None);
@@ -454,7 +454,7 @@ TEST_CASE("RV64I load/store instructions", "[rv64i][memory][load][store]") {
     SECTION("sw - store word") {
         cpu.reg(1) = layout.data_base;
         cpu.reg(2) = 0xFFFFFFFF12345678;
-        REQUIRE_NOTHROW(interp.sw(cpu.reg(1), cpu.reg(2), 0));
+        REQUIRE_NOTHROW(interp.sw(cpu.reg(2), cpu.reg(1), 0));
 
         auto val = mem.load<uint32_t>(layout.data_base, err);
         REQUIRE(err == MemErr::None);
@@ -464,7 +464,7 @@ TEST_CASE("RV64I load/store instructions", "[rv64i][memory][load][store]") {
     SECTION("sd - store doubleword") {
         cpu.reg(1) = layout.data_base;
         cpu.reg(2) = 0x123456789ABCDEF0;
-        REQUIRE_NOTHROW(interp.sd(cpu.reg(1), cpu.reg(2), 0));
+        REQUIRE_NOTHROW(interp.sd(cpu.reg(2), cpu.reg(1), 0));
 
         auto val = mem.load<uint64_t>(layout.data_base, err);
         REQUIRE(err == MemErr::None);
@@ -475,7 +475,7 @@ TEST_CASE("RV64I load/store instructions", "[rv64i][memory][load][store]") {
         cpu.reg(1) = layout.data_base;
         cpu.reg(2).val() = 0xDEADBEEF;
 
-        REQUIRE_NOTHROW(interp.sw(cpu.reg(1), cpu.reg(2), 8));
+        REQUIRE_NOTHROW(interp.sw(cpu.reg(2), cpu.reg(1), 8));
         REQUIRE_NOTHROW(interp.lw(cpu.reg(3), cpu.reg(1), 8));
 
         REQUIRE(cpu.reg(3) == 0xFFFFFFFFDEADBEEF);

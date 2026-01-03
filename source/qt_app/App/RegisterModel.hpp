@@ -16,7 +16,8 @@ public:
         Reg = Qt::UserRole,
         Abi,
         Value,
-        Modified
+        UserModified,
+        CoreModified
     };
 
     explicit RegisterModel(QObject *parent = nullptr);
@@ -29,7 +30,8 @@ public:
     void setFormat(DisplayFormat fmt);
 
     void updateFromCpu(const rv64::Cpu &cpu);
-    void resetModifiedFlags();
+    void clearCoreModifiedFlags();
+    void resetAllFlags();
 
     Q_INVOKABLE bool modify(int index, const QString &value);
     Q_INVOKABLE int maxInputLength() const;
@@ -59,6 +61,7 @@ private:
 
     DisplayFormat m_format = DisplayFormat::Dec;
     std::array<uint64_t, 32> m_values{};
-    std::array<uint64_t, 32> m_originalValues{};
-    std::array<bool, 32> m_modified{};
+    std::array<uint64_t, 32> m_prevValues{};
+    std::array<bool, 32> m_userModified{};
+    std::array<bool, 32> m_coreModified{};
 };

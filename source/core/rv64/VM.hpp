@@ -6,13 +6,19 @@
 namespace rv64 {
     // VM execution states
     enum class VMState {
-        Initializing,
-        Loaded,
-        Running,
-        Stopped,
-        Error,
-        Breakpoint,
-        Finished
+        Initializing = 0,
+        Loaded = 1,
+        Running = 2,
+        Stopped = 3,
+        Error = 4,
+        Breakpoint = 5,
+        Finished = 6
+    };
+
+    enum class SpPos {
+        Zero,
+        StackBottom,
+        StackTop
     };
 
     class VM {
@@ -40,6 +46,14 @@ namespace rv64 {
     public:
         Memory m_memory; // memory subsystem
         Cpu m_cpu{*this}; // CPU and interpreter
+
+        struct Config {
+            void set_sp_position(SpPos pos);
+            [[nodiscard]] SpPos get_sp_position() const;
+        private:
+            SpPos m_sp_pos = SpPos::StackTop;
+        };
+        Config config;
 
     private:
         VMState m_state = VMState::Initializing;

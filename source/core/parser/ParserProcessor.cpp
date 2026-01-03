@@ -3,6 +3,7 @@
 #include <ui.hpp>
 #include <cassert>
 #include <algorithm>
+#include <unordered_set>
 
 ParserProcessor::ParserProcessor() : m_sym_table(0) {
     m_inst_builders.reserve(32);
@@ -27,14 +28,16 @@ void ParserProcessor::push_instruction(std::string str, size_t line) {
 
     InstructionBuilder builder(str);
 
-    static constexpr std::array<std::string_view, 7> branch_instr{
-        "beq","bne","blt","bltu","bge","bgeu","jal"
+    static const std::unordered_set<std::string_view> branch_instr{
+        "beq","bne","blt","bltu","bge","bgeu"
     };
 
-    bool is_branch = std::ranges::find(branch_instr, str) != branch_instr.end();
+    bool is_branch = branch_instr.contains(str);
+    bool is_jal = (str == "jal");
 
     for (size_t i = 0; i < m_parm_n; ++i) {
-        if (is_branch && i == 2) {
+        bool is_offset_arg = (is_branch && i == 2) || (is_jal && i == 1);
+        if (is_offset_arg) {
             try {
                 int64_t imm = std::stoll(m_parms[i]);
                 builder.add_imm(imm / 2);

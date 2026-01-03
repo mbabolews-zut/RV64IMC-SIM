@@ -48,6 +48,7 @@ void Backend::step() {
     if (isRunLocked())
         return;
 
+    m_registerModel.clearCoreModifiedFlags();
     setAppState(AppState::Running);
     m_vm.run_step();
     m_currentLine = int64_t(m_vm.get_current_line()) - 1;
@@ -59,6 +60,7 @@ void Backend::run() {
     if (isRunLocked())
         return;
 
+    m_registerModel.clearCoreModifiedFlags();
     m_stopRequested.store(false);
     setAppState(AppState::Running);
 
@@ -91,7 +93,7 @@ void Backend::reset() {
     m_vm.reset();
     setAppState(AppState::Idle);
     m_registerModel.updateFromCpu(m_vm.m_cpu);
-    m_registerModel.resetModifiedFlags();
+    m_registerModel.resetAllFlags();
 }
 
 void Backend::handleVmState() {
@@ -124,7 +126,7 @@ void Backend::setAppState(AppState state) {
 
     if (state == AppState::Idle) {
         m_currentLine = -1;
-        m_registerModel.resetModifiedFlags();
+        m_registerModel.resetAllFlags();
     }
 
     bool canModify = (state == AppState::Ready || state == AppState::Stopped);

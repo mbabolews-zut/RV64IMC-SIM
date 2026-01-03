@@ -4,8 +4,9 @@
 RegisterModel::RegisterModel(QObject *parent)
     : QAbstractListModel(parent) {
     m_values.fill(0);
-    m_originalValues.fill(0);
-    m_modified.fill(false);
+    m_prevValues.fill(0);
+    m_userModified.fill(false);
+    m_coreModified.fill(false);
 }
 
 int RegisterModel::rowCount(const QModelIndex &parent) const {
@@ -24,8 +25,10 @@ QVariant RegisterModel::data(const QModelIndex &index, int role) const {
             return QString::fromLatin1(s_regInfo[row].abi);
         case Role::Value:
             return formatValue(m_values[row]);
-        case Role::Modified:
-            return m_modified[row];
+        case Role::UserModified:
+            return m_userModified[row];
+        case Role::CoreModified:
+            return m_coreModified[row];
     }
     return {};
 }
@@ -35,7 +38,8 @@ QHash<int, QByteArray> RegisterModel::roleNames() const {
         {int(Role::Reg), "reg"},
         {int(Role::Abi), "abi"},
         {int(Role::Value), "value"},
-        {int(Role::Modified), "modified"}
+        {int(Role::UserModified), "userModified"},
+        {int(Role::CoreModified), "coreModified"}
     };
 }
 
@@ -51,19 +55,22 @@ void RegisterModel::updateFromCpu(const rv64::Cpu &cpu) {
     for (int i = 0; i < 32; ++i) {
         uint64_t newVal = cpu.reg(i).val();
         if (m_values[i] != newVal) {
+            m_coreModified[i] = true;
             m_values[i] = newVal;
-            m_modified[i] = (newVal != m_originalValues[i]);
         }
     }
-    emit dataChanged(index(0), index(31), {int(Role::Value), int(Role::Modified)});
+    emit dataChanged(index(0), index(31), {int(Role::Value), int(Role::CoreModified)});
 }
 
-void RegisterModel::resetModifiedFlags() {
-    for (int i = 0; i < 32; ++i) {
-        m_originalValues[i] = m_values[i];
-        m_modified[i] = false;
-    }
-    emit dataChanged(index(0), index(31), {int(Role::Modified)});
+void RegisterModel::clearCoreModifiedFlags() {
+    m_coreModified.fill(false);
+    emit dataChanged(index(0), index(31), {int(Role::CoreModified)});
+}
+
+void RegisterModel::resetAllFlags() {
+    m_userModified.fill(false);
+    m_coreModified.fill(false);
+    emit dataChanged(index(0), index(31), {int(Role::UserModified), int(Role::CoreModified)});
 }
 
 bool RegisterModel::modify(int idx, const QString &valueStr) {
@@ -87,8 +94,8 @@ bool RegisterModel::modify(int idx, const QString &valueStr) {
         return false;
 
     m_values[idx] = parsed;
-    m_modified[idx] = (parsed != m_originalValues[idx]);
-    emit dataChanged(index(idx), index(idx), {int(Role::Value), int(Role::Modified)});
+    m_userModified[idx] = true;
+    emit dataChanged(index(idx), index(idx), {int(Role::Value), int(Role::UserModified)});
     emit registerModified(idx, parsed);
     return true;
 }

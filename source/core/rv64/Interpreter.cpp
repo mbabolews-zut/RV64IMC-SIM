@@ -174,16 +174,16 @@ namespace rv64 {
         load_instruction_tmpl<uint8_t>(rd, rs, imm12);
     }
 
-    void Interpreter::sw(const GPIntReg &rs, const GPIntReg &rs2, int12 imm12) {
-        store_instruction_tmpl<uint32_t>(rs, rs2, imm12);
+    void Interpreter::sw(const GPIntReg &rs2, const GPIntReg &rs1, int12 imm12) {
+        store_instruction_tmpl<uint32_t>(rs1, rs2, imm12);
     }
 
-    void Interpreter::sh(const GPIntReg &rs, const GPIntReg &rs2, int12 imm12) {
-        store_instruction_tmpl<uint16_t>(rs, rs2, imm12);
+    void Interpreter::sh(const GPIntReg &rs2, const GPIntReg &rs1, int12 imm12) {
+        store_instruction_tmpl<uint16_t>(rs1, rs2, imm12);
     }
 
-    void Interpreter::sb(const GPIntReg &rs, const GPIntReg &rs2, int12 imm12) {
-        store_instruction_tmpl<uint8_t>(rs, rs2, imm12);
+    void Interpreter::sb(const GPIntReg &rs2, const GPIntReg &rs1, int12 imm12) {
+        store_instruction_tmpl<uint8_t>(rs1, rs2, imm12);
     }
 
     void Interpreter::fence() {
@@ -273,7 +273,7 @@ namespace rv64 {
         load_instruction_tmpl<uint32_t>(rd, rs, imm12);
     }
 
-    void Interpreter::sd(const GPIntReg &rs1, const GPIntReg &rs2, int12 imm12) {
+    void Interpreter::sd(const GPIntReg &rs2, const GPIntReg &rs1, int12 imm12) {
         store_instruction_tmpl<int64_t>(rs1, rs2, imm12);
     }
 
@@ -405,14 +405,17 @@ namespace rv64 {
         handle_error("Floating point instructions are not handled: c.fldsp");
     }
 
+    // C.SWSP stores a 32-bit value in register rs2 to memory.
+    // It computes an effective address by adding the zero-extended offset,
+    // scaled by 4, to the stack pointer, x2. It expands to sw rs2, offset(x2).
     void Interpreter::c_swsp(const GPIntReg &rs2, int6 imm6) {
-        auto offset = int64_t(imm6) << 2;
-        store_instruction_tmpl<int32_t>(rs2, x2_reg(), offset);
+        auto offset = uint64_t(imm6) << 2;
+        store_instruction_tmpl<int32_t>(x2_reg(), rs2, offset);
     }
 
     void Interpreter::c_sdsp(const GPIntReg &rs2, int6 imm6) {
         auto offset = int64_t(imm6) << 3;
-        store_instruction_tmpl<uint64_t>(rs2, x2_reg(), offset);
+        store_instruction_tmpl<uint64_t>(x2_reg(), rs2, offset);
     }
 
     void Interpreter::c_fsdsp(GPIntReg &rd, int6 imm6) {
@@ -776,6 +779,9 @@ namespace rv64 {
             case (int) IBaseI::InstId::slt:
                 slt(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
                 break;
+            case (int) IBaseI::InstId::sltu:
+                sltu(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
+                break;
             case (int) IBaseI::InstId::sra:
                 sra(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
                 break;
@@ -845,6 +851,44 @@ namespace rv64 {
             case (int) IBaseI::InstId::sb:
                 sb(get_reg(args[0]), get_reg(args[1]), std::get<int12>(args[2]));
                 break;
+            case (int) IBaseI::InstId::ld:
+                ld(get_reg(args[0]), get_reg(args[1]), std::get<int12>(args[2]));
+                break;
+            case (int) IBaseI::InstId::lwu:
+                lwu(get_reg(args[0]), get_reg(args[1]), std::get<int12>(args[2]));
+                break;
+            case (int) IBaseI::InstId::sd:
+                sd(get_reg(args[0]), get_reg(args[1]), std::get<int12>(args[2]));
+                break;
+
+            // --- RV64I word operations ---
+            case (int) IBaseI::InstId::addiw:
+                addiw(get_reg(args[0]), get_reg(args[1]), std::get<int12>(args[2]));
+                break;
+            case (int) IBaseI::InstId::slliw:
+                slliw(get_reg(args[0]), get_reg(args[1]), std::get<uint5>(args[2]));
+                break;
+            case (int) IBaseI::InstId::srliw:
+                srliw(get_reg(args[0]), get_reg(args[1]), std::get<uint5>(args[2]));
+                break;
+            case (int) IBaseI::InstId::sraiw:
+                sraiw(get_reg(args[0]), get_reg(args[1]), std::get<uint5>(args[2]));
+                break;
+            case (int) IBaseI::InstId::addw:
+                addw(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
+                break;
+            case (int) IBaseI::InstId::subw:
+                subw(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
+                break;
+            case (int) IBaseI::InstId::sllw:
+                sllw(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
+                break;
+            case (int) IBaseI::InstId::srlw:
+                srlw(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
+                break;
+            case (int) IBaseI::InstId::sraw:
+                sraw(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
+                break;
 
             // --- System ---
             case (int) IBaseI::InstId::fence:
@@ -896,6 +940,113 @@ namespace rv64 {
                 break;
             case (int) IExtensionM::InstId::remuw:
                 remuw(get_reg(args[0]), get_reg(args[1]), get_reg(args[2]));
+                break;
+
+            // --- C-extension ---
+            case (int) IExtensionC::InstId::c_lwsp:
+                c_lwsp(get_reg(args[0]), std::get<int6>(args[1]));
+                break;
+            case (int) IExtensionC::InstId::c_ldsp:
+                c_ldsp(get_reg(args[0]), std::get<int6>(args[1]));
+                break;
+            case (int) IExtensionC::InstId::c_fldsp:
+                c_fldsp(get_reg(args[0]), std::get<int6>(args[1]));
+                break;
+            case (int) IExtensionC::InstId::c_swsp:
+                c_swsp(get_reg(args[0]), std::get<int6>(args[1]));
+                break;
+            case (int) IExtensionC::InstId::c_sdsp:
+                c_sdsp(get_reg(args[0]), std::get<int6>(args[1]));
+                break;
+            case (int) IExtensionC::InstId::c_fsdsp:
+                c_fsdsp(get_reg(args[0]), std::get<int6>(args[1]));
+                break;
+            case (int) IExtensionC::InstId::c_lw:
+                c_lw(get_reg(args[0]), get_reg(args[1]), std::get<int5>(args[2]));
+                break;
+            case (int) IExtensionC::InstId::c_ld:
+                c_ld(get_reg(args[0]), get_reg(args[1]), std::get<int5>(args[2]));
+                break;
+            case (int) IExtensionC::InstId::c_fld:
+                c_fld(get_reg(args[0]), get_reg(args[1]), std::get<int5>(args[2]));
+                break;
+            case (int) IExtensionC::InstId::c_sw:
+                c_sw(get_reg(args[0]), get_reg(args[1]), std::get<int5>(args[2]));
+                break;
+            case (int) IExtensionC::InstId::c_sd:
+                c_sd(get_reg(args[0]), get_reg(args[1]), std::get<int5>(args[2]));
+                break;
+            case (int) IExtensionC::InstId::c_fsd:
+                c_fsd(get_reg(args[0]), get_reg(args[1]), std::get<int5>(args[2]));
+                break;
+            case (int) IExtensionC::InstId::c_j:
+                c_j(std::get<int11>(args[0]));
+                break;
+            case (int) IExtensionC::InstId::c_jr:
+                c_jr(get_reg(args[0]));
+                break;
+            case (int) IExtensionC::InstId::c_jalr:
+                c_jalr(get_reg(args[0]));
+                break;
+            case (int) IExtensionC::InstId::c_beqz:
+                c_beqz(get_reg(args[0]), std::get<int8>(args[1]));
+                break;
+            case (int) IExtensionC::InstId::c_bnez:
+                c_bnez(get_reg(args[0]), std::get<int8>(args[1]));
+                break;
+            case (int) IExtensionC::InstId::c_li:
+                c_li(get_reg(args[0]), std::get<int6>(args[1]));
+                break;
+            case (int) IExtensionC::InstId::c_lui:
+                c_lui(get_reg(args[0]), std::get<int6>(args[1]));
+                break;
+            case (int) IExtensionC::InstId::c_addi:
+                c_addi(get_reg(args[0]), std::get<int6>(args[1]));
+                break;
+            case (int) IExtensionC::InstId::c_addiw:
+                c_addiw(get_reg(args[0]), std::get<int6>(args[1]));
+                break;
+            case (int) IExtensionC::InstId::c_addi16sp:
+                c_addi16sp(get_reg(args[0]), std::get<int6>(args[1]));
+                break;
+            case (int) IExtensionC::InstId::c_addi4spn:
+                c_addi4spn(get_reg(args[0]), std::get<uint8>(args[1]));
+                break;
+            case (int) IExtensionC::InstId::c_slli:
+                c_slli(get_reg(args[0]), std::get<uint6>(args[1]));
+                break;
+            case (int) IExtensionC::InstId::c_srli:
+                c_srli(get_reg(args[0]), std::get<uint6>(args[1]));
+                break;
+            case (int) IExtensionC::InstId::c_srai:
+                c_srai(get_reg(args[0]), std::get<uint6>(args[1]));
+                break;
+            case (int) IExtensionC::InstId::c_andi:
+                c_andi(get_reg(args[0]), std::get<int6>(args[1]));
+                break;
+            case (int) IExtensionC::InstId::c_mv:
+                c_mv(get_reg(args[0]), get_reg(args[1]));
+                break;
+            case (int) IExtensionC::InstId::c_add:
+                c_add(get_reg(args[0]), get_reg(args[1]));
+                break;
+            case (int) IExtensionC::InstId::c_and:
+                c_and(get_reg(args[0]), get_reg(args[1]));
+                break;
+            case (int) IExtensionC::InstId::c_or:
+                c_or(get_reg(args[0]), get_reg(args[1]));
+                break;
+            case (int) IExtensionC::InstId::c_xor:
+                c_xor(get_reg(args[0]), get_reg(args[1]));
+                break;
+            case (int) IExtensionC::InstId::c_sub:
+                c_sub(get_reg(args[0]), get_reg(args[1]));
+                break;
+            case (int) IExtensionC::InstId::c_addw:
+                c_addw(get_reg(args[0]), get_reg(args[1]));
+                break;
+            case (int) IExtensionC::InstId::c_subw:
+                c_subw(get_reg(args[0]), get_reg(args[1]));
                 break;
 
             default:

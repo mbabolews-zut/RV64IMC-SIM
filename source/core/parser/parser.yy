@@ -80,6 +80,8 @@ operand
         { m_pproc.push_param($1); }
     | LeftParen Identifier RightParen
         { m_pproc.push_param($2); }
+    | Number LeftParen Identifier RightParen
+        { m_pproc.push_param($3); m_pproc.push_param($1); }
     ;
 
 %%

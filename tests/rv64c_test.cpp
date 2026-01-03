@@ -39,16 +39,18 @@ TEST_CASE("RV64C load/store stack-pointer relative", "[rv64c][memory][stack]") {
 
     SECTION("c.swsp - store word stack-pointer relative") {
         cpu.reg(11) = 0xDEADBEEF;
+        auto sp = cpu.reg(2).val();
         REQUIRE_NOTHROW(interp.c_swsp(cpu.reg(11), 2)); // imm=2, offset = 2*4 = 8
-        auto val = mem.load<uint32_t>(layout.stack_base + 8, err);
+        auto val = mem.load<uint32_t>(sp + 8, err);
         REQUIRE(err == MemErr::None);
         REQUIRE(val == 0xDEADBEEF);
     }
 
     SECTION("c.sdsp - store doubleword stack-pointer relative") {
         cpu.reg(11) = 0xFEEDFACECAFEBABE;
+        auto sp = cpu.reg(2).val();
         REQUIRE_NOTHROW(interp.c_sdsp(cpu.reg(11), 1)); // imm=1, offset = 1*8 = 8
-        auto val = mem.load<uint64_t>(layout.stack_base + 8, err);
+        auto val = mem.load<uint64_t>(sp + 8, err);
         REQUIRE(err == MemErr::None);
         REQUIRE(val == 0xFEEDFACECAFEBABE);
     }

@@ -17,10 +17,21 @@ static bool in_range(int64_t value) {
 }
 
 template<typename T>
-static std::optional<BuildError> try_parse_intN(int64_t value, InstArg &out, std::string_view mnemonic) {
+static std::optional<BuildError> try_parse_intN(int64_t value, InstArg &out, std::string_view mnemonic,
+    bool allow_unsigned_wrap = false) {
     if (in_range<T>(value)) {
         out = T(value);
         return std::nullopt;
+    }
+    // For signed types with unsigned literals, allow values in [0, 2^N-1] to wrap
+    if constexpr (HasMIN<T>) {
+        if (allow_unsigned_wrap) {
+            constexpr int64_t unsigned_max = T::MAX - T::MIN;
+            if (value >= 0 && value <= unsigned_max) {
+                out = T(value);
+                return std::nullopt;
+            }
+        }
     }
     return BuildError{
         .kind = BuildErrorKind::ImmediateOutOfRange,
@@ -29,12 +40,19 @@ static std::optional<BuildError> try_parse_intN(int64_t value, InstArg &out, std
     };
 }
 
-static bool try_parse_immediate(std::string_view str, int64_t &out) {
+enum class ImmFormat { Decimal, Unsigned };
+
+static bool try_parse_immediate(std::string_view str, int64_t &out, ImmFormat &format) {
     try {
         if (str.starts_with("0b") || str.starts_with("0B")) {
             out = std::stoll(std::string(str.substr(2)), nullptr, 2);
+            format = ImmFormat::Unsigned;
+        } else if (str.starts_with("0x") || str.starts_with("0X")) {
+            out = std::stoll(std::string(str), nullptr, 0);
+            format = ImmFormat::Unsigned;
         } else {
             out = std::stoll(std::string(str), nullptr, 0);
+            format = ImmFormat::Decimal;
         }
         return true;
     } catch (...) {
@@ -59,8 +77,13 @@ InstructionBuilder &InstructionBuilder::add_arg(std::string_view arg) {
 
     // Try to parse as immediate first
     int64_t imm_value;
-    if (try_parse_immediate(arg_str, imm_value)) {
-        m_raw_args[m_arg_count++] = imm_value;
+    ImmFormat format;
+    if (try_parse_immediate(arg_str, imm_value, format)) {
+        if (format == ImmFormat::Unsigned) {
+            m_raw_args[m_arg_count++] = UnsignedLiteral{imm_value};
+        } else {
+            m_raw_args[m_arg_count++] = imm_value;
+        }
         return *this;
     }
 
@@ -188,15 +211,21 @@ std::variant<Instruction, BuildError> InstructionBuilder::build() const {
 
         // Handle immediate arguments
         int64_t imm_value = 0;
+        bool is_unsigned_literal = false;
         if (auto *val = std::get_if<int64_t>(&m_raw_args[i])) {
             imm_value = *val;
+        } else if (auto *ulit = std::get_if<UnsignedLiteral>(&m_raw_args[i])) {
+            imm_value = ulit->value;
+            is_unsigned_literal = true;
         } else if (auto *str = std::get_if<std::string>(&m_raw_args[i])) {
-            if (!try_parse_immediate(*str, imm_value)) {
+            ImmFormat fmt;
+            if (!try_parse_immediate(*str, imm_value, fmt)) {
                 return BuildError{
                     .kind = BuildErrorKind::ImmediateOutOfRange,
                     .message = std::format("Cannot parse '{}' as immediate", *str)
                 };
             }
+            is_unsigned_literal = (fmt == ImmFormat::Unsigned);
         } else if (std::get_if<UnresolvedSymbol>(&m_raw_args[i])) {
             return BuildError{
                 .kind = BuildErrorKind::UnresolvedSymbol,
@@ -208,10 +237,10 @@ std::variant<Instruction, BuildError> InstructionBuilder::build() const {
         std::optional<BuildError> range_err;
         switch (arg) {
             case InstArgType::Imm12:
-                range_err = try_parse_intN<int12>(imm_value, validated_args[i], m_mnemonic);
+                range_err = try_parse_intN<int12>(imm_value, validated_args[i], m_mnemonic, is_unsigned_literal);
                 break;
             case InstArgType::Imm20:
-                range_err = try_parse_intN<int20>(imm_value, validated_args[i], m_mnemonic);
+                range_err = try_parse_intN<int20>(imm_value, validated_args[i], m_mnemonic, is_unsigned_literal);
                 break;
             case InstArgType::UImm5:
                 range_err = try_parse_intN<uint5>(imm_value, validated_args[i], m_mnemonic);
@@ -226,16 +255,16 @@ std::variant<Instruction, BuildError> InstructionBuilder::build() const {
                 range_err = try_parse_intN<uint20>(imm_value, validated_args[i], m_mnemonic);
                 break;
             case InstArgType::Imm5:
-                range_err = try_parse_intN<int5>(imm_value, validated_args[i], m_mnemonic);
+                range_err = try_parse_intN<int5>(imm_value, validated_args[i], m_mnemonic, is_unsigned_literal);
                 break;
             case InstArgType::Imm6:
-                range_err = try_parse_intN<int6>(imm_value, validated_args[i], m_mnemonic);
+                range_err = try_parse_intN<int6>(imm_value, validated_args[i], m_mnemonic, is_unsigned_literal);
                 break;
             case InstArgType::Imm8:
-                range_err = try_parse_intN<int8>(imm_value, validated_args[i], m_mnemonic);
+                range_err = try_parse_intN<int8>(imm_value, validated_args[i], m_mnemonic, is_unsigned_literal);
                 break;
             case InstArgType::Imm11:
-                range_err = try_parse_intN<int11>(imm_value, validated_args[i], m_mnemonic);
+                range_err = try_parse_intN<int11>(imm_value, validated_args[i], m_mnemonic, is_unsigned_literal);
                 break;
             case InstArgType::UImm8:
                 range_err = try_parse_intN<uint8>(imm_value, validated_args[i], m_mnemonic);

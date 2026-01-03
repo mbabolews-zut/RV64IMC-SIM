@@ -164,15 +164,15 @@ public:
 
     /// @brief store 32-bit word to memory.
     /// <br> ((u32*)mem)[rs + imm12] = rs2[0:31] (the lower 32 bits of rs2)
-    void sw(const GPIntReg &rs, const GPIntReg &rs2, int12 imm12) override;
+    void sw(const GPIntReg &rs2, const GPIntReg &rs1, int12 imm12) override;
 
     /// @brief store 16-bit halfword to memory.
     /// <br> ((u16*)mem)[rs + imm12] = rs2[0:15] (the lower 16 bits of rs2)
-    void sh(const GPIntReg &rs, const GPIntReg &rs2, int12 imm12) override;
+    void sh(const GPIntReg &rs2, const GPIntReg &rs1, int12 imm12) override;
 
     /// @brief store 8-bit byte to memory.
     /// <br> ((u8*)mem)[rs + imm12] = rs2[0:7] (the lower 8 bits of rs2)
-    void sb(const GPIntReg &rs, const GPIntReg &rs2, int12 imm12) override;
+    void sb(const GPIntReg &rs2, const GPIntReg &rs1, int12 imm12) override;
 
     /// @brief fence instruction. https://en.wikipedia.org/wiki/Memory_barrier
     /// <br> does nothing on single-threaded systems.
@@ -237,7 +237,7 @@ public:
 
     /// @brief store 64-bit doubleword to memory.
     /// <br> ((u64*)mem)[rs + imm12] = rs2
-    void sd(const GPIntReg &rs1, const GPIntReg &rs2, int12 imm12) override;
+    void sd(const GPIntReg &rs2, const GPIntReg &rs1, int12 imm12) override;
 
     //
     // ------- Integer Multiplication and Division Instructions (M) -------
@@ -346,6 +346,10 @@ private:
     template<typename T, typename TOff = int12>
     void load_instruction_tmpl(GPIntReg &rd, const GPIntReg &rs, TOff offset) const;
 
+    /// @brief stores value to memory using *(rs + offset) = rs2 expression
+    /// @param rs register with address
+    /// @param rs2 register with value
+    /// @param offset offset added to rs
     template<class T, class TOff = int12>
     void store_instruction_tmpl(const GPIntReg &rs, const GPIntReg &rs2, TOff offset);
 

@@ -45,9 +45,9 @@ namespace rv64::is {
         virtual void lhu(GPIntReg &rd, const GPIntReg &rs, int12 imm12) = 0;
         virtual void lb(GPIntReg &rd, const GPIntReg &rs, int12 imm12) = 0;
         virtual void lbu(GPIntReg &rd, const GPIntReg &rs, int12 imm12) = 0;
-        virtual void sw(const GPIntReg &rs, const GPIntReg &rs2, int12 imm12) = 0;
-        virtual void sh(const GPIntReg &rs, const GPIntReg &rs2, int12 imm12) = 0;
-        virtual void sb(const GPIntReg &rs, const GPIntReg &rs2, int12 imm12) = 0;
+        virtual void sw(const GPIntReg &rs2, const GPIntReg &rs1, int12 imm12) = 0;
+        virtual void sh(const GPIntReg &rs2, const GPIntReg &rs1, int12 imm12) = 0;
+        virtual void sb(const GPIntReg &rs2, const GPIntReg &rs1, int12 imm12) = 0;
         virtual void fence() = 0;
         virtual void ecall() = 0;
         virtual void ebreak() = 0;
@@ -62,28 +62,30 @@ namespace rv64::is {
         virtual void subw(GPIntReg &rd, const GPIntReg &rs1, const GPIntReg &rs2) = 0;
         virtual void ld(GPIntReg &rd, const GPIntReg &rs, int12 imm12) = 0;
         virtual void lwu(GPIntReg &rd, const GPIntReg &rs, int12 imm12) = 0;
-        virtual void sd(const GPIntReg &rs, const GPIntReg &rs2, int12 imm12) = 0;
+        virtual void sd(const GPIntReg &rs2, const GPIntReg &rs1, int12 imm12) = 0;
 
-        static constexpr std::array<InstProto, 51> list_inst() {
+        static constexpr std::array<InstProto, 52> list_inst() {
             const auto ireg = InstArgType::IntReg;
             const auto imm12 = InstArgType::Imm12;
+            const auto uimm5 = InstArgType::UImm5;
+            const auto uimm6 = InstArgType::UImm6;
             const auto uimm12 = InstArgType::UImm12;
-            const auto uimm20 = InstArgType::UImm20;
             const auto imm20 = InstArgType::Imm20;
             return {
                 {
                     {"addi"sv, {ireg, ireg, imm12}, (int) InstId::addi},
                     {"slt"sv, {ireg, ireg, ireg}, (int) InstId::slt},
+                    {"sltu"sv, {ireg, ireg, ireg}, (int) InstId::sltu},
                     {"slti"sv, {ireg, ireg, imm12}, (int) InstId::slti},
                     {"sltiu"sv, {ireg, ireg, uimm12}, (int) InstId::sltiu},
                     {"andi"sv, {ireg, ireg, imm12}, (int) InstId::andi},
                     {"ori"sv, {ireg, ireg, imm12}, (int) InstId::ori},
                     {"xori"sv, {ireg, ireg, imm12}, (int) InstId::xori},
-                    {"slli"sv, {ireg, ireg, uimm12}, (int) InstId::slli},
-                    {"srli"sv, {ireg, ireg, uimm12}, (int) InstId::srli},
-                    {"srai"sv, {ireg, ireg, uimm12}, (int) InstId::srai},
-                    {"lui"sv, {ireg, uimm20}, (int) InstId::lui},
-                    {"auipc"sv, {ireg, uimm20}, (int) InstId::auipc},
+                    {"slli"sv, {ireg, ireg, uimm6}, (int) InstId::slli},
+                    {"srli"sv, {ireg, ireg, uimm6}, (int) InstId::srli},
+                    {"srai"sv, {ireg, ireg, uimm6}, (int) InstId::srai},
+                    {"lui"sv, {ireg, imm20}, (int) InstId::lui},
+                    {"auipc"sv, {ireg, imm20}, (int) InstId::auipc},
                     {"add"sv, {ireg, ireg, ireg}, (int) InstId::add},
                     {"sub"sv, {ireg, ireg, ireg}, (int) InstId::sub},
                     {"and"sv, {ireg, ireg, ireg}, (int) InstId::and_},
@@ -112,9 +114,9 @@ namespace rv64::is {
                     {"ecall"sv, {}, (int) InstId::ecall},
                     {"ebreak"sv, {}, (int) InstId::ebreak},
                     {"addiw"sv, {ireg, ireg, imm12}, (int) InstId::addiw},
-                    {"slliw"sv, {ireg, ireg, imm12}, (int) InstId::slliw},
-                    {"srliw"sv, {ireg, ireg, imm12}, (int) InstId::srliw},
-                    {"sraiw"sv, {ireg, ireg, imm12}, (int) InstId::sraiw},
+                    {"slliw"sv, {ireg, ireg, uimm5}, (int) InstId::slliw},
+                    {"srliw"sv, {ireg, ireg, uimm5}, (int) InstId::srliw},
+                    {"sraiw"sv, {ireg, ireg, uimm5}, (int) InstId::sraiw},
                     {"sllw"sv, {ireg, ireg, ireg}, (int) InstId::sllw},
                     {"srlw"sv, {ireg, ireg, ireg}, (int) InstId::srlw},
                     {"sraw"sv, {ireg, ireg, ireg}, (int) InstId::sraw},
@@ -131,7 +133,7 @@ namespace rv64::is {
 
         enum class InstId : int {
             addi = IS_ID,
-            slt, slti, sltiu, andi, ori, xori, slli, srli, srai,
+            slt, sltu, slti, sltiu, andi, ori, xori, slli, srli, srai,
             lui, auipc, add, sub, and_, or_, xor_, sll, srl, sra,
             jal, jalr, beq, bne, blt, bge, bltu, bgeu, lw, lh, lhu,
             lb, lbu, sw, sh, sb, fence, ecall, ebreak, addiw, slliw,

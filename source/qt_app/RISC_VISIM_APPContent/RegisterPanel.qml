@@ -50,13 +50,15 @@ Rectangle {
                         required property string reg
                         required property string abi
                         required property string value
-                        required property bool modified
+                        required property bool userModified
+                        required property bool coreModified
 
                         regIndex: index
                         regName: reg
                         abiName: abi
                         regValue: value
-                        isModified: modified
+                        isUserModified: userModified
+                        isCoreModified: coreModified
                         width: registerListView.width
                     }
                 }

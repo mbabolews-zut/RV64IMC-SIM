@@ -237,7 +237,7 @@ namespace rv64 {
                 break;
             }
             case IFormat::U: {
-                uint32_t imm = std::get<int20>(args[2]);
+                uint32_t imm = std::get<int20>(args[1]);
                 encoded |= r[0] << 7;
                 encoded |= imm << 12;
                 break;

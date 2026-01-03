@@ -95,6 +95,16 @@ namespace rv64 {
         return *this;
     }
 
+    void Cpu::reset(bool clear_breakpoints) {
+        for (auto &regis : m_int_regs)
+            regis = 0;
+
+        m_interpreter = Interpreter(m_vm);
+        if (clear_breakpoints) {
+            this->clear_breakpoints();
+        }
+    }
+
     bool Cpu::set_breakpoint(size_t line, bool enable) noexcept {
         auto it = m_breakpoints.find(line);
         if (enable) {

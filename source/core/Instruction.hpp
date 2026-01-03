@@ -33,10 +33,16 @@ struct UnresolvedSymbol {
     int64_t offset = 0;
 };
 
+/// Immediate value from hex/binary literal that can wrap for signed types
+struct UnsignedLiteral {
+    int64_t value;
+};
+
 using RawInstArg = std::variant<
     std::monostate,
     std::string,
     int64_t,
+    UnsignedLiteral,
     UnresolvedSymbol
 >;
 
