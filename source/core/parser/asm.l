@@ -31,6 +31,7 @@ enum FlexToken {
 <<EOF>>                                            { return 0; }
 
 [a-zA-Z_][a-zA-Z0-9_]*:                             { return LabelToken;          }
+c\.[a-zA-Z][a-zA-Z0-9]*                             { return IdentifierToken;     }
 [a-zA-Z_][a-zA-Z0-9_]*                              { return IdentifierToken;     }
 
 0[bB][01]+                                          { return NumberToken;         }

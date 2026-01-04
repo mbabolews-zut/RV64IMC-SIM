@@ -8,6 +8,7 @@
 std::string err_msg;
 
 TEST_CASE("Error handling - Unknown instruction", "[errors]") {
+    err_msg.clear();
     ui::set_error_msg_callback([](auto msg) {err_msg = msg;});
     asm_parsing::ParsedInstVec out;
     int result = asm_parsing::parse_and_resolve("addd x1, x2, x3", out, 0x400000);
@@ -17,6 +18,7 @@ TEST_CASE("Error handling - Unknown instruction", "[errors]") {
 }
 
 TEST_CASE("Error handling - Invalid register", "[errors]") {
+    err_msg.clear();
     ui::set_error_msg_callback([](auto msg) {err_msg = msg;});
     asm_parsing::ParsedInstVec out;
     int result = asm_parsing::parse_and_resolve("add x1, x32, x3", out, 0x400000);
@@ -26,6 +28,7 @@ TEST_CASE("Error handling - Invalid register", "[errors]") {
 }
 
 TEST_CASE("Error handling - Immediate out of range", "[errors]") {
+    err_msg.clear();
     ui::set_error_msg_callback([](auto msg) {err_msg = msg;});
     asm_parsing::ParsedInstVec out;
     int result = asm_parsing::parse_and_resolve("addi x1, x2, 5000", out, 0x400000);
@@ -35,6 +38,7 @@ TEST_CASE("Error handling - Immediate out of range", "[errors]") {
 }
 
 TEST_CASE("Error handling - Duplicate label", "[errors]") {
+    err_msg.clear();
     ui::set_error_msg_callback([](auto msg) {err_msg = msg;});
     asm_parsing::ParsedInstVec out;
     int result = asm_parsing::parse_and_resolve("loop:\n  add x1, x2, x3\nloop:\n  add x4, x5, x6", out, 0x400000);
@@ -45,6 +49,7 @@ TEST_CASE("Error handling - Duplicate label", "[errors]") {
 }
 
 TEST_CASE("Error handling - Valid instruction parses correctly", "[errors]") {
+    err_msg.clear();
     ui::set_error_msg_callback([](auto msg) {err_msg = msg;});
     asm_parsing::ParsedInstVec out;
     int result = asm_parsing::parse_and_resolve("add x1, x2, x3", out, 0x400000);
@@ -53,6 +58,7 @@ TEST_CASE("Error handling - Valid instruction parses correctly", "[errors]") {
 }
 
 TEST_CASE("Error handling - Valid immediate in range", "[errors]") {
+    err_msg.clear();
     ui::set_error_msg_callback([](auto msg) {err_msg = msg;});
     asm_parsing::ParsedInstVec out;
     int result = asm_parsing::parse_and_resolve("addi x1, x2, 2047", out, 0x400000);
@@ -61,6 +67,7 @@ TEST_CASE("Error handling - Valid immediate in range", "[errors]") {
 }
 
 TEST_CASE("Error handling - Negative immediate in range", "[errors]") {
+    err_msg.clear();
     ui::set_error_msg_callback([](auto msg) {err_msg = msg;});
     asm_parsing::ParsedInstVec out;
     int result = asm_parsing::parse_and_resolve("addi x1, x2, -2048", out, 0x400000);
@@ -69,6 +76,7 @@ TEST_CASE("Error handling - Negative immediate in range", "[errors]") {
 }
 
 TEST_CASE("Error handling - Immediate at boundary fails", "[errors]") {
+    err_msg.clear();
     ui::set_error_msg_callback([](auto msg) {err_msg = msg;});
     asm_parsing::ParsedInstVec out;
     int result = asm_parsing::parse_and_resolve("addi x1, x2, 2048", out, 0x400000);
@@ -77,6 +85,7 @@ TEST_CASE("Error handling - Immediate at boundary fails", "[errors]") {
 }
 
 TEST_CASE("Error handling - Unresolved symbol", "[errors]") {
+    err_msg.clear();
     ui::set_error_msg_callback([](auto msg) {err_msg = msg;});
     asm_parsing::ParsedInstVec out;
     int result = asm_parsing::parse_and_resolve("beq x1, x2, undefined_label", out, 0x400000);
@@ -85,6 +94,7 @@ TEST_CASE("Error handling - Unresolved symbol", "[errors]") {
 }
 
 TEST_CASE("Error handling - Multiple instructions parse", "[errors]") {
+    err_msg.clear();
     ui::set_error_msg_callback([](auto msg) {err_msg = msg;});
     asm_parsing::ParsedInstVec out;
     int result = asm_parsing::parse_and_resolve("add x1, x2, x3\nsub x4, x5, x6", out, 0);

@@ -371,3 +371,99 @@ TEST_CASE("Integration - Edge cases", "[integration]") {
         REQUIRE(vm->m_cpu.reg(4) == 0); // -5 as unsigned is very large
     }
 }
+
+TEST_CASE("Integration - Unsigned branches", "[integration]") {
+    SECTION("bltu - branch taken") {
+        auto vm = run_program(R"(
+            addi x1, x0, 5
+            addi x2, x0, 10
+            bltu x1, x2, skip
+            addi x3, x0, 1
+        skip:
+            addi x4, x0, 2
+        )");
+        REQUIRE(vm->m_cpu.reg(3) == 0); // skipped
+        REQUIRE(vm->m_cpu.reg(4) == 2); // executed
+    }
+
+    SECTION("bltu - branch not taken (negative as unsigned is large)") {
+        auto vm = run_program(R"(
+            addi x1, x0, -5
+            addi x2, x0, 10
+            bltu x1, x2, skip
+            addi x3, x0, 1
+        skip:
+            addi x4, x0, 2
+        )");
+        REQUIRE(vm->m_cpu.reg(3) == 1); // executed (-5 as unsigned > 10)
+        REQUIRE(vm->m_cpu.reg(4) == 2); // executed
+    }
+
+    SECTION("bgeu - branch taken") {
+        auto vm = run_program(R"(
+            addi x1, x0, 10
+            addi x2, x0, 5
+            bgeu x1, x2, skip
+            addi x3, x0, 1
+        skip:
+            addi x4, x0, 2
+        )");
+        REQUIRE(vm->m_cpu.reg(3) == 0); // skipped
+        REQUIRE(vm->m_cpu.reg(4) == 2); // executed
+    }
+
+    SECTION("bgeu - branch taken (negative as unsigned is large)") {
+        auto vm = run_program(R"(
+            addi x1, x0, -5
+            addi x2, x0, 10
+            bgeu x1, x2, skip
+            addi x3, x0, 1
+        skip:
+            addi x4, x0, 2
+        )");
+        REQUIRE(vm->m_cpu.reg(3) == 0); // skipped (-5 as unsigned >= 10)
+        REQUIRE(vm->m_cpu.reg(4) == 2); // executed
+    }
+
+    SECTION("bgeu - equal values") {
+        auto vm = run_program(R"(
+            addi x1, x0, 10
+            addi x2, x0, 10
+            bgeu x1, x2, skip
+            addi x3, x0, 1
+        skip:
+            addi x4, x0, 2
+        )");
+        REQUIRE(vm->m_cpu.reg(3) == 0); // skipped (10 >= 10)
+        REQUIRE(vm->m_cpu.reg(4) == 2); // executed
+    }
+}
+
+TEST_CASE("Integration - System calls", "[integration]") {
+    SECTION("ecall with a0=10 exits program") {
+        auto vm = run_program(R"(
+            addi x1, x0, 42
+            addi a0, x0, 10
+            ecall
+            addi x3, x0, 99
+        )");
+        REQUIRE(vm->m_cpu.reg(1) == 42); // executed before ecall
+        REQUIRE(vm->m_cpu.reg(3) == 0);  // not executed (after ecall)
+        REQUIRE(vm->get_state() == VMState::Finished);
+    }
+
+    SECTION("program execution stops on ecall") {
+        auto vm = run_program(R"(
+            addi x1, x0, 1
+            addi x2, x0, 2
+            addi a0, x0, 10
+            ecall
+            addi x3, x0, 3
+            addi x4, x0, 4
+        )");
+        REQUIRE(vm->m_cpu.reg(1) == 1);
+        REQUIRE(vm->m_cpu.reg(2) == 2);
+        REQUIRE(vm->m_cpu.reg(3) == 0); // not executed
+        REQUIRE(vm->m_cpu.reg(4) == 0); // not executed
+    }
+}

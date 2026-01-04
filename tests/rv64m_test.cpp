@@ -157,6 +157,14 @@ TEST_CASE("RV64M division instructions", "[rv64m][div]") {
         REQUIRE(cpu.reg(6) == 0xFFFFFFFF80000000);
     }
 
+    SECTION("divw - division by zero") {
+        cpu.reg(1) = 100;
+        cpu.reg(2) = 0;
+        interp.divw(cpu.reg(3), cpu.reg(1), cpu.reg(2));
+        // RISC-V spec: divw by 0 returns -1 (sign-extended)
+        REQUIRE(cpu.reg(3) == UINT64_MAX);
+    }
+
     SECTION("divuw - divide word unsigned") {
         cpu.reg(1) = 100;
         cpu.reg(2) = 10;
@@ -167,6 +175,14 @@ TEST_CASE("RV64M division instructions", "[rv64m][div]") {
         cpu.reg(5) = 2;
         interp.divuw(cpu.reg(6), cpu.reg(4), cpu.reg(5));
         REQUIRE(cpu.reg(6) == 0x7FFFFFFF);
+    }
+
+    SECTION("divuw - division by zero") {
+        cpu.reg(1) = 100;
+        cpu.reg(2) = 0;
+        interp.divuw(cpu.reg(3), cpu.reg(1), cpu.reg(2));
+        // RISC-V spec: divuw by 0 returns 2^32-1 (sign-extended to 0xFFFFFFFFFFFFFFFF)
+        REQUIRE(cpu.reg(3) == UINT64_MAX);
     }
 }
 
@@ -222,11 +238,27 @@ TEST_CASE("RV64M remainder instructions", "[rv64m][rem]") {
         REQUIRE(cpu.reg(3) == 10);
     }
 
+    SECTION("remw - remainder by zero") {
+        cpu.reg(1) = 100;
+        cpu.reg(2) = 0;
+        interp.remw(cpu.reg(3), cpu.reg(1), cpu.reg(2));
+        // RISC-V spec: remw by 0 returns dividend (sign-extended)
+        REQUIRE(cpu.reg(3) == 100);
+    }
+
     SECTION("remuw - remainder word unsigned") {
         cpu.reg(1) = 100;
         cpu.reg(2) = 30;
         interp.remuw(cpu.reg(3), cpu.reg(1), cpu.reg(2));
         REQUIRE(cpu.reg(3) == 10);
+    }
+
+    SECTION("remuw - remainder by zero") {
+        cpu.reg(1) = 100;
+        cpu.reg(2) = 0;
+        interp.remuw(cpu.reg(3), cpu.reg(1), cpu.reg(2));
+        // RISC-V spec: remuw by 0 returns dividend (sign-extended)
+        REQUIRE(cpu.reg(3) == 100);
     }
 }
 

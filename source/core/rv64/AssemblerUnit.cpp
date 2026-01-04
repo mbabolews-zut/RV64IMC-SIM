@@ -30,6 +30,7 @@ std::unordered_map<std::string_view, IEncoding> enc_map {
     {"ori",   {.format = IFormat::I, .opcode = 0b0010011, .funct0 = 0b110}},
     {"xori",  {.format = IFormat::I, .opcode = 0b0010011, .funct0 = 0b100}},
 
+
     {"slli",  {.format = IFormat::Shift, .opcode = 0b0010011, .funct0 = 0b000000, .funct1 = 0b001}},
     {"srli",  {.format = IFormat::Shift, .opcode = 0b0010011, .funct0 = 0b000000, .funct1 = 0b101}},
     {"srai",  {.format = IFormat::Shift, .opcode = 0b0010011, .funct0 = 0b010000, .funct1 = 0b101}},
@@ -140,6 +141,16 @@ std::unordered_map<std::string_view, IEncoding> enc_map {
 };
 // clang-format on
 
+uint32_t imm6_to_u32(const InstArg &imm6) {
+    uint32_t result = 0;
+    std::visit([&]<typename T>(T &&arg) {
+        using U = std::decay_t<T>;
+        if constexpr (std::is_same_v<U, int6> || std::is_same_v<U, uint6>)
+            result = static_cast<uint32_t>(arg);
+    }, imm6);
+    return result;
+}
+
 namespace rv64 {
     std::vector<uint8_t> AssemblerUnit::assemble(std::span<const Instruction> insts, std::endian endian) {
         size_t bytecode_size = std::transform_reduce(
@@ -150,7 +161,7 @@ namespace rv64 {
         std::vector<uint8_t> bytecode(bytecode_size);
         size_t offset = 0;
 
-        for (const auto &inst : insts) {
+        for (const auto &inst: insts) {
             auto encoded = encode_instruction(inst, endian);
             std::visit([&](const auto &data) {
                 std::memcpy(&bytecode[offset], data.data(), data.size());
@@ -164,7 +175,7 @@ namespace rv64 {
     std::vector<uint8_t> AssemblerUnit::assemble(const asm_parsing::ParsedInstVec &insts, std::endian endian) {
         std::vector<uint8_t> bytecode;
 
-        for (const auto &parsed : insts) {
+        for (const auto &parsed: insts) {
             if (parsed.is_padding()) continue;
 
             auto encoded = encode_instruction(parsed.inst, endian);
@@ -176,15 +187,28 @@ namespace rv64 {
         return bytecode;
     }
 
-    std::variant<std::array<uint8_t, 2>, std::array<uint8_t, 4>>
+    std::variant<std::array<uint8_t, 2>, std::array<uint8_t, 4> >
     AssemblerUnit::encode_instruction(const Instruction &inst, std::endian endian) {
         if (!inst.is_valid()) {
             throw std::runtime_error("Invalid assembler instruction");
         }
 
         size_t size = inst.byte_size();
-        const auto &args = inst.get_args();
-        auto mnemonic = inst.get_prototype().mnemonic;
+        std::string mnemonic = std::string(inst.get_prototype().mnemonic);
+
+        // NOP instruction converting
+        Instruction instruction = inst;
+        if (mnemonic == "nop") {
+            instruction = Instruction::create("addi", {Reg(0), Reg(0), int12(0)});
+        } else if (mnemonic == "c.nop") {
+            instruction = Instruction::create("c.addi", {Reg(0), int6(0)});
+        } else {
+            instruction = inst;
+        }
+        mnemonic = std::string(instruction.get_prototype().mnemonic);
+
+
+        const auto &args = instruction.get_args();
 
         assert(enc_map.contains(mnemonic));
         auto [format, opcode, functHi, functLo] = enc_map[mnemonic];
@@ -213,6 +237,8 @@ namespace rv64 {
                 encoded |= r[1] << 15;
                 if (mnemonic == "ecall") encoded |= 0 << 20;
                 else if (mnemonic == "ebreak") encoded |= 1 << 20;
+                else if (std::holds_alternative<uint12>(args[2]))
+                    encoded |= std::get<uint12>(args[2]) << 20;
                 else encoded |= std::get<int12>(args[2]) << 20;
                 break;
             }
@@ -220,17 +246,18 @@ namespace rv64 {
                 uint32_t imm = std::get<int12>(args[2]);
                 encoded |= (imm & 0x1F) << 7;
                 encoded |= functHi << 12;
-                encoded |= r[0] << 15;
-                encoded |= r[1] << 20;
+                encoded |= r[1] << 15;
+                encoded |= r[0] << 20;
                 encoded |= (imm >> 5) << 25;
                 break;
             }
             case IFormat::B: {
-                uint32_t imm = std::get<int12>(args[2]);
-                encoded |= ((imm >> 11) & 0x1) << 31;
-                encoded |= ((imm >> 4) & 0x3F) << 25;
-                encoded |= (imm & 0xF) << 8;
-                encoded |= ((imm >> 10) & 0x1) << 7;
+                // imm was divided by 2 in resolve_symbols, multiply back to get byte offset
+                int32_t imm = std::get<int12>(args[2]) * 2;
+                encoded |= ((imm >> 12) & 0x1) << 31; // imm[12]
+                encoded |= ((imm >> 5) & 0x3F) << 25; // imm[10:5]
+                encoded |= ((imm >> 1) & 0xF) << 8; // imm[4:1]
+                encoded |= ((imm >> 11) & 0x1) << 7; // imm[11]
                 encoded |= functHi << 12;
                 encoded |= r[0] << 15;
                 encoded |= r[1] << 20;
@@ -243,11 +270,12 @@ namespace rv64 {
                 break;
             }
             case IFormat::J: {
-                uint32_t imm = std::get<int20>(args[1]);
-                encoded |= ((imm >> 19) & 0x1) << 31;
-                encoded |= ((imm >> 9) & 0x3FF) << 21;
-                encoded |= ((imm >> 10) & 0x1) << 20;
-                encoded |= ((imm >> 11) & 0x3FF) << 12;
+                // imm was divided by 2 in resolve_symbols, multiply back to get byte offset
+                int32_t imm = std::get<int20>(args[1]) * 2;
+                encoded |= ((imm >> 20) & 0x1) << 31; // imm[20]
+                encoded |= ((imm >> 1) & 0x3FF) << 21; // imm[10:1]
+                encoded |= ((imm >> 11) & 0x1) << 20; // imm[11]
+                encoded |= ((imm >> 12) & 0xFF) << 12; // imm[19:12]
                 encoded |= r[0] << 7;
                 break;
             }
@@ -276,7 +304,7 @@ namespace rv64 {
                 break;
 
             case IFormat::CI: {
-                uint32_t imm = std::get<int6>(args[1]);
+                uint32_t imm = imm6_to_u32(args[1]);
                 encoded |= (imm & 0x1F) << 2;
                 encoded |= r[0] << 7;
                 encoded |= ((imm >> 5) & 0x1) << 12;
@@ -284,7 +312,7 @@ namespace rv64 {
                 break;
             }
             case IFormat::CSS: {
-                uint32_t imm = std::get<uint6>(args[1]);
+                uint32_t imm = imm6_to_u32(args[1]);
                 encoded |= r[0] << 2;
                 encoded |= (imm & 0x3F) << 7;
                 encoded |= functHi << 13;
@@ -332,16 +360,17 @@ namespace rv64 {
             case IFormat::CB: {
                 uint32_t rs1_prime = r[0] - 8;
                 if (mnemonic == "c.beqz" || mnemonic == "c.bnez") {
-                    int32_t imm = std::get<int8>(args[1]);
-                    encoded |= ((imm >> 4) & 0x1) << 2;
-                    encoded |= (imm & 0x3) << 3;
-                    encoded |= ((imm >> 5) & 0x3) << 5;
+                    // imm was divided by 2 in resolve_symbols, multiply back to get byte offset
+                    int32_t imm = std::get<int8>(args[1]) * 2;
+                    encoded |= ((imm >> 5) & 0x1) << 2;
+                    encoded |= ((imm >> 1) & 0x3) << 3;
+                    encoded |= ((imm >> 6) & 0x3) << 5;
                     encoded |= rs1_prime << 7;
-                    encoded |= ((imm >> 2) & 0x3) << 10;
-                    encoded |= ((imm >> 7) & 0x1) << 12;
+                    encoded |= ((imm >> 3) & 0x3) << 10;
+                    encoded |= ((imm >> 8) & 0x1) << 12;
                     encoded |= functHi << 13;
                 } else {
-                    uint32_t imm = std::get<uint6>(args[1]);
+                    uint32_t imm = imm6_to_u32(args[1]);
                     encoded |= (imm & 0x1F) << 2;
                     encoded |= rs1_prime << 7;
                     encoded |= functLo << 10;
@@ -351,15 +380,16 @@ namespace rv64 {
                 break;
             }
             case IFormat::CJ: {
-                int32_t imm = std::get<int11>(args[0]);
-                encoded |= ((imm >> 4) & 0x1) << 2;
-                encoded |= (imm & 0x7) << 3;
-                encoded |= ((imm >> 6) & 0x1) << 6;
-                encoded |= ((imm >> 5) & 0x1) << 7;
-                encoded |= ((imm >> 9) & 0x1) << 8;
-                encoded |= ((imm >> 7) & 0x3) << 9;
-                encoded |= ((imm >> 3) & 0x1) << 11;
-                encoded |= ((imm >> 10) & 0x1) << 12;
+                // imm was divided by 2 in resolve_symbols, multiply back to get byte offset
+                int32_t imm = std::get<int11>(args[0]) * 2;
+                encoded |= ((imm >> 5) & 0x1) << 2;
+                encoded |= ((imm >> 1) & 0x7) << 3;
+                encoded |= ((imm >> 7) & 0x1) << 6;
+                encoded |= ((imm >> 6) & 0x1) << 7;
+                encoded |= ((imm >> 10) & 0x1) << 8;
+                encoded |= ((imm >> 8) & 0x3) << 9;
+                encoded |= ((imm >> 4) & 0x1) << 11;
+                encoded |= ((imm >> 11) & 0x1) << 12;
                 encoded |= functHi << 13;
                 break;
             }

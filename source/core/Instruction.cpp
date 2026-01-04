@@ -28,6 +28,10 @@ size_t InstProto::byte_size() const noexcept {
     return 4; // standard instruction size
 }
 
+Instruction Instruction::create(std::string_view mnemonic, const std::array<InstArg, 3> &args) {
+    return {rv64::is::Rv64IMC::get_inst_proto(std::string(mnemonic)).id, args};
+}
+
 // Instruction methods
 Instruction::Instruction(int proto_id, const std::array<InstArg, 3> &args)
     : m_proto_id(proto_id), m_args(args) {

@@ -337,6 +337,11 @@ public:
     void c_addw(GPIntReg &rdp, const GPIntReg &rs2p) override;
     void c_subw(GPIntReg &rdp, const GPIntReg &rs2p) override;
 
+    // addi x0, x0, 0
+    void nop() override {}
+    // c.addi x0, 0
+    void c_nop() override {}
+
     ~Interpreter() override = default;
 
     void exec_instruction(const Instruction &in);
@@ -363,6 +368,8 @@ private:
     static uint64_t mul64x64_128high(uint64_t a, uint64_t b);
 
     [[nodiscard]] GPIntReg& x2_reg() const;
+
+
 
 private:
     VM &m_vm;

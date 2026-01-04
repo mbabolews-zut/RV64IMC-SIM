@@ -540,4 +540,173 @@ TEST_CASE("Parser - M extension", "[parser][rv64m]") {
         REQUIRE_FALSE(out.empty());
         REQUIRE(out[0].inst.get_prototype().mnemonic == "remw");
     }
+
+    SECTION("mulh instruction") {
+        int result = asm_parsing::parse_and_resolve("mulh x1, x2, x3", out, 0);
+        REQUIRE(result == 0);
+        REQUIRE_FALSE(out.empty());
+        REQUIRE(out[0].inst.get_prototype().mnemonic == "mulh");
+    }
+
+    SECTION("mulhu instruction") {
+        int result = asm_parsing::parse_and_resolve("mulhu x1, x2, x3", out, 0);
+        REQUIRE(result == 0);
+        REQUIRE_FALSE(out.empty());
+        REQUIRE(out[0].inst.get_prototype().mnemonic == "mulhu");
+    }
+
+    SECTION("mulhsu instruction") {
+        int result = asm_parsing::parse_and_resolve("mulhsu x1, x2, x3", out, 0);
+        REQUIRE(result == 0);
+        REQUIRE_FALSE(out.empty());
+        REQUIRE(out[0].inst.get_prototype().mnemonic == "mulhsu");
+    }
+
+    SECTION("divu instruction") {
+        int result = asm_parsing::parse_and_resolve("divu x1, x2, x3", out, 0);
+        REQUIRE(result == 0);
+        REQUIRE_FALSE(out.empty());
+        REQUIRE(out[0].inst.get_prototype().mnemonic == "divu");
+    }
+
+    SECTION("remu instruction") {
+        int result = asm_parsing::parse_and_resolve("remu x1, x2, x3", out, 0);
+        REQUIRE(result == 0);
+        REQUIRE_FALSE(out.empty());
+        REQUIRE(out[0].inst.get_prototype().mnemonic == "remu");
+    }
+
+    SECTION("divuw instruction") {
+        int result = asm_parsing::parse_and_resolve("divuw x1, x2, x3", out, 0);
+        REQUIRE(result == 0);
+        REQUIRE_FALSE(out.empty());
+        REQUIRE(out[0].inst.get_prototype().mnemonic == "divuw");
+    }
+
+    SECTION("remuw instruction") {
+        int result = asm_parsing::parse_and_resolve("remuw x1, x2, x3", out, 0);
+        REQUIRE(result == 0);
+        REQUIRE_FALSE(out.empty());
+        REQUIRE(out[0].inst.get_prototype().mnemonic == "remuw");
+    }
+}
+
+TEST_CASE("Parser - Shift immediate instructions", "[parser][shift]") {
+    asm_parsing::ParsedInstVec out;
+
+    SECTION("slli instruction") {
+        int result = asm_parsing::parse_and_resolve("slli x1, x2, 5", out, 0);
+        REQUIRE(result == 0);
+        REQUIRE_FALSE(out.empty());
+        REQUIRE(out[0].inst.get_prototype().mnemonic == "slli");
+    }
+
+    SECTION("srli instruction") {
+        int result = asm_parsing::parse_and_resolve("srli x1, x2, 10", out, 0);
+        REQUIRE(result == 0);
+        REQUIRE_FALSE(out.empty());
+        REQUIRE(out[0].inst.get_prototype().mnemonic == "srli");
+    }
+
+    SECTION("srai instruction") {
+        int result = asm_parsing::parse_and_resolve("srai x1, x2, 63", out, 0);
+        REQUIRE(result == 0);
+        REQUIRE_FALSE(out.empty());
+        REQUIRE(out[0].inst.get_prototype().mnemonic == "srai");
+    }
+
+    SECTION("slli max shift amount (63)") {
+        int result = asm_parsing::parse_and_resolve("slli x1, x2, 63", out, 0);
+        REQUIRE(result == 0);
+    }
+
+    SECTION("slli zero shift amount") {
+        int result = asm_parsing::parse_and_resolve("slli x1, x2, 0", out, 0);
+        REQUIRE(result == 0);
+    }
+}
+
+TEST_CASE("Parser - C extension (compressed instructions)", "[parser][rv64c]") {
+    asm_parsing::ParsedInstVec out;
+
+    SECTION("c.nop instruction") {
+        int result = asm_parsing::parse_and_resolve("c.nop", out, 0);
+        REQUIRE(result == 0);
+        REQUIRE_FALSE(out.empty());
+        REQUIRE(out[0].inst.get_prototype().mnemonic == "c.nop");
+    }
+
+    SECTION("c.li instruction") {
+        int result = asm_parsing::parse_and_resolve("c.li x10, 31", out, 0);
+        REQUIRE(result == 0);
+        REQUIRE_FALSE(out.empty());
+        REQUIRE(out[0].inst.get_prototype().mnemonic == "c.li");
+    }
+
+    SECTION("c.addi instruction") {
+        int result = asm_parsing::parse_and_resolve("c.addi x10, 5", out, 0);
+        REQUIRE(result == 0);
+        REQUIRE_FALSE(out.empty());
+        REQUIRE(out[0].inst.get_prototype().mnemonic == "c.addi");
+    }
+
+    SECTION("c.mv instruction") {
+        int result = asm_parsing::parse_and_resolve("c.mv x10, x5", out, 0);
+        REQUIRE(result == 0);
+        REQUIRE_FALSE(out.empty());
+        REQUIRE(out[0].inst.get_prototype().mnemonic == "c.mv");
+    }
+
+    SECTION("c.add instruction") {
+        int result = asm_parsing::parse_and_resolve("c.add x10, x5", out, 0);
+        REQUIRE(result == 0);
+        REQUIRE_FALSE(out.empty());
+        REQUIRE(out[0].inst.get_prototype().mnemonic == "c.add");
+    }
+
+    SECTION("c.lwsp instruction") {
+        int result = asm_parsing::parse_and_resolve("c.lwsp x10, 4", out, 0);
+        REQUIRE(result == 0);
+        REQUIRE_FALSE(out.empty());
+        REQUIRE(out[0].inst.get_prototype().mnemonic == "c.lwsp");
+    }
+
+    SECTION("c.ldsp instruction") {
+        int result = asm_parsing::parse_and_resolve("c.ldsp x10, 8", out, 0);
+        REQUIRE(result == 0);
+        REQUIRE_FALSE(out.empty());
+        REQUIRE(out[0].inst.get_prototype().mnemonic == "c.ldsp");
+    }
+
+    SECTION("c.swsp instruction") {
+        int result = asm_parsing::parse_and_resolve("c.swsp x10, 4", out, 0);
+        REQUIRE(result == 0);
+        REQUIRE_FALSE(out.empty());
+        REQUIRE(out[0].inst.get_prototype().mnemonic == "c.swsp");
+    }
+
+    SECTION("c.sdsp instruction") {
+        int result = asm_parsing::parse_and_resolve("c.sdsp x10, 8", out, 0);
+        REQUIRE(result == 0);
+        REQUIRE_FALSE(out.empty());
+        REQUIRE(out[0].inst.get_prototype().mnemonic == "c.sdsp");
+    }
+
+    SECTION("c.j instruction with label") {
+        int result = asm_parsing::parse_and_resolve("loop:\n  c.j loop", out, 0);
+        REQUIRE(result == 0);
+        REQUIRE_FALSE(out.empty());
+    }
+
+    SECTION("c.beqz instruction with label") {
+        int result = asm_parsing::parse_and_resolve("target:\n  c.beqz x8, target", out, 0);
+        REQUIRE(result == 0);
+        REQUIRE_FALSE(out.empty());
+    }
+
+    SECTION("c.bnez instruction with label") {
+        int result = asm_parsing::parse_and_resolve("end:\n  c.bnez x9, end", out, 0);
+        REQUIRE(result == 0);
+        REQUIRE_FALSE(out.empty());
+    }
 }

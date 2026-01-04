@@ -47,8 +47,9 @@ namespace rv64::is {
         virtual void c_sub(GPIntReg &rdp, const GPIntReg &rs2p) = 0;
         virtual void c_addw(GPIntReg &rdp, const GPIntReg &rs2p) = 0;
         virtual void c_subw(GPIntReg &rdp, const GPIntReg &rs2p) = 0;
+        virtual void c_nop() = 0;
 
-        static constexpr std::array<InstProto, 35> list_inst() {
+        static constexpr std::array<InstProto, 36> list_inst() {
             return {{
                 {"c.lwsp"sv, {InstArgType::IntReg, InstArgType::Imm6}, (int)InstId::c_lwsp},
                 {"c.ldsp"sv, {InstArgType::IntReg, InstArgType::Imm6}, (int)InstId::c_ldsp},
@@ -85,17 +86,18 @@ namespace rv64::is {
                 {"c.sub"sv, {InstArgType::IntRegP, InstArgType::IntRegP}, (int)InstId::c_sub},
                 {"c.addw"sv, {InstArgType::IntRegP, InstArgType::IntRegP}, (int)InstId::c_addw},
                 {"c.subw"sv, {InstArgType::IntRegP, InstArgType::IntRegP}, (int)InstId::c_subw},
+                 {"c.nop"sv, {}, (int) InstId::c_nop}
             }};
         }
 
         static_assert(IS_ID > 0);
         enum class InstId {
-            c_lwsp = IS_ID + 1, c_ldsp, c_fldsp, c_swsp, c_sdsp, c_fsdsp,
+            c_lwsp = IS_ID, c_ldsp, c_fldsp, c_swsp, c_sdsp, c_fsdsp,
             c_lw, c_ld, c_fld, c_sw, c_sd, c_fsd,
             c_j, c_jr, c_jalr, c_beqz, c_bnez,
             c_li, c_lui, c_addi, c_addiw, c_addi16sp, c_addi4spn,
             c_slli, c_srli, c_srai, c_andi,
-            c_mv, c_add, c_and, c_or, c_xor, c_sub, c_addw, c_subw
+            c_mv, c_add, c_and, c_or, c_xor, c_sub, c_addw, c_subw, c_nop
         };
     };
 

@@ -75,6 +75,21 @@ InstructionBuilder &InstructionBuilder::add_arg(std::string_view arg) {
 
     std::string arg_str(arg);
 
+    // Handle c.*sp instructions: accept both "imm" and "imm(x2)" / "imm(sp)" formats
+    // Also ignore "sp" or "x2" passed as separate token (parser splits 0(sp) into sp, 0)
+    if (m_mnemonic == "c.lwsp" || m_mnemonic == "c.ldsp" ||
+        m_mnemonic == "c.swsp" || m_mnemonic == "c.sdsp") {
+
+        // Normalize to lowercase for comparison
+        std::string lowered = arg_str;
+        for (char &c : lowered) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+
+        // If the token is exactly x2/sp, it's the implicit base - skip it
+        if (lowered == "x2" || lowered == "sp") {
+            return *this;
+        }
+    }
+
     // Try to parse as immediate first
     int64_t imm_value;
     ImmFormat format;
@@ -126,32 +141,71 @@ std::optional<BuildError> InstructionBuilder::resolve_symbols(const std::unorder
 
     auto meta_it = pc_relative_instrs.find(m_mnemonic);
 
-    // Determine instruction size (compressed vs standard)
-    bool is_compressed = m_mnemonic.size() >= 2 && m_mnemonic[0] == 'c' && m_mnemonic[1] == '.';
-    uint64_t instr_size = is_compressed ? 2 : 4;
+    // Get the instruction prototype to check argument types
+    auto proto = rv64::is::Rv64IMC::get_inst_proto(m_mnemonic);
 
     for (size_t i = 0; i < m_arg_count; ++i) {
+        std::string symbol_name;
+        int64_t symbol_offset = 0;
+
+        // Check for UnresolvedSymbol variant
         if (auto *sym = std::get_if<UnresolvedSymbol>(&m_raw_args[i])) {
-            auto it = symbol_table.find(sym->name);
-            if (it == symbol_table.end()) {
-                return BuildError{
-                    .kind = BuildErrorKind::UnresolvedSymbol,
-                    .message = std::format("Unresolved symbol '{}'", sym->name)
-                };
+            symbol_name = sym->name;
+            symbol_offset = sym->offset;
+        }
+        // Check for string that might be a symbol (not a number, not a register)
+        else if (auto *str = std::get_if<std::string>(&m_raw_args[i])) {
+            // If proto is invalid (unknown instruction), skip symbol resolution
+            // Let build() report the "Unknown instruction" error
+            if (!proto) {
+                continue;
             }
 
-            uint64_t target_address = it->second + sym->offset;
-
-            // If this instruction is in the PC-relative table, and we're at the offset argument
-            if (meta_it != pc_relative_instrs.end() && static_cast<int>(i) == meta_it->second.arg_index) {
-                // PC-relative offset: calculate from next instruction's PC
-                uint64_t next_pc = current_pc + instr_size;
-                int64_t byte_offset = static_cast<int64_t>(target_address) - static_cast<int64_t>(next_pc);
-                m_raw_args[i] = byte_offset / meta_it->second.offset_divisor;
-            } else {
-                // Absolute address (for non-PC-relative instructions like jalr, or data labels)
-                m_raw_args[i] = static_cast<int64_t>(target_address);
+            // Only try symbol resolution if this argument position expects an immediate
+            // This prevents treating invalid register names like 'x32' as symbols
+            auto arg_type = proto.args[i];
+            bool is_immediate_arg = (arg_type != InstArgType::IntReg &&
+                                     arg_type != InstArgType::IntRegP &&
+                                     arg_type != InstArgType::None);
+            if (!is_immediate_arg) {
+                continue; // Let build() handle invalid register errors
             }
+
+            // Skip if it parses as an immediate
+            int64_t dummy;
+            ImmFormat fmt;
+            if (try_parse_immediate(*str, dummy, fmt)) {
+                continue;
+            }
+            // It's likely a symbol
+            symbol_name = *str;
+        }
+        else {
+            continue;
+        }
+
+        if (symbol_name.empty()) {
+            continue;
+        }
+
+        auto it = symbol_table.find(symbol_name);
+        if (it == symbol_table.end()) {
+            return BuildError{
+                .kind = BuildErrorKind::UnresolvedSymbol,
+                .message = std::format("Unresolved symbol '{}'", symbol_name)
+            };
+        }
+
+        uint64_t target_address = it->second + symbol_offset;
+
+        // If this instruction is in the PC-relative table, and we're at the offset argument
+        if (meta_it != pc_relative_instrs.end() && static_cast<int>(i) == meta_it->second.arg_index) {
+            // PC-relative offset: RISC-V spec defines offsets relative to current PC
+            int64_t byte_offset = static_cast<int64_t>(target_address) - static_cast<int64_t>(current_pc);
+            m_raw_args[i] = byte_offset / meta_it->second.offset_divisor;
+        } else {
+            // Absolute address (for non-PC-relative instructions like jalr, or data labels)
+            m_raw_args[i] = static_cast<int64_t>(target_address);
         }
     }
     return std::nullopt;

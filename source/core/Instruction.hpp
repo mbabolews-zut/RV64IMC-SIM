@@ -69,6 +69,8 @@ public:
     Instruction() = default;
     Instruction(const Instruction &) = default;
     Instruction(Instruction &&) noexcept = default;
+
+
     Instruction &operator=(const Instruction &) = default;
     Instruction &operator=(Instruction &&) noexcept = default;
 
@@ -83,6 +85,8 @@ public:
     [[nodiscard]] static Instruction invalid() noexcept { return invalid_cref(); }
 
     [[nodiscard]] bool is_padding() const noexcept { return !is_valid(); }
+
+    [[nodiscard]] static Instruction create(std::string_view mnemonic, const std::array<InstArg, 3> &args);
 
 private:
     friend class InstructionBuilder;

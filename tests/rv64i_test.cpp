@@ -5,6 +5,8 @@
 
 using namespace rv64;
 
+constexpr int INSTR_SIZE = 4;
+
 TEST_CASE("RV64I arithmetic immediate instructions", "[rv64i][arithmetic][immediate]") {
     VM vm{};
     Interpreter interp{vm};
@@ -493,7 +495,7 @@ TEST_CASE("RV64I branch instructions", "[rv64i][branch]") {
         cpu.reg(1) = 100;
         cpu.reg(2) = 100;
         interp.beq(cpu.reg(1), cpu.reg(2), 8);
-        REQUIRE(cpu.get_pc() == initial_pc + 16);
+        REQUIRE(cpu.get_pc() == initial_pc + 16 - INSTR_SIZE);
 
         cpu.set_pc(initial_pc);
         cpu.reg(3) = 100;
@@ -507,7 +509,7 @@ TEST_CASE("RV64I branch instructions", "[rv64i][branch]") {
         cpu.reg(1) = 100;
         cpu.reg(2) = 200;
         interp.bne(cpu.reg(1), cpu.reg(2), 8);
-        REQUIRE(cpu.get_pc() == initial_pc + 16);
+        REQUIRE(cpu.get_pc() == initial_pc + 16 - INSTR_SIZE);
 
         cpu.set_pc(initial_pc);
         cpu.reg(3) = 100;
@@ -521,13 +523,13 @@ TEST_CASE("RV64I branch instructions", "[rv64i][branch]") {
         cpu.reg(1) = 10;
         cpu.reg(2) = 20;
         interp.blt(cpu.reg(1), cpu.reg(2), 8);
-        REQUIRE(cpu.get_pc() == initial_pc + 16);
+        REQUIRE(cpu.get_pc() == initial_pc + 16 - INSTR_SIZE);
 
         cpu.set_pc(initial_pc);
         cpu.reg(3) = static_cast<uint64_t>(-10);
         cpu.reg(4) = 10;
         interp.blt(cpu.reg(3), cpu.reg(4), 8);
-        REQUIRE(cpu.get_pc() == initial_pc + 16);
+        REQUIRE(cpu.get_pc() == initial_pc + 16 - INSTR_SIZE);
     }
 
     SECTION("bltu - branch if less than unsigned") {
@@ -535,7 +537,7 @@ TEST_CASE("RV64I branch instructions", "[rv64i][branch]") {
         cpu.reg(1) = 10;
         cpu.reg(2) = 20;
         interp.bltu(cpu.reg(1), cpu.reg(2), 8);
-        REQUIRE(cpu.get_pc() == initial_pc + 16);
+        REQUIRE(cpu.get_pc() == initial_pc + 16 - INSTR_SIZE);
 
         cpu.set_pc(initial_pc);
         cpu.reg(3) = static_cast<uint64_t>(-10);
@@ -549,13 +551,13 @@ TEST_CASE("RV64I branch instructions", "[rv64i][branch]") {
         cpu.reg(1) = 20;
         cpu.reg(2) = 10;
         interp.bge(cpu.reg(1), cpu.reg(2), 8);
-        REQUIRE(cpu.get_pc() == initial_pc + 16);
+        REQUIRE(cpu.get_pc() == initial_pc + 16 - INSTR_SIZE);
 
         cpu.set_pc(initial_pc);
         cpu.reg(3) = 10;
         cpu.reg(4) = 10;
         interp.bge(cpu.reg(3), cpu.reg(4), 8);
-        REQUIRE(cpu.get_pc() == initial_pc + 16);
+        REQUIRE(cpu.get_pc() == initial_pc + 16 - INSTR_SIZE);
     }
 
     SECTION("bgeu - branch if greater or equal unsigned") {
@@ -563,13 +565,13 @@ TEST_CASE("RV64I branch instructions", "[rv64i][branch]") {
         cpu.reg(1) = 20;
         cpu.reg(2) = 10;
         interp.bgeu(cpu.reg(1), cpu.reg(2), 8);
-        REQUIRE(cpu.get_pc() == initial_pc + 16);
+        REQUIRE(cpu.get_pc() == initial_pc + 16 - INSTR_SIZE);
 
         cpu.set_pc(initial_pc);
         cpu.reg(3) = static_cast<uint64_t>(-10);
         cpu.reg(4) = 10;
         interp.bgeu(cpu.reg(3), cpu.reg(4), 8);
-        REQUIRE(cpu.get_pc() == initial_pc + 16);
+        REQUIRE(cpu.get_pc() == initial_pc + 16 - INSTR_SIZE);
     }
 
     SECTION("Branch with negative offset") {
@@ -577,7 +579,7 @@ TEST_CASE("RV64I branch instructions", "[rv64i][branch]") {
         cpu.reg(1) = 100;
         cpu.reg(2) = 100;
         interp.beq(cpu.reg(1), cpu.reg(2), -8);
-        REQUIRE(cpu.get_pc() == initial_pc - 16);
+        REQUIRE(cpu.get_pc() == initial_pc - 16 - INSTR_SIZE);
     }
 }
 
@@ -590,7 +592,7 @@ TEST_CASE("RV64I jump instructions", "[rv64i][jump]") {
     SECTION("jal - jump and link") {
         cpu.set_pc(initial_pc);
         interp.jal(cpu.reg(1), 100);
-        REQUIRE(cpu.get_pc() == initial_pc + 200);
+        REQUIRE(cpu.get_pc() == initial_pc + 200 - INSTR_SIZE);
         REQUIRE(cpu.reg(1) == initial_pc);
     }
 
@@ -800,7 +802,7 @@ TEST_CASE("RV64I PC manipulation", "[rv64i][pc]") {
 
         uint64_t pc_before = cpu.get_pc();
         interp.beq(cpu.reg(1), cpu.reg(2), 16);
-        REQUIRE(cpu.get_pc() == pc_before + 32);
+        REQUIRE(cpu.get_pc() == pc_before + 32 - INSTR_SIZE);
     }
 
     SECTION("Branch instructions don't modify PC when condition is false") {
@@ -816,7 +818,7 @@ TEST_CASE("RV64I PC manipulation", "[rv64i][pc]") {
     SECTION("jal modifies PC and stores return address") {
         cpu.set_pc(initial_pc);
         interp.jal(cpu.reg(1), 100);
-        REQUIRE(cpu.get_pc() == initial_pc + 200);
+        REQUIRE(cpu.get_pc() == initial_pc + 200 - INSTR_SIZE);
         REQUIRE(cpu.reg(1) == initial_pc);
     }
 
@@ -839,6 +841,7 @@ TEST_CASE("RV64I PC manipulation", "[rv64i][pc]") {
 TEST_CASE("RV64I fence and system instructions", "[rv64i][system]") {
     VM vm{};
     Interpreter interp{vm};
+    auto &cpu = vm.m_cpu;
 
     SECTION("fence does nothing but shouldn't crash") {
         REQUIRE_NOTHROW(interp.fence());
@@ -851,5 +854,15 @@ TEST_CASE("RV64I fence and system instructions", "[rv64i][system]") {
         REQUIRE_NOTHROW(interp.ebreak());
         REQUIRE(vm.get_state() == VMState::Breakpoint);
     }
+
+    SECTION("ecall with a0=10 should exit program") {
+        vm.load_program({});
+        REQUIRE(vm.get_state() == VMState::Loaded);
+
+        cpu.reg(10) = 10;  // a0 = 10 (exit syscall)
+        REQUIRE_NOTHROW(interp.ecall());
+        REQUIRE(vm.get_state() == VMState::Finished);
+    }
+
 }
 

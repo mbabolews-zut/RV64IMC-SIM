@@ -63,8 +63,9 @@ namespace rv64::is {
         virtual void ld(GPIntReg &rd, const GPIntReg &rs, int12 imm12) = 0;
         virtual void lwu(GPIntReg &rd, const GPIntReg &rs, int12 imm12) = 0;
         virtual void sd(const GPIntReg &rs2, const GPIntReg &rs1, int12 imm12) = 0;
+        virtual void nop() = 0;
 
-        static constexpr std::array<InstProto, 52> list_inst() {
+        static constexpr std::array<InstProto, 53> list_inst() {
             const auto ireg = InstArgType::IntReg;
             const auto imm12 = InstArgType::Imm12;
             const auto uimm5 = InstArgType::UImm5;
@@ -124,7 +125,8 @@ namespace rv64::is {
                     {"subw"sv, {ireg, ireg, ireg}, (int) InstId::subw},
                     {"ld"sv, {ireg, ireg, imm12}, (int) InstId::ld},
                     {"lwu"sv, {ireg, ireg, imm12}, (int) InstId::lwu},
-                    {"sd"sv, {ireg, ireg, imm12}, (int) InstId::sd}
+                    {"sd"sv, {ireg, ireg, imm12}, (int) InstId::sd},
+                    {"nop"sv, {}, (int) InstId::nop}
                 }
             };
         }
@@ -137,7 +139,7 @@ namespace rv64::is {
             lui, auipc, add, sub, and_, or_, xor_, sll, srl, sra,
             jal, jalr, beq, bne, blt, bge, bltu, bgeu, lw, lh, lhu,
             lb, lbu, sw, sh, sb, fence, ecall, ebreak, addiw, slliw,
-            srliw, sraiw, sllw, srlw, sraw, addw, subw, ld, lwu, sd,
+            srliw, sraiw, sllw, srlw, sraw, addw, subw, ld, lwu, sd, nop
         };
 
         virtual ~IBaseI() = default;

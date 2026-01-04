@@ -107,7 +107,8 @@ namespace rv64 {
 
     void Interpreter::jal(GPIntReg &rd, int20 imm20) {
         rd = m_vm.m_cpu.get_pc();
-        m_vm.m_cpu.move_pc(imm20 * 2);
+        // Offset is relative to current_pc, but PC already advanced by 4
+        m_vm.m_cpu.move_pc(imm20 * 2 - 4);
     }
 
     void Interpreter::jalr(GPIntReg &rd, const GPIntReg &rs, int12 imm12) {
@@ -117,40 +118,38 @@ namespace rv64 {
 
     void Interpreter::beq(const GPIntReg &rs1, const GPIntReg &rs2, int12 imm12) {
         if (rs1.sval() == rs2.sval()) {
-            auto debug_val = imm12 * 2;
-            auto pc_before = m_vm.m_cpu.get_pc();
-            auto pc_after = pc_before + debug_val;
-            m_vm.m_cpu.move_pc(imm12 * 2);
+            // Offset is relative to current_pc, but PC already advanced by 4
+            m_vm.m_cpu.move_pc(imm12 * 2 - 4);
         }
     }
 
     void Interpreter::bne(const GPIntReg &rs1, const GPIntReg &rs2, int12 imm12) {
         if (rs1.sval() != rs2.sval()) {
-            m_vm.m_cpu.move_pc(imm12 * 2);
+            m_vm.m_cpu.move_pc(imm12 * 2 - 4);
         }
     }
 
     void Interpreter::blt(const GPIntReg &rs1, const GPIntReg &rs2, int12 imm12) {
         if (rs1.sval() < rs2.sval()) {
-            m_vm.m_cpu.move_pc(imm12 * 2);
+            m_vm.m_cpu.move_pc(imm12 * 2 - 4);
         }
     }
 
     void Interpreter::bltu(const GPIntReg &rs1, const GPIntReg &rs2, int12 imm12) {
         if (rs1.val() < rs2.val()) {
-            m_vm.m_cpu.move_pc(imm12 * 2);
+            m_vm.m_cpu.move_pc(imm12 * 2 - 4);
         }
     }
 
     void Interpreter::bge(const GPIntReg &rs1, const GPIntReg &rs2, int12 imm12) {
         if (rs1.sval() >= rs2.sval()) {
-            m_vm.m_cpu.move_pc(imm12 * 2);
+            m_vm.m_cpu.move_pc(imm12 * 2 - 4);
         }
     }
 
     void Interpreter::bgeu(const GPIntReg &rs1, const GPIntReg &rs2, int12 imm12) {
         if (rs1.val() >= rs2.val()) {
-            m_vm.m_cpu.move_pc(imm12 * 2);
+            m_vm.m_cpu.move_pc(imm12 * 2 - 4);
         }
     }
 
@@ -194,6 +193,7 @@ namespace rv64 {
         auto &a0 = m_vm.m_cpu.reg(10);
         const auto &a1 = m_vm.m_cpu.reg(11);
         MemErr err{};
+
         switch (a0.sval()) {
             case 1:
                 ui::print_output(std::to_string(a1.sval()));
@@ -455,8 +455,9 @@ namespace rv64 {
     }
 
     void Interpreter::c_j(int11 imm11) {
+        // Offset is relative to current_pc, but PC already advanced by 2
         auto offset = int64_t(imm11) << 1;
-        m_vm.m_cpu.move_pc(offset);
+        m_vm.m_cpu.move_pc(offset - 2);
     }
 
     void Interpreter::c_jr(const GPIntReg &rs1) {
@@ -479,16 +480,18 @@ namespace rv64 {
     void Interpreter::c_beqz(const GPIntReg &rs1p, int8 imm8) {
         assert(rs1p.in_compressed_range());
         if (rs1p == 0) {
+            // Offset is relative to current_pc, but PC already advanced by 2
             auto offset = int64_t(imm8) << 1;
-            m_vm.m_cpu.move_pc(offset);
+            m_vm.m_cpu.move_pc(offset - 2);
         }
     }
 
     void Interpreter::c_bnez(const GPIntReg &rs1p, int8 imm8) {
         assert(rs1p.in_compressed_range());
         if (rs1p != 0) {
+            // Offset is relative to current_pc, but PC already advanced by 2
             auto offset = int64_t(imm8) << 1;
-            m_vm.m_cpu.move_pc(offset);
+            m_vm.m_cpu.move_pc(offset - 2);
         }
     }
 
@@ -1047,6 +1050,14 @@ namespace rv64 {
                 break;
             case (int) IExtensionC::InstId::c_subw:
                 c_subw(get_reg(args[0]), get_reg(args[1]));
+                break;
+
+            // nops
+            case (int) IBaseI::InstId::nop:
+                nop();
+                break;
+            case (int) IExtensionC::InstId::c_nop:
+                c_nop();
                 break;
 
             default:

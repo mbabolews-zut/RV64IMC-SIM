@@ -5,6 +5,8 @@
 
 using namespace rv64;
 
+constexpr int C_INSTR_SIZE = 2;
+
 TEST_CASE("RV64C load/store stack-pointer relative", "[rv64c][memory][stack]") {
     VM vm{};
     Interpreter interp{vm};
@@ -107,13 +109,13 @@ TEST_CASE("RV64C control transfer instructions", "[rv64c][jump][branch]") {
     SECTION("c.j - unconditional jump") {
         cpu.set_pc(initial_pc);
         interp.c_j(50); // offset = 50*2 = 100
-        REQUIRE(cpu.get_pc() == initial_pc + 100);
+        REQUIRE(cpu.get_pc() == initial_pc + 100 - C_INSTR_SIZE);
     }
 
     SECTION("c.j - negative offset") {
         cpu.set_pc(initial_pc);
         interp.c_j(-20); // offset = -20*2 = -40
-        REQUIRE(cpu.get_pc() == initial_pc - 40);
+        REQUIRE(cpu.get_pc() == initial_pc - 40 - C_INSTR_SIZE);
     }
 
     SECTION("c.jr - jump register") {
@@ -135,7 +137,7 @@ TEST_CASE("RV64C control transfer instructions", "[rv64c][jump][branch]") {
         cpu.set_pc(initial_pc);
         cpu.reg(8) = 0;
         interp.c_beqz(cpu.reg(8), 10); // offset = 10*2 = 20
-        REQUIRE(cpu.get_pc() == initial_pc + 20);
+        REQUIRE(cpu.get_pc() == initial_pc + 20 - C_INSTR_SIZE);
 
         cpu.set_pc(initial_pc);
         cpu.reg(9) = 42;
@@ -147,7 +149,7 @@ TEST_CASE("RV64C control transfer instructions", "[rv64c][jump][branch]") {
         cpu.set_pc(initial_pc);
         cpu.reg(8) = 42;
         interp.c_bnez(cpu.reg(8), 10); // offset = 10*2 = 20
-        REQUIRE(cpu.get_pc() == initial_pc + 20);
+        REQUIRE(cpu.get_pc() == initial_pc + 20 - C_INSTR_SIZE);
 
         cpu.set_pc(initial_pc);
         cpu.reg(9) = 0;
@@ -159,7 +161,7 @@ TEST_CASE("RV64C control transfer instructions", "[rv64c][jump][branch]") {
         cpu.set_pc(initial_pc);
         cpu.reg(8) = 0;
         interp.c_beqz(cpu.reg(8), -5); // offset = -5*2 = -10
-        REQUIRE(cpu.get_pc() == initial_pc - 10);
+        REQUIRE(cpu.get_pc() == initial_pc - 10 - C_INSTR_SIZE);
     }
 }
 
@@ -361,6 +363,15 @@ TEST_CASE("RV64C edge cases", "[rv64c][edge_cases]") {
     VM vm{};
     Interpreter interp{vm};
     auto &cpu = vm.m_cpu;
+
+    SECTION("c.nop - no operation") {
+        // c.nop is encoded as c.addi x0, 0
+        // Verify it doesn't crash and x0 remains 0
+        uint64_t x0_before = cpu.reg(0).val();
+        interp.c_nop();
+        REQUIRE(cpu.reg(0) == x0_before);
+        REQUIRE(cpu.reg(0) == 0);
+    }
 
     SECTION("c.addi with zero immediate (NOP)") {
         cpu.reg(10) = 42;

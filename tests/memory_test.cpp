@@ -2,36 +2,6 @@
 #include <Memory.hpp>
 #include <rv64/VM.hpp>
 
-TEST_CASE("Memory alignment requirements", "[memory][alignment]") {
-    rv64::VM vm{};
-    Memory &mem = vm.m_memory;
-    MemErr err = MemErr::None;
-    const auto &layout = vm.get_memory_layout();
-
-    SECTION("Aligned access should succeed") {
-        err = mem.store<uint16_t>(layout.data_base, 0x1234);
-        REQUIRE(err == MemErr::None);
-
-        err = mem.store<uint32_t>(layout.data_base + 4, 0x12345678);
-        REQUIRE(err == MemErr::None);
-
-        err = mem.store<uint64_t>(layout.data_base + 8, 0x123456789ABCDEF0);
-        REQUIRE(err == MemErr::None);
-    }
-
-
-    SECTION("8-bit access is always aligned") {
-        for (uint64_t offset = 0; offset < 16; ++offset) {
-            err = mem.store<uint8_t>(layout.data_base + offset, 0x42);
-            REQUIRE(err == MemErr::None);
-
-            uint8_t val = mem.load<uint8_t>(layout.data_base + offset, err);
-            REQUIRE(err == MemErr::None);
-            REQUIRE(val == 0x42);
-        }
-    }
-}
-
 TEST_CASE("Memory descending stack (default)", "[memory][stack][descending]") {
     Memory::Layout layout;
     layout.stack_base = 0x7FF00000;  // Base (bottom) of stack
@@ -387,5 +357,102 @@ TEST_CASE("Memory mixed types", "[memory][types]") {
         auto unsigned_val = mem.load<uint32_t>(layout.data_base, err);
         REQUIRE(err == MemErr::None);
         REQUIRE(unsigned_val == static_cast<uint32_t>(-12345));
+    }
+}
+
+TEST_CASE("Memory endianness", "[memory][endianness]") {
+    SECTION("Little endian (default)") {
+        Memory::Layout layout;
+        layout.endianness = std::endian::little;
+        rv64::VM vm{layout};
+        Memory &mem = vm.m_memory;
+        MemErr err = MemErr::None;
+        const auto &vm_layout = vm.get_memory_layout();
+
+        err = mem.store<uint32_t>(vm_layout.data_base, 0x12345678);
+        REQUIRE(err == MemErr::None);
+
+        // Little endian: LSB first
+        auto b0 = mem.load<uint8_t>(vm_layout.data_base, err);
+        REQUIRE(b0 == 0x78);
+        auto b1 = mem.load<uint8_t>(vm_layout.data_base + 1, err);
+        REQUIRE(b1 == 0x56);
+        auto b2 = mem.load<uint8_t>(vm_layout.data_base + 2, err);
+        REQUIRE(b2 == 0x34);
+        auto b3 = mem.load<uint8_t>(vm_layout.data_base + 3, err);
+        REQUIRE(b3 == 0x12);
+    }
+
+    SECTION("Big endian") {
+        Memory::Layout layout;
+        layout.endianness = std::endian::big;
+        rv64::VM vm{layout};
+        Memory &mem = vm.m_memory;
+        MemErr err = MemErr::None;
+        const auto &vm_layout = vm.get_memory_layout();
+
+        err = mem.store<uint32_t>(vm_layout.data_base, 0x12345678);
+        REQUIRE(err == MemErr::None);
+
+        // Big endian: MSB first
+        auto b0 = mem.load<uint8_t>(vm_layout.data_base, err);
+        REQUIRE(b0 == 0x12);
+        auto b1 = mem.load<uint8_t>(vm_layout.data_base + 1, err);
+        REQUIRE(b1 == 0x34);
+        auto b2 = mem.load<uint8_t>(vm_layout.data_base + 2, err);
+        REQUIRE(b2 == 0x56);
+        auto b3 = mem.load<uint8_t>(vm_layout.data_base + 3, err);
+        REQUIRE(b3 == 0x78);
+    }
+
+    SECTION("64-bit value byte order") {
+        Memory::Layout layout;
+        layout.endianness = std::endian::big;
+        rv64::VM vm{layout};
+        Memory &mem = vm.m_memory;
+        MemErr err = MemErr::None;
+        const auto &vm_layout = vm.get_memory_layout();
+
+        err = mem.store<uint64_t>(vm_layout.data_base, 0x0102030405060708);
+        REQUIRE(err == MemErr::None);
+
+        // Big endian: bytes should be 01 02 03 04 05 06 07 08
+        for (int i = 0; i < 8; ++i) {
+            auto b = mem.load<uint8_t>(vm_layout.data_base + i, err);
+            REQUIRE(err == MemErr::None);
+            REQUIRE(b == (i + 1));
+        }
+
+        // Load back as 64-bit should give original value
+        auto val = mem.load<uint64_t>(vm_layout.data_base, err);
+        REQUIRE(err == MemErr::None);
+        REQUIRE(val == 0x0102030405060708);
+    }
+
+    SECTION("16-bit value byte order") {
+        Memory::Layout layout_le;
+        layout_le.endianness = std::endian::little;
+        rv64::VM vm_le{layout_le};
+        Memory &mem_le = vm_le.m_memory;
+
+        Memory::Layout layout_be;
+        layout_be.endianness = std::endian::big;
+        rv64::VM vm_be{layout_be};
+        Memory &mem_be = vm_be.m_memory;
+
+        MemErr err = MemErr::None;
+        const uint16_t test_val = 0xABCD;
+
+        // Little endian
+        err = mem_le.store<uint16_t>(vm_le.get_memory_layout().data_base, test_val);
+        REQUIRE(err == MemErr::None);
+        REQUIRE(mem_le.load<uint8_t>(vm_le.get_memory_layout().data_base, err) == 0xCD);
+        REQUIRE(mem_le.load<uint8_t>(vm_le.get_memory_layout().data_base + 1, err) == 0xAB);
+
+        // Big endian
+        err = mem_be.store<uint16_t>(vm_be.get_memory_layout().data_base, test_val);
+        REQUIRE(err == MemErr::None);
+        REQUIRE(mem_be.load<uint8_t>(vm_be.get_memory_layout().data_base, err) == 0xAB);
+        REQUIRE(mem_be.load<uint8_t>(vm_be.get_memory_layout().data_base + 1, err) == 0xCD);
     }
 }

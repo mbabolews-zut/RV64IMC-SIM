@@ -103,9 +103,4 @@ namespace asm_parsing {
         result.error_code = parsing_error;
         return result;
     }
-
-    int parse_and_resolve(const std::string &source, ParsedInstVec &out_instructions) {
-        auto result = parse(source);
-        return result.resolve_instructions(out_instructions);
-    }
 }
