@@ -2,13 +2,15 @@ cmake_minimum_required(VERSION 3.21)
 
 # Standalone build support
 if (CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
-    project(RV64_SIM_TESTS LANGUAGES CXX)
+    project(rv64_tests LANGUAGES CXX)
     project(RV64_SIM_PERF_TEST LANGUAGES CXX)
     set(CMAKE_CXX_STANDARD 20)
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
     enable_testing()
     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../source/core ${CMAKE_BINARY_DIR}/core)
 endif ()
+
+add_compile_options(-O3)
 
 ############################################
 # FETCH CATCH2

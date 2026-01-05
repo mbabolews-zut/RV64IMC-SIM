@@ -12,9 +12,7 @@ static std::unique_ptr<VM> run_program(const std::string &source) {
     auto vm = std::make_unique<VM>();
     asm_parsing::ParsedInstVec instructions;
     int result = asm_parsing::parse_and_resolve(source, instructions, vm->m_cpu.get_pc());
-    if (result != 0) {
-        auto breakpoint = true;
-    }
+
     REQUIRE(result == 0);
     vm->load_program(instructions);
     vm->run_until_stop();

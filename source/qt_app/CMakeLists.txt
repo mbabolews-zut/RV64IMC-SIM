@@ -24,8 +24,8 @@ endif()
 
 # Check for Qt6_DIR environment variable
 if(DEFINED ENV{Qt6_DIR} AND NOT Qt6_DIR)
-    set(Qt6_DIR "$ENV{Qt6_DIR}")
-    message(STATUS "Using Qt6_DIR from environment: ${Qt6_DIR}")
+    list(PREPEND CMAKE_PREFIX_PATH "$ENV{Qt6_DIR}")
+    message(STATUS "Using Qt6_DIR from environment: $ENV{Qt6_DIR}")
 endif()
 
 
@@ -48,10 +48,6 @@ set(QML_IMPORT_PATH ${QT_QML_OUTPUT_DIRECTORY}
 
 # Find Qt6 - let CMake search standard paths
 find_package(Qt6 6.8 REQUIRED COMPONENTS Core Gui Widgets Qml Quick QuickTimeline ShaderTools Concurrent)
-
-if(Qt6_FOUND)
-    message(STATUS "Found Qt6 version ${Qt6_VERSION} at ${Qt6_DIR}")
-endif()
 
 qt_standard_project_setup()
 
