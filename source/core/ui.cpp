@@ -1,6 +1,7 @@
 #include "ui.hpp"
 #include <iostream>
 #include <format>
+#include <optional>
 
 #ifndef DEBUG
 #   define DEBUG 0
