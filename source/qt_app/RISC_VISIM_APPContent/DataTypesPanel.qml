@@ -6,14 +6,14 @@ Rectangle {
     color: "#f8f8fc"
     focus: true
 
-    property var selectedAddress: -1
+    property string selectedAddress: ""  // hex string or empty
     property bool canEdit: false
     property var values: []
 
-    signal valueEdited(var address, int typeIndex, string value)
+    signal valueEdited(string address, int typeIndex, string value)
 
     property int editingIndex: -1
-    property var editingAddress: -1
+    property string editingAddress: ""
 
     ListModel {
         id: typesModel
@@ -34,19 +34,36 @@ Rectangle {
         clip: true
         spacing: 0
 
-        header: Rectangle {
+        header: Column {
             width: listView.width
-            height: 20
-            color: "#e8e8f0"
+            spacing: 0
 
-            Text {
-                anchors.centerIn: parent
-                text: root.selectedAddress >= 0
-                    ? root.selectedAddress.toString(16).toUpperCase().padStart(16, '0')
-                    : "Select address"
-                color: "#990000"
-                font.family: "monospace"
-                font.pixelSize: 12
+            Rectangle {
+                width: parent.width
+                height: 20
+                color: "#e8e8f0"
+
+                Text {
+                    anchors.centerIn: parent
+                    text: root.selectedAddress !== "" ? root.selectedAddress : "Select address"
+                    color: "#990000"
+                    font.family: "monospace"
+                    font.pixelSize: 12
+                }
+            }
+
+            Rectangle {
+                width: parent.width
+                height: 16
+                color: "#d8d8e8"
+
+                Text {
+                    anchors.centerIn: parent
+                    text: memoryController.isLittleEndian ? "LE (little-endian)" : "BE (big-endian)"
+                    color: "#666688"
+                    font.family: "monospace"
+                    font.pixelSize: 10
+                }
             }
         }
 
@@ -88,7 +105,7 @@ Rectangle {
 
                     MouseArea {
                         anchors.fill: parent
-                        enabled: root.canEdit && root.selectedAddress >= 0
+                        enabled: root.canEdit && root.selectedAddress !== ""
                         cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
                         onClicked: root.forceActiveFocus()
                         onDoubleClicked: {
@@ -117,16 +134,16 @@ Rectangle {
 
                     Keys.onReturnPressed: commit()
                     Keys.onEnterPressed: commit()
-                    Keys.onEscapePressed: { root.editingIndex = -1; root.editingAddress = -1 }
+                    Keys.onEscapePressed: { root.editingIndex = -1; root.editingAddress = "" }
 
                     onActiveFocusChanged: if (!activeFocus) Qt.callLater(commit)
 
                     function commit() {
-                        if (text.length > 0 && root.editingAddress >= 0) {
+                        if (text.length > 0 && root.editingAddress !== "") {
                             root.valueEdited(root.editingAddress, rowDelegate.typeIndex, text)
                         }
                         root.editingIndex = -1
-                        root.editingAddress = -1
+                        root.editingAddress = ""
                     }
                 }
             }

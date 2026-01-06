@@ -48,7 +48,7 @@ set(QML_IMPORT_PATH ${QT_QML_OUTPUT_DIRECTORY}
 )
 
 # Find Qt6 - let CMake search standard paths
-find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Widgets Qml Quick Concurrent)
+find_package(Qt6 6.2 REQUIRED COMPONENTS Core Gui Widgets Qml Quick Concurrent)
 
 qt_standard_project_setup()
 
@@ -81,7 +81,6 @@ if(WIN32)
                 COMMENT "Running windeployqt to deploy Qt dependencies..."
         )
 
-        # Fix Qt 6.10+ windeployqt bug: manually copy NativeStyle QML files
         set(QT_QML_DIR "${Qt6_DIR}/../../../qml")
         set(OUTPUT_QML_DIR "$<TARGET_FILE_DIR:${CMAKE_PROJECT_NAME}>/qml")
         add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD

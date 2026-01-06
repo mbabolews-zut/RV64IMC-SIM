@@ -5,7 +5,7 @@ import QtQuick.Layouts
 Rectangle {
     id: root
 
-    property int selectedAddress: -1
+    property string selectedAddress: ""  // hex string or empty
     property var dataTypesValues: []
     readonly property bool canEdit: !backend.runLocked
 
@@ -51,7 +51,6 @@ Rectangle {
                     baseAddress: memoryController.dataBaseAddress
                     rowCount: memoryController.dataRowCount
                     revision: memoryController.revision
-                    getByteFunc: addr => memoryController.getByte(memoryController.dataBaseAddress + addr)
                     selectedAddress: root.selectedAddress
                     canEdit: root.canEdit
 
@@ -61,7 +60,7 @@ Rectangle {
                     }
                     onByteModified: (addr, value) => {
                         memoryController.modifyByte(addr, value)
-                        if (root.selectedAddress >= 0)
+                        if (root.selectedAddress !== "")
                             memoryController.loadDataTypes(root.selectedAddress)
                     }
                 }
@@ -76,7 +75,7 @@ Rectangle {
 
                     onValueEdited: (addr, typeIndex, value) => {
                         memoryController.modifyValue(addr, typeIndex, value)
-                        memoryController.loadDataTypes(root.selectedAddress >= 0 ? root.selectedAddress : addr)
+                        memoryController.loadDataTypes(root.selectedAddress !== "" ? root.selectedAddress : addr)
                     }
                 }
             }
@@ -97,7 +96,6 @@ Rectangle {
                     baseAddress: memoryController.stackBaseAddress
                     rowCount: memoryController.stackRowCount
                     revision: memoryController.revision
-                    getByteFunc: addr => memoryController.getByte(memoryController.stackBaseAddress + addr)
                     selectedAddress: root.selectedAddress
                     canEdit: root.canEdit
 
@@ -107,7 +105,7 @@ Rectangle {
                     }
                     onByteModified: (addr, value) => {
                         memoryController.modifyByte(addr, value)
-                        if (root.selectedAddress >= 0)
+                        if (root.selectedAddress !== "")
                             memoryController.loadDataTypes(root.selectedAddress)
                     }
                 }
@@ -122,7 +120,7 @@ Rectangle {
 
                     onValueEdited: (addr, typeIndex, value) => {
                         memoryController.modifyValue(addr, typeIndex, value)
-                        memoryController.loadDataTypes(root.selectedAddress >= 0 ? root.selectedAddress : addr)
+                        memoryController.loadDataTypes(root.selectedAddress !== "" ? root.selectedAddress : addr)
                     }
                 }
             }

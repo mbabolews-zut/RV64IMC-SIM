@@ -6,32 +6,31 @@ Rectangle {
     color: "#ffffff"
     focus: true
 
-    required property var baseAddress
+    required property string baseAddress  // hex string from C++
     required property int rowCount
-    required property var getByteFunc
     required property int revision
 
-    property int selectedAddress: -1
-    property int selectionStart: -1
-    property int selectionEnd: -1
-    property int editingAddress: -1
-    property bool editingAscii: false  // true = ASCII edit, false = hex edit
-    property int asciiCursorAddr: -1   // cursor position in ASCII edit mode
+    property string selectedAddress: ""  // hex string or empty
+    property string selectionStart: ""
+    property string selectionEnd: ""
+    property string editingAddress: ""
+    property bool editingAscii: false
+    property string asciiCursorAddr: ""
     property bool canEdit: false
     property bool isDragging: false
 
-    // Layout constants (adjusted for cross-platform font rendering)
-    readonly property int addrWidth: 145
-    readonly property int hexCellWidth: 30
-    readonly property int asciiCellWidth: 11
+    // Layout constants
+    readonly property int addrWidth: 130
+    readonly property int hexCellWidth: 28
+    readonly property int asciiCellWidth: 10
     readonly property int separatorWidth: 16
     readonly property int leftMargin: 8
     readonly property int hexAreaStart: leftMargin + addrWidth
     readonly property int hexAreaWidth: 16 * hexCellWidth
     readonly property int asciiAreaStart: hexAreaStart + hexAreaWidth + separatorWidth
 
-    signal addressSelected(var addr)
-    signal byteModified(var addr, int value)
+    signal addressSelected(string addr)
+    signal byteModified(string addr, int value)
 
     property var pendingCommit: null
 
@@ -48,52 +47,19 @@ Rectangle {
             pendingCommit()
             pendingCommit = null
         }
-        editingAddress = -1
+        editingAddress = ""
         editingAscii = false
-        asciiCursorAddr = -1
+        asciiCursorAddr = ""
     }
 
     function isInSelection(addr) {
-        if (selectionStart < 0 || selectionEnd < 0) return addr === selectedAddress
-        let min = Math.min(selectionStart, selectionEnd)
-        let max = Math.max(selectionStart, selectionEnd)
+        if (selectionStart === "" || selectionEnd === "") {
+            return addr === selectedAddress
+        }
+        // String comparison works for same-length padded hex
+        let min = selectionStart < selectionEnd ? selectionStart : selectionEnd
+        let max = selectionStart < selectionEnd ? selectionEnd : selectionStart
         return addr >= min && addr <= max
-    }
-
-    function getSelectedBytes() {
-        if (selectionStart < 0 || selectionEnd < 0) {
-            if (selectedAddress >= 0) {
-                let val = getByteFunc(selectedAddress - baseAddress)
-                return val >= 0 ? val.toString(16).toUpperCase().padStart(2, '0') : ""
-            }
-            return ""
-        }
-        let min = Math.min(selectionStart, selectionEnd)
-        let max = Math.max(selectionStart, selectionEnd)
-        let bytes = []
-        for (let addr = min; addr <= max; addr++) {
-            let val = getByteFunc(addr - baseAddress)
-            if (val >= 0) bytes.push(val.toString(16).toUpperCase().padStart(2, '0'))
-        }
-        return bytes.join(' ')
-    }
-
-    function getSelectedAscii() {
-        if (selectionStart < 0 || selectionEnd < 0) {
-            if (selectedAddress >= 0) {
-                let val = getByteFunc(selectedAddress - baseAddress)
-                return val >= 32 && val < 127 ? String.fromCharCode(val) : "."
-            }
-            return ""
-        }
-        let min = Math.min(selectionStart, selectionEnd)
-        let max = Math.max(selectionStart, selectionEnd)
-        let chars = []
-        for (let addr = min; addr <= max; addr++) {
-            let val = getByteFunc(addr - baseAddress)
-            chars.push(val >= 32 && val < 127 ? String.fromCharCode(val) : ".")
-        }
-        return chars.join('')
     }
 
     function byteToAscii(val) {
@@ -109,7 +75,7 @@ Rectangle {
         if (x >= hexAreaStart && x < hexAreaStart + hexAreaWidth) {
             let colIndex = Math.floor((x - hexAreaStart) / hexCellWidth)
             if (colIndex >= 0 && colIndex < 16) {
-                return { addr: baseAddress + rowIndex * 16 + colIndex, isAscii: false }
+                return { addr: memoryController.addressAt(baseAddress, rowIndex * 16 + colIndex), isAscii: false }
             }
         }
 
@@ -117,7 +83,7 @@ Rectangle {
         if (x >= asciiAreaStart && x < asciiAreaStart + 16 * asciiCellWidth) {
             let colIndex = Math.floor((x - asciiAreaStart) / asciiCellWidth)
             if (colIndex >= 0 && colIndex < 16) {
-                return { addr: baseAddress + rowIndex * 16 + colIndex, isAscii: true }
+                return { addr: memoryController.addressAt(baseAddress, rowIndex * 16 + colIndex), isAscii: true }
             }
         }
 
@@ -126,9 +92,11 @@ Rectangle {
 
     Keys.onPressed: event => {
         if (event.key === Qt.Key_C && (event.modifiers & Qt.ControlModifier)) {
-            let text = getSelectedBytes()
-            if (text.length > 0) {
-                clipboard.setText(text)
+            if (selectedAddress !== "") {
+                let val = memoryController.getByteAt(selectedAddress)
+                if (val >= 0) {
+                    clipboard.setText(val.toString(16).toUpperCase().padStart(2, '0'))
+                }
             }
             event.accepted = true
         }
@@ -147,7 +115,7 @@ Rectangle {
         focus: false
 
         Keys.onPressed: event => {
-            if (!root.editingAscii || root.asciiCursorAddr < 0) return
+            if (!root.editingAscii || root.asciiCursorAddr === "") return
 
             if (event.key === Qt.Key_Escape) {
                 root.stopEdit()
@@ -157,33 +125,35 @@ Rectangle {
 
             if (event.key === Qt.Key_Left) {
                 if (root.asciiCursorAddr > root.baseAddress) {
-                    root.asciiCursorAddr--
+                    root.asciiCursorAddr = memoryController.addressAt(root.asciiCursorAddr, -1)
                 }
                 event.accepted = true
                 return
             }
 
             if (event.key === Qt.Key_Right) {
-                let maxAddr = root.baseAddress + root.rowCount * 16 - 1
+                let maxAddr = memoryController.addressAt(root.baseAddress, root.rowCount * 16 - 1)
                 if (root.asciiCursorAddr < maxAddr) {
-                    root.asciiCursorAddr++
+                    root.asciiCursorAddr = memoryController.addressAt(root.asciiCursorAddr, 1)
                 }
                 event.accepted = true
                 return
             }
 
             if (event.key === Qt.Key_Up) {
-                if (root.asciiCursorAddr >= root.baseAddress + 16) {
-                    root.asciiCursorAddr -= 16
+                let minAddr = memoryController.addressAt(root.baseAddress, 16)
+                if (root.asciiCursorAddr >= minAddr) {
+                    root.asciiCursorAddr = memoryController.addressAt(root.asciiCursorAddr, -16)
                 }
                 event.accepted = true
                 return
             }
 
             if (event.key === Qt.Key_Down) {
-                let maxAddr = root.baseAddress + root.rowCount * 16 - 1
-                if (root.asciiCursorAddr + 16 <= maxAddr) {
-                    root.asciiCursorAddr += 16
+                let maxAddr = memoryController.addressAt(root.baseAddress, root.rowCount * 16 - 1)
+                let nextAddr = memoryController.addressAt(root.asciiCursorAddr, 16)
+                if (nextAddr <= maxAddr) {
+                    root.asciiCursorAddr = nextAddr
                 }
                 event.accepted = true
                 return
@@ -191,7 +161,7 @@ Rectangle {
 
             if (event.key === Qt.Key_Backspace) {
                 if (root.asciiCursorAddr > root.baseAddress) {
-                    root.asciiCursorAddr--
+                    root.asciiCursorAddr = memoryController.addressAt(root.asciiCursorAddr, -1)
                     root.byteModified(root.asciiCursorAddr, 0)
                 }
                 event.accepted = true
@@ -209,9 +179,9 @@ Rectangle {
                 let charCode = event.text.charCodeAt(0)
                 if (charCode >= 32 && charCode < 127) {
                     root.byteModified(root.asciiCursorAddr, charCode)
-                    let maxAddr = root.baseAddress + root.rowCount * 16 - 1
+                    let maxAddr = memoryController.addressAt(root.baseAddress, root.rowCount * 16 - 1)
                     if (root.asciiCursorAddr < maxAddr) {
-                        root.asciiCursorAddr++
+                        root.asciiCursorAddr = memoryController.addressAt(root.asciiCursorAddr, 1)
                     }
                     event.accepted = true
                 }
@@ -248,8 +218,7 @@ Rectangle {
                     color: "#990000"
                     text: "Address"
                     font.bold: true
-                    font.family: "monospace"
-                    font.pixelSize: 13
+                    font.family: "Courier New"
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                 }
@@ -262,8 +231,7 @@ Rectangle {
                         color: "#990000"
                         text: index.toString(16).toUpperCase().padStart(2, '0')
                         font.bold: true
-                        font.family: "monospace"
-                        font.pixelSize: 13
+                        font.family: "Courier New"
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                     }
@@ -277,8 +245,7 @@ Rectangle {
                     color: "#990000"
                     text: "ASCII"
                     font.bold: true
-                    font.family: "monospace"
-                    font.pixelSize: 13
+                    font.family: "Courier New"
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                 }
@@ -300,7 +267,7 @@ Rectangle {
                 delegate: Rectangle {
                     id: rowDelegate
                     property int rowIndex: index
-                    property int rowAddr: root.baseAddress + rowIndex * 16
+                    property string rowAddr: memoryController.addressAt(root.baseAddress, rowIndex * 16)
                     width: listView.width
                     height: 22
                     color: rowIndex % 2 === 0 ? "#ffffff" : "#f8f8f8"
@@ -315,9 +282,9 @@ Rectangle {
                             width: root.addrWidth
                             height: 22
                             color: "#990000"
-                            text: rowDelegate.rowAddr.toString(16).toUpperCase().padStart(16, '0')
-                            font.family: "monospace"
-                            font.pixelSize: 13
+                            text: rowDelegate.rowAddr
+                            font.family: "Courier New"
+                            font.pointSize: 10
                             horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter
                         }
@@ -327,7 +294,7 @@ Rectangle {
                             model: 16
                             Rectangle {
                                 id: hexCell
-                                property int addr: rowDelegate.rowAddr + modelData
+                                property string addr: memoryController.addressAt(rowDelegate.rowAddr, modelData)
                                 property int offset: rowDelegate.rowIndex * 16 + modelData
                                 property bool isSelected: root.isInSelection(addr)
                                 property bool isEditing: addr === root.editingAddress && !root.editingAscii
@@ -345,11 +312,11 @@ Rectangle {
                                     color: "#333333"
                                     text: {
                                         void(root.revision)
-                                        let val = root.getByteFunc(hexCell.offset)
+                                        let val = memoryController.getByteAt(hexCell.addr)
                                         return val >= 0 ? val.toString(16).toUpperCase().padStart(2, '0') : "??"
                                     }
                                     font.family: "monospace"
-                                    font.pixelSize: 13
+                                    font.pointSize: 13
                                 }
 
                                 TextInput {
@@ -359,7 +326,7 @@ Rectangle {
                                     visible: hexCell.isEditing
                                     horizontalAlignment: Text.AlignHCenter
                                     font.family: "monospace"
-                                    font.pixelSize: 13
+                                    font.pointSize: 13
                                     maximumLength: 2
                                     validator: RegularExpressionValidator { regularExpression: /[0-9A-Fa-f]{0,2}/ }
                                     selectByMouse: true
@@ -367,7 +334,8 @@ Rectangle {
 
                                     onVisibleChanged: {
                                         if (visible) {
-                                            originalValue = root.getByteFunc(hexCell.offset).toString(16).toUpperCase().padStart(2, '0')
+                                            let val = memoryController.getByteAt(hexCell.addr)
+                                            originalValue = val >= 0 ? val.toString(16).toUpperCase().padStart(2, '0') : "00"
                                             text = originalValue
                                             selectAll()
                                             forceActiveFocus()
@@ -390,12 +358,12 @@ Rectangle {
 
                         Item { width: root.separatorWidth; height: 1 }
 
-                        // ASCII cells (display only, editing handled by asciiEditor)
+                        // ASCII cells
                         Repeater {
                             model: 16
                             Rectangle {
                                 id: asciiCell
-                                property var addr: rowDelegate.rowAddr + modelData
+                                property string addr: memoryController.addressAt(rowDelegate.rowAddr, modelData)
                                 property int offset: rowDelegate.rowIndex * 16 + modelData
                                 property bool isSelected: root.isInSelection(addr)
                                 property bool isCursor: root.editingAscii && addr === root.asciiCursorAddr
@@ -409,11 +377,11 @@ Rectangle {
                                     color: "#333333"
                                     text: {
                                         void(root.revision)
-                                        let val = root.getByteFunc(asciiCell.offset)
+                                        let val = memoryController.getByteAt(asciiCell.addr)
                                         return root.byteToAscii(val)
                                     }
                                     font.family: "monospace"
-                                    font.pixelSize: 13
+                                    font.pointSize: 13
                                 }
                             }
                         }
@@ -426,8 +394,7 @@ Rectangle {
                 anchors.fill: parent
 
                 onPressed: mouse => {
-                    // Commit any active edit first
-                    if (root.editingAddress >= 0) {
+                    if (root.editingAddress !== "") {
                         root.stopEdit()
                     }
 
@@ -440,7 +407,6 @@ Rectangle {
                         root.selectionEnd = result.addr
                         root.addressSelected(result.addr)
 
-                        // Single click on ASCII starts editing immediately
                         if (result.isAscii && root.canEdit) {
                             root.startEdit(result.addr, true)
                         }
@@ -463,7 +429,6 @@ Rectangle {
                 onDoubleClicked: mouse => {
                     let result = root.cellAtPosition(mouse.x, mouse.y)
                     if (result && root.canEdit && !result.isAscii) {
-                        // Double-click only for hex editing
                         root.startEdit(result.addr, false)
                     }
                 }
