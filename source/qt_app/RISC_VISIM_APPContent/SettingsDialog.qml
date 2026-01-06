@@ -2,7 +2,6 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Controls.Basic
-import QtQuick.Effects
 
 Dialog {
     id: root
@@ -52,18 +51,6 @@ Dialog {
             text: "SETTINGS"
             visible: false
             font.family: "Jura"; font.pixelSize: 13; font.letterSpacing: 2; font.bold: true
-        }
-
-        MultiEffect {
-            source: sourceLabel
-            anchors.centerIn: parent
-            width: sourceLabel.width
-            height: sourceLabel.height
-            shadowEnabled: true
-            shadowColor: "#80000000"
-            shadowBlur: 1.0
-            shadowVerticalOffset: 2
-            autoPaddingEnabled: true
         }
 
         Label {

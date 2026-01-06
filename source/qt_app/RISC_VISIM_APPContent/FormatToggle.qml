@@ -6,9 +6,9 @@ Row {
     spacing: 0
 
     readonly property var formats: [
-        { label: "Dec", format: 10, radius: [7, 0, 0, 7] },
-        { label: "Hex", format: 16, radius: [0, 0, 0, 0] },
-        { label: "Bin", format: 2, radius: [0, 7, 7, 0] }
+        { label: "Dec", format: 10 },
+        { label: "Hex", format: 16 },
+        { label: "Bin", format: 2 }
     ]
 
     Repeater {
@@ -26,12 +26,15 @@ Row {
 
             onClicked: registerModel.format = modelData.format
 
-            background: Rectangle {
-                color: parent.checked ? "#2E43FF" : "#6B6B6B"
-                topLeftRadius: modelData.radius[0]
-                topRightRadius: modelData.radius[1]
-                bottomRightRadius: modelData.radius[2]
-                bottomLeftRadius: modelData.radius[3]
+            background: Item {
+                clip: true
+                Rectangle {
+                    width: parent.width + (index === 1 ? 0 : 7)
+                    height: parent.height
+                    x: index === 2 ? -7 : 0
+                    color: parent.parent.checked ? "#2E43FF" : "#6B6B6B"
+                    radius: index === 1 ? 0 : 7
+                }
             }
 
             contentItem: Text {
