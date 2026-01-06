@@ -47,7 +47,7 @@ set(QML_IMPORT_PATH ${QT_QML_OUTPUT_DIRECTORY}
 )
 
 # Find Qt6 - let CMake search standard paths
-find_package(Qt6 6.8 REQUIRED COMPONENTS Core Gui Widgets Qml Quick QuickTimeline ShaderTools Concurrent)
+find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Widgets Qml Quick Concurrent)
 
 qt_standard_project_setup()
 
