@@ -23,7 +23,7 @@ Rectangle {
             width: root.regColumnWidth
             height: parent.height
             text: "Reg"
-            font { bold: true; family: "Courier New"; pointSize: 11 }
+            font { bold: true; family: "monospace"; pixelSize: 14 }
             verticalAlignment: Text.AlignVCenter
             horizontalAlignment: Text.AlignHCenter
         }
@@ -32,7 +32,7 @@ Rectangle {
             width: root.abiColumnWidth
             height: parent.height
             text: "ABI"
-            font { bold: true; family: "Courier New"; pointSize: 11 }
+            font { bold: true; family: "monospace"; pixelSize: 14 }
             verticalAlignment: Text.AlignVCenter
             horizontalAlignment: Text.AlignHCenter
         }
@@ -41,7 +41,7 @@ Rectangle {
             width: parent.width - root.regColumnWidth - root.abiColumnWidth - root.spacing * 2
             height: parent.height
             text: "Value"
-            font { bold: true; family: "Courier New"; pointSize: 11 }
+            font { bold: true; family: "monospace"; pixelSize: 14 }
             verticalAlignment: Text.AlignVCenter
             horizontalAlignment: Text.AlignHCenter
         }

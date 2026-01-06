@@ -18,8 +18,8 @@ Rectangle {
     color: isCoreModified ? highlightColor : baseColor
 
     readonly property font monoFont: Qt.font({
-        family: "Courier New",
-        pointSize: 11,
+        family: "monospace",
+        pixelSize: 14,
         bold: isUserModified
     })
 

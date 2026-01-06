@@ -12,19 +12,19 @@ SettingsPage {
     property alias fontFamily: fontFamilyCombo.currentIndex
     property alias highlightColor: colorInput.text
 
-    property var fontFamilyModel: ["Courier New", "Consolas", "Monospace"]
+    property var fontFamilyModel: ["monospace", "Courier New", "Consolas"]
 
     GridLayout {
         columns: 2
         rowSpacing: 18
         columnSpacing: 15
 
-        Label { text: "Font Size"; color: root.cMuted }
+        Label { text: "Font Size (px)"; color: root.cMuted }
         SettingsSpinBox {
             id: fontSizeSpinBox
-            from: 8
-            to: 32
-            value: 12
+            from: 10
+            to: 40
+            value: 15
         }
 
         Label { text: "Font Family"; color: root.cMuted }

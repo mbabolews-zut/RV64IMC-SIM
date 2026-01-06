@@ -4,6 +4,7 @@
 #include <QApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
+#include <QLoggingCategory>
 #include "Backend.hpp"
 #include <ui.hpp>
 
@@ -13,6 +14,9 @@ int main(int argc, char *argv[])
 {
     set_qt_environment();
     QApplication app(argc, argv);
+
+    // Suppress QML control customization warnings for native styles
+    QLoggingCategory::setFilterRules("qt.quick.controls.impl.warning=false");
 
     // Set up backend and UI callbacks
     Backend backend;

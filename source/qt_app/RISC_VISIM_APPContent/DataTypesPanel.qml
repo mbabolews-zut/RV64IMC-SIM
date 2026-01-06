@@ -45,8 +45,8 @@ Rectangle {
                     ? root.selectedAddress.toString(16).toUpperCase().padStart(16, '0')
                     : "Select address"
                 color: "#990000"
-                font.family: "Courier New"
-                font.pointSize: 9
+                font.family: "monospace"
+                font.pixelSize: 12
             }
         }
 
@@ -72,8 +72,8 @@ Rectangle {
                     Layout.preferredWidth: 36
                     text: model.name
                     color: "#666688"
-                    font.family: "Courier New"
-                    font.pointSize: 9
+                    font.family: "monospace"
+                    font.pixelSize: 12
                 }
 
                 Text {
@@ -81,8 +81,8 @@ Rectangle {
                     visible: !rowDelegate.isEditing
                     text: rowDelegate.displayValue
                     color: "#333333"
-                    font.family: "Courier New"
-                    font.pointSize: 9
+                    font.family: "monospace"
+                    font.pixelSize: 12
                     elide: Text.ElideRight
                     horizontalAlignment: Text.AlignRight
 
@@ -103,8 +103,8 @@ Rectangle {
                     Layout.fillWidth: true
                     visible: rowDelegate.isEditing
                     horizontalAlignment: Text.AlignRight
-                    font.family: "Courier New"
-                    font.pointSize: 9
+                    font.family: "monospace"
+                    font.pixelSize: 12
                     selectByMouse: true
 
                     onVisibleChanged: {

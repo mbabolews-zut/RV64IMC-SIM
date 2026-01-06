@@ -131,8 +131,8 @@ Rectangle {
                 height: Math.max(contentHeight, editorFlickable.height)
                 readOnly: backend.editorLocked
                 textFormat: TextEdit.PlainText
-                font.family: "Courier New"
-                font.pointSize: 12
+                font.family: "monospace"
+                font.pixelSize: 15
                 leftPadding: 10
                 selectByMouse: true
                 wrapMode: TextEdit.NoWrap

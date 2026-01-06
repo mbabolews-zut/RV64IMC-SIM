@@ -80,7 +80,6 @@ void Memory::load_program(const asm_parsing::ParsedInstVec &instructions) {
 }
 
 Memory::InstructionFetch Memory::get_instruction_at(uint64_t address, MemErr &err) const {
-    static constexpr Instruction invalid_inst;
     assert(!m_instructions.empty());
 
     size_t relative_addr = address - m_layout.data_base;
@@ -89,13 +88,13 @@ Memory::InstructionFetch Memory::get_instruction_at(uint64_t address, MemErr &er
     // check if end of program has been reached
     if (offset == m_instructions.size()) {
         err = MemErr::ProgramExit;
-        return {invalid_inst, std::nullopt};
+        return {Instruction::invalid(), std::nullopt};
     }
 
     // check if address is in instruction memory range
     if (address < m_layout.data_base || offset > m_instructions.size()) {
         err = MemErr::SegFault;
-        return {invalid_inst, std::nullopt};
+        return {Instruction::invalid(), std::nullopt};
     }
 
     const auto &parsed_inst = m_instructions.at(offset);
@@ -103,7 +102,7 @@ Memory::InstructionFetch Memory::get_instruction_at(uint64_t address, MemErr &er
     // check for padding (invalid instruction fetch)
     if (parsed_inst.is_padding()) {
         err = MemErr::InvalidInstructionAddress;
-        return {invalid_inst, std::nullopt};
+        return {Instruction::invalid(), std::nullopt};
     }
 
     err = MemErr::None;

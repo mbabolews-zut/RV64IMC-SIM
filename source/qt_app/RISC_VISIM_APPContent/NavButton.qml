@@ -19,7 +19,7 @@ Item {
         bottomPadding: 9
         rightPadding: 18
         leftPadding: 18
-        padding: 12
+        hoverEnabled: true
 
         onClicked: root.clicked()
 
@@ -28,11 +28,12 @@ Item {
                 : (button.pressed ? "#161b3b"
                 : (button.hovered ? "#1E2550" : "#2A3172"))
             radius: 9
+            antialiasing: true
         }
 
         contentItem: Text {
             text: root.text
-            font.pointSize: 13
+            font.pixelSize: 18
             font.styleName: "SemiBold"
             font.family: "Jura"
             color: "white"

@@ -11,19 +11,19 @@ Rectangle {
     required property var getByteFunc
     required property int revision
 
-    property var selectedAddress: -1
-    property var selectionStart: -1
-    property var selectionEnd: -1
-    property var editingAddress: -1
+    property int selectedAddress: -1
+    property int selectionStart: -1
+    property int selectionEnd: -1
+    property int editingAddress: -1
     property bool editingAscii: false  // true = ASCII edit, false = hex edit
-    property var asciiCursorAddr: -1   // cursor position in ASCII edit mode
+    property int asciiCursorAddr: -1   // cursor position in ASCII edit mode
     property bool canEdit: false
     property bool isDragging: false
 
-    // Layout constants
-    readonly property int addrWidth: 130
-    readonly property int hexCellWidth: 28
-    readonly property int asciiCellWidth: 10
+    // Layout constants (adjusted for cross-platform font rendering)
+    readonly property int addrWidth: 145
+    readonly property int hexCellWidth: 30
+    readonly property int asciiCellWidth: 11
     readonly property int separatorWidth: 16
     readonly property int leftMargin: 8
     readonly property int hexAreaStart: leftMargin + addrWidth
@@ -248,7 +248,8 @@ Rectangle {
                     color: "#990000"
                     text: "Address"
                     font.bold: true
-                    font.family: "Courier New"
+                    font.family: "monospace"
+                    font.pixelSize: 13
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                 }
@@ -261,7 +262,8 @@ Rectangle {
                         color: "#990000"
                         text: index.toString(16).toUpperCase().padStart(2, '0')
                         font.bold: true
-                        font.family: "Courier New"
+                        font.family: "monospace"
+                        font.pixelSize: 13
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                     }
@@ -275,7 +277,8 @@ Rectangle {
                     color: "#990000"
                     text: "ASCII"
                     font.bold: true
-                    font.family: "Courier New"
+                    font.family: "monospace"
+                    font.pixelSize: 13
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                 }
@@ -297,7 +300,7 @@ Rectangle {
                 delegate: Rectangle {
                     id: rowDelegate
                     property int rowIndex: index
-                    property var rowAddr: root.baseAddress + rowIndex * 16
+                    property int rowAddr: root.baseAddress + rowIndex * 16
                     width: listView.width
                     height: 22
                     color: rowIndex % 2 === 0 ? "#ffffff" : "#f8f8f8"
@@ -313,8 +316,8 @@ Rectangle {
                             height: 22
                             color: "#990000"
                             text: rowDelegate.rowAddr.toString(16).toUpperCase().padStart(16, '0')
-                            font.family: "Courier New"
-                            font.pointSize: 10
+                            font.family: "monospace"
+                            font.pixelSize: 13
                             horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter
                         }
@@ -324,7 +327,7 @@ Rectangle {
                             model: 16
                             Rectangle {
                                 id: hexCell
-                                property var addr: rowDelegate.rowAddr + modelData
+                                property int addr: rowDelegate.rowAddr + modelData
                                 property int offset: rowDelegate.rowIndex * 16 + modelData
                                 property bool isSelected: root.isInSelection(addr)
                                 property bool isEditing: addr === root.editingAddress && !root.editingAscii
@@ -345,8 +348,8 @@ Rectangle {
                                         let val = root.getByteFunc(hexCell.offset)
                                         return val >= 0 ? val.toString(16).toUpperCase().padStart(2, '0') : "??"
                                     }
-                                    font.family: "Courier New"
-                                    font.pointSize: 10
+                                    font.family: "monospace"
+                                    font.pixelSize: 13
                                 }
 
                                 TextInput {
@@ -355,8 +358,8 @@ Rectangle {
                                     width: parent.width - 4
                                     visible: hexCell.isEditing
                                     horizontalAlignment: Text.AlignHCenter
-                                    font.family: "Courier New"
-                                    font.pointSize: 10
+                                    font.family: "monospace"
+                                    font.pixelSize: 13
                                     maximumLength: 2
                                     validator: RegularExpressionValidator { regularExpression: /[0-9A-Fa-f]{0,2}/ }
                                     selectByMouse: true
@@ -409,8 +412,8 @@ Rectangle {
                                         let val = root.getByteFunc(asciiCell.offset)
                                         return root.byteToAscii(val)
                                     }
-                                    font.family: "Courier New"
-                                    font.pointSize: 10
+                                    font.family: "monospace"
+                                    font.pixelSize: 13
                                 }
                             }
                         }

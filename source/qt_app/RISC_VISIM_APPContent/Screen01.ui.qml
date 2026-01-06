@@ -26,7 +26,7 @@ Rectangle {
         id: settingsDialog
 
         onSettingsApplied: {
-            mainEditor.font.pointSize = settingsDialog.editorFontSize
+            mainEditor.font.pixelSize = settingsDialog.editorFontSize
             mainEditor.highlightColor = settingsDialog.highlightColor
         }
     }
@@ -49,10 +49,22 @@ Rectangle {
             Layout.fillHeight: true
             orientation: Qt.Horizontal
 
+            handle: Rectangle {
+                implicitWidth: 4
+                implicitHeight: 4
+                color: SplitHandle.hovered ? "#e4e0d0" : "#e8e4d4"
+            }
+
             SplitView {
                 SplitView.fillWidth: true
                 SplitView.minimumWidth: 300
                 orientation: Qt.Vertical
+
+                handle: Rectangle {
+                    implicitWidth: 4
+                    implicitHeight: 4
+                    color: SplitHandle.hovered ? "#e4e0d0" : "#e8e4d4"
+                }
 
                 TextEditor {
                     id: mainEditor
@@ -60,8 +72,8 @@ Rectangle {
                     SplitView.fillHeight: true
                     SplitView.fillWidth: true
                     SplitView.minimumHeight: 150
-                    font.family: "Courier New"
-                    font.pointSize: settingsDialog.editorFontSize
+                    font.family: "monospace"
+                    font.pixelSize: settingsDialog.editorFontSize
                 }
 
                 OutputPanel {

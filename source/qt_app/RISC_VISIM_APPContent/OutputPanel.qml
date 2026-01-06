@@ -28,8 +28,8 @@ Rectangle {
                     background: Rectangle { color: "#ffffff" }
                     readOnly: true
                     textFormat: TextEdit.RichText
-                    font.family: "Courier New"
-                    font.pointSize: 11
+                    font.family: "monospace"
+                    font.pixelSize: 14
                     placeholderText: "Output will appear here..."
                     text: backend.output
                 }
@@ -37,6 +37,12 @@ Rectangle {
 
             SplitView {
                 orientation: Qt.Horizontal
+
+                handle: Rectangle {
+                    implicitWidth: 4
+                    implicitHeight: 4
+                    color: SplitHandle.hovered ? "#e4e0d0" : "#d8d4e4"
+                }
 
                 MemoryGrid {
                     SplitView.fillWidth: true
@@ -77,6 +83,12 @@ Rectangle {
 
             SplitView {
                 orientation: Qt.Horizontal
+
+                handle: Rectangle {
+                    implicitWidth: 4
+                    implicitHeight: 4
+                    color: SplitHandle.hovered ? "#e4e0d0" : "#d8d4e4"
+                }
 
                 MemoryGrid {
                     SplitView.fillWidth: true
@@ -127,14 +139,22 @@ Rectangle {
                 contentHeight: 30
                 width: contentWidth + 1
                 background: Rectangle { color: "#000000" }
+                spacing: 1
 
                 Repeater {
                     model: ["output", "memory:data", "memory:stack"]
-
                     TabButton {
                         required property string modelData
                         text: modelData
                         width: implicitWidth + 20
+                        font.pixelSize: 16
+                        contentItem: Text {
+                            text: parent.text
+                            font: parent.font
+                            color: parent.checked ? "black" : "white"
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                        }
                         background: Rectangle {
                             color: parent.checked ? "#f6f6f6" : "#54547b"
                         }

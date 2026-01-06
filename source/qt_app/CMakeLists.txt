@@ -1,8 +1,5 @@
 cmake_minimum_required(VERSION 3.21.1)
 
-# Set CMake policy to suppress VERSION warning in qt6_add_qml_module
-cmake_policy(SET CMP0174 OLD)
-
 ############################################
 # Qt6 PATH CONFIGURATION
 ############################################
@@ -82,6 +79,19 @@ if(WIN32)
                 --no-translations
                 "$<TARGET_FILE:${CMAKE_PROJECT_NAME}>"
                 COMMENT "Running windeployqt to deploy Qt dependencies..."
+        )
+
+        # Fix Qt 6.10+ windeployqt bug: manually copy NativeStyle QML files
+        set(QT_QML_DIR "${Qt6_DIR}/../../../qml")
+        set(OUTPUT_QML_DIR "$<TARGET_FILE_DIR:${CMAKE_PROJECT_NAME}>/qml")
+        add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_directory
+                "${QT_QML_DIR}/QtQuick/NativeStyle/controls"
+                "${OUTPUT_QML_DIR}/QtQuick/NativeStyle/controls"
+                COMMAND ${CMAKE_COMMAND} -E copy_directory
+                "${QT_QML_DIR}/QtQuick/NativeStyle/util"
+                "${OUTPUT_QML_DIR}/QtQuick/NativeStyle/util"
+                COMMENT "Copying NativeStyle QML files (Qt 6.10+ windeployqt workaround)..."
         )
     else()
         message(WARNING "windeployqt not found. Qt DLLs will not be automatically deployed.")

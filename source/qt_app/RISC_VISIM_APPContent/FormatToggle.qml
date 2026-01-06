@@ -40,7 +40,7 @@ Row {
             contentItem: Text {
                 text: parent.text
                 color: "white"
-                font.pointSize: 10
+                font.pixelSize: 13
                 horizontalAlignment: Text.AlignHCenter
                 verticalAlignment: Text.AlignVCenter
             }
