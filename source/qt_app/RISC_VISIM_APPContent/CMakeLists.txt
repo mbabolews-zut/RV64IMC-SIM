@@ -27,4 +27,18 @@ qt6_add_qml_module(RISC_VISIM_APPContent
         "SystemSettingsPage.qml"
 )
 
+# Hide Qt-generated internal targets from Visual Studio solution
+set_target_properties(RISC_VISIM_APPContent PROPERTIES FOLDER "QML Modules")
+if(TARGET RISC_VISIM_APPContentplugin)
+    set_target_properties(RISC_VISIM_APPContentplugin PROPERTIES FOLDER "QML Modules/Internal")
+endif()
+if(TARGET RISC_VISIM_APPContentplugin_init)
+    set_target_properties(RISC_VISIM_APPContentplugin_init PROPERTIES FOLDER "QML Modules/Internal")
+endif()
+if(TARGET RISC_VISIM_APPContent_resources_1)
+    set_target_properties(RISC_VISIM_APPContent_resources_1 PROPERTIES FOLDER "QML Modules/Internal")
+endif()
+if(TARGET RISC_VISIM_APPContent_resources_2)
+    set_target_properties(RISC_VISIM_APPContent_resources_2 PROPERTIES FOLDER "QML Modules/Internal")
+endif()
 

@@ -33,7 +33,11 @@ project(RISC_VISIM_QT LANGUAGES CXX)
 
 # Ensure debug symbols for Debug builds
 if(CMAKE_BUILD_TYPE MATCHES "Debug")
-    add_compile_options(-g -O0)
+    if(MSVC)
+        add_compile_options(/Zi)
+    else()
+        add_compile_options(-g -O0)
+    endif()
 endif()
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
@@ -57,6 +61,32 @@ qt_add_resources(${CMAKE_PROJECT_NAME} "configuration"
     PREFIX "/"
     FILES
         qtquickcontrols2.conf)
+
+
+# Deploy Qt dependencies on Windows
+if(WIN32)
+    # Copy qtquickcontrols2.conf to output directory
+    add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/qtquickcontrols2.conf"
+            "$<TARGET_FILE_DIR:${CMAKE_PROJECT_NAME}>/qtquickcontrols2.conf"
+            COMMENT "Copying qtquickcontrols2.conf to output directory..."
+    )
+
+    find_program(WINDEPLOYQT_EXECUTABLE windeployqt HINTS "${Qt6_DIR}/../../../bin")
+    if(WINDEPLOYQT_EXECUTABLE)
+        add_custom_command(TARGET ${CMAKE_PROJECT_NAME} POST_BUILD
+                COMMAND "${WINDEPLOYQT_EXECUTABLE}"
+                --qmldir "${CMAKE_CURRENT_SOURCE_DIR}"
+                --no-compiler-runtime
+                --no-translations
+                "$<TARGET_FILE:${CMAKE_PROJECT_NAME}>"
+                COMMENT "Running windeployqt to deploy Qt dependencies..."
+        )
+    else()
+        message(WARNING "windeployqt not found. Qt DLLs will not be automatically deployed.")
+    endif()
+endif()
 
 add_subdirectory(../core ${CMAKE_BINARY_DIR}/core)
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE RV64_SIM_CORE)
