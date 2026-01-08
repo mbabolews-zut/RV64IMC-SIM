@@ -74,6 +74,9 @@ public:
     [[nodiscard]] size_t get_data_size() const;
     [[nodiscard]] const Layout &get_layout() const;
 
+    /// @return optional string with error message
+    static std::optional<std::string> validate_layout(const Layout &layout);
+
 private:
     [[nodiscard]] bool in_stack(uint64_t address, size_t obj_size = 0) const noexcept;
     [[nodiscard]] bool in_data(uint64_t address, size_t obj_size = 0) const noexcept;

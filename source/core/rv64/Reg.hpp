@@ -13,7 +13,7 @@ namespace rv64 {
         explicit Reg(std::string_view name);
 
         [[nodiscard]] std::string get_name() const;
-        [[nodiscard]] std::string get_sym_name() const;
+        [[nodiscard]] std::string get_abi_name() const;
 
         /// @brief converts register (symbolic or not) name to index. Returns -1 if the name is invalid.
         [[nodiscard]] static int name_to_idx(const std::string &name);

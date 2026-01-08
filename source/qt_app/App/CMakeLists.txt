@@ -7,6 +7,8 @@ target_sources(${CMAKE_PROJECT_NAME} PUBLIC
         "RegisterModel.hpp"
         "MemoryController.cpp"
         "MemoryController.hpp"
+        "SettingsManager.cpp"
+        "SettingsManager.hpp"
 )
 
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE

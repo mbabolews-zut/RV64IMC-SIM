@@ -31,6 +31,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("backend", &backend);
     engine.rootContext()->setContextProperty("registerModel", backend.registerModel());
     engine.rootContext()->setContextProperty("memoryController", backend.memoryController());
+    engine.rootContext()->setContextProperty("settingsManager", backend.settingsManager());
 
     const QUrl url(mainQmlFile);
     QObject::connect(

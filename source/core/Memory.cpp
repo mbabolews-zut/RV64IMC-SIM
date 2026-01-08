@@ -15,12 +15,11 @@ namespace {
 
 Memory::Memory(const Layout &layout, std::span<const uint8_t> program_data)
     : m_layout(layout)
-    , m_stack_bottom(layout.stack_base)
-    , m_heap_start(layout.data_base + program_data.size())
-    , m_data_size(program_data.size() + layout.initial_heap_size)
-    , m_stack(layout.stack_size, layout.endianness)
-    , m_data(PROGRAM_MEM_LIMIT, layout.endianness)
-{
+      , m_stack_bottom(layout.stack_base)
+      , m_heap_start(layout.data_base + program_data.size())
+      , m_data_size(program_data.size() + layout.initial_heap_size)
+      , m_stack(layout.stack_size, layout.endianness)
+      , m_data(PROGRAM_MEM_LIMIT, layout.endianness) {
     assert(m_data_size <= PROGRAM_MEM_LIMIT);
 
     // Load program data into memory
@@ -173,6 +172,19 @@ const Memory::Layout &Memory::get_layout() const {
     return m_layout;
 }
 
+std::optional<std::string> Memory::validate_layout(const Layout &layout) {
+    if (layout.data_base & 1)
+        return "Data base address must be even";
+    if (layout.data_base + layout.initial_heap_size > layout.data_base + PROGRAM_MEM_LIMIT)
+        return "Initial heap size exceeds program memory limit";
+    uint64_t data_end = layout.data_base + PROGRAM_MEM_LIMIT;
+    uint64_t stack_end = layout.stack_base + layout.stack_size;
+    if (layout.data_base < stack_end && data_end > layout.stack_base)
+        return std::format("Data and stack memory regions may overlap.\nData region may expand up to {} KiB.",
+                           PROGRAM_MEM_LIMIT / 1024);
+    return std::nullopt;
+}
+
 bool Memory::in_stack(uint64_t address, size_t obj_size) const noexcept {
     return address >= m_stack_bottom && address + obj_size <= stack_end_addr();
 }
@@ -222,7 +234,6 @@ T Memory::load(uint64_t address, MemErr &err) const {
 
 template<std::integral T>
 MemErr Memory::store(uint64_t address, T value) {
-
     // Check stack first (more commonly accessed for writes)
     if (in_stack(address, sizeof(T))) {
         return m_stack.store(to_stack_offset(address), value)

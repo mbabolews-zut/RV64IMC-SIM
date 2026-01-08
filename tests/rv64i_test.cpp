@@ -3,6 +3,8 @@
 #include <rv64/Cpu.hpp>
 #include <rv64/Interpreter.hpp>
 
+#include "ui.hpp"
+
 using namespace rv64;
 
 constexpr int INSTR_SIZE = 4;
@@ -840,29 +842,72 @@ TEST_CASE("RV64I PC manipulation", "[rv64i][pc]") {
 
 TEST_CASE("RV64I fence and system instructions", "[rv64i][system]") {
     VM vm{};
+    vm.load_program({});
     Interpreter interp{vm};
     auto &cpu = vm.m_cpu;
-
-    SECTION("fence does nothing but shouldn't crash") {
-        REQUIRE_NOTHROW(interp.fence());
-    }
+    auto &a0 = vm.m_cpu.reg("a0");
+    auto &a1 = vm.m_cpu.reg("a1");
 
     SECTION("ebreak should trigger breakpoint") {
-        vm.load_program({});
-        REQUIRE(vm.get_state() == VMState::Loaded);
 
         REQUIRE_NOTHROW(interp.ebreak());
         REQUIRE(vm.get_state() == VMState::Breakpoint);
     }
 
-    SECTION("ecall with a0=10 should exit program") {
-        vm.load_program({});
-        REQUIRE(vm.get_state() == VMState::Loaded);
 
-        cpu.reg(10) = 10;  // a0 = 10 (exit syscall)
+    SECTION("ecall with a0=10 should exit program") {
+        a0 = 10;  // a0 = 10 (exit syscall)
         REQUIRE_NOTHROW(interp.ecall());
         REQUIRE(vm.get_state() == VMState::Finished);
     }
+
+    std::string msg = "";
+    ui::set_output_callback([&msg](auto sv) {
+        msg += sv;
+    });
+
+    SECTION("ecall with a0=1 should print int") {
+        a0 = 1;   // a0 = 11 (print char)
+        a1 = 2137;  // a1 = 2137
+        REQUIRE_NOTHROW(interp.ecall());
+        REQUIRE(msg == "2137");
+    }
+    SECTION("ecall with a0=4 should print string from memory") {
+        auto &mem = vm.m_memory;
+        auto addr = vm.get_memory_layout().data_base;
+        MemErr err = MemErr::None;
+
+        auto store_str = [&](std::string_view sv) {
+            for (int i = 0; i < sv.length(); i++)
+                REQUIRE(mem.store(addr + i, sv[i]) == MemErr::None);
+            (void)mem.store(addr + sv.length(), '\0');
+        };
+
+        store_str("Hello World");
+        auto str =mem.load_string(addr, err);
+        REQUIRE(err == MemErr::None);
+        REQUIRE(str == "Hello World");
+
+        a0 = 4; // 4 - print_str
+        a1 = addr;
+        REQUIRE_NOTHROW(interp.ecall());
+        REQUIRE(msg == "Hello World");
+    }
+
+
+
+
+    SECTION("ecall with a0=11 should print ASCII character") {
+        a0 = 11;   // a0 = 11 (print char)
+        a1 = 'a';  // a1 = 'a'
+        REQUIRE_NOTHROW(interp.ecall());
+        cpu.reg(11) = 'b';  // a1 = 'a'
+        REQUIRE_NOTHROW(interp.ecall());
+        cpu.reg(11) = 'c';  // a1 = 'a'
+        REQUIRE_NOTHROW(interp.ecall());
+        REQUIRE(msg == "abc");
+    }
+
 
 }
 

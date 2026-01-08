@@ -9,10 +9,8 @@ SettingsPage {
     readonly property color cMuted: "#5C6580"
 
     property alias fontSize: fontSizeSpinBox.value
-    property alias fontFamily: fontFamilyCombo.currentIndex
     property alias highlightColor: colorInput.text
 
-    property var fontFamilyModel: ["monospace", "Courier New", "Consolas"]
 
     GridLayout {
         columns: 2
@@ -25,12 +23,6 @@ SettingsPage {
             from: 10
             to: 40
             value: 15
-        }
-
-        Label { text: "Font Family"; color: root.cMuted }
-        SettingsComboBox {
-            id: fontFamilyCombo
-            model: root.fontFamilyModel
         }
 
         Label { text: "Highlight Hex"; color: root.cMuted }

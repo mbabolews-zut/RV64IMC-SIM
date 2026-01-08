@@ -28,6 +28,8 @@ namespace rv64 {
         void move_pc(int64_t offset);
         [[nodiscard]] uint64_t get_pc() const;
 
+        [[nodiscard]] GPIntReg &reg(std::string_view name) noexcept;
+        [[nodiscard]] const GPIntReg &reg(std::string_view name) const noexcept;
         [[nodiscard]] GPIntReg &reg(int i) noexcept;
         [[nodiscard]] const GPIntReg &reg(int i) const noexcept;
         [[nodiscard]] GPIntReg &reg(Reg reg) noexcept;

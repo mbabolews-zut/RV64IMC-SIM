@@ -3,6 +3,7 @@
 #include <string>
 #include <rv64/Reg.hpp>
 #include <compare>
+#include <format>
 
 namespace rv64 {
     class GPIntReg : public Reg {
@@ -31,6 +32,8 @@ namespace rv64 {
         bool operator==(int64_t other) const noexcept { return sval() == other; }
         std::strong_ordering operator<=>(int64_t other) const noexcept { return sval() <=> other; }
 
+        friend std::ostream &operator<<(std::ostream &os, const GPIntReg &reg) noexcept;
+
     private:
         explicit GPIntReg(int idx) : Reg(idx) {}
 
@@ -41,4 +44,15 @@ namespace rv64 {
 
         friend class Cpu; // only Cpu can construct general purpose registers
     };
+    inline std::ostream &operator<<(std::ostream &os, const rv64::GPIntReg &reg) noexcept {
+        os << std::format("Reg {}(ABI:{}, i64:{}, u64:{}, i32:{}, u32:{})",
+            reg.get_name(),
+            reg.get_abi_name(),
+            reg.sval(),
+            reg.val(),
+            reg.as_i32(),
+            reg.as_u32());
+        return os;
+    }
 }
+

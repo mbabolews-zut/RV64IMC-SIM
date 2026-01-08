@@ -1,13 +1,19 @@
 #include "MemoryController.hpp"
+#include "endianness.hpp"
 
-MemoryController::MemoryController(Memory &memory, const Memory::Layout &layout, QObject *parent)
+MemoryController::MemoryController(Memory &memory, QObject *parent)
     : QObject(parent)
     , m_memory(memory)
-    , m_layout(layout) {
+     {
 }
 
 int MemoryController::dataRowCount() const {
     return int((m_memory.get_data_size() + 15) / 16);
+}
+
+void MemoryController::notifyLayoutChanged() {
+    notifyContentChanged();
+    emit layoutChanged();
 }
 
 QString MemoryController::addressAt(const QString &baseHex, int offset) const {
@@ -77,28 +83,45 @@ void MemoryController::loadDataTypes(const QString &addrHex) {
     MemErr err;
     uint64_t addr = parseHex(addrHex);
 
-    auto u8 = m_memory.load<uint8_t>(addr, err);
-    values.append(err == MemErr::None ? QString("%1").arg(u8, 8, 2, QChar('0')) : "N/A");
-    values.append(err == MemErr::None ? QString::number(int8_t(u8)) : "N/A");
-    values.append(err == MemErr::None ? QString::number(u8) : "N/A");
+    // Read raw bytes in visual order (left-to-right = low to high address)
+    uint8_t bytes[8] = {};
+    bool ok[8] = {};
+    for (int i = 0; i < 8; ++i) {
+        bytes[i] = m_memory.load<uint8_t>(addr + i, err);
+        ok[i] = (err == MemErr::None);
+    }
 
-    auto i16 = m_memory.load<int16_t>(addr, err);
-    values.append(err == MemErr::None ? QString::number(i16) : "N/A");
+    // Interpret bytes according to endianness setting
+    // Little-endian: bytes[0] is LSB (no swap on LE platform)
+    // Big-endian: bytes[0] is MSB (swap on LE platform)
+    auto u16 = *reinterpret_cast<uint16_t*>(bytes);
+    auto u32 = *reinterpret_cast<uint32_t*>(bytes);
+    auto u64 = *reinterpret_cast<uint64_t*>(bytes);
+    if (!isLittleEndian()) {
+        u16 = endianness::swap_on_le_platform(u16);
+        u32 = endianness::swap_on_le_platform(u32);
+        u64 = endianness::swap_on_le_platform(u64);
+    }
 
-    auto u16 = m_memory.load<uint16_t>(addr, err);
-    values.append(err == MemErr::None ? QString::number(u16) : "N/A");
+    // bin8, i8, u8
+    values.append(ok[0] ? QString("%1").arg(bytes[0], 8, 2, QChar('0')) : "N/A");
+    values.append(ok[0] ? QString::number(int8_t(bytes[0])) : "N/A");
+    values.append(ok[0] ? QString::number(bytes[0]) : "N/A");
 
-    auto i32 = m_memory.load<int32_t>(addr, err);
-    values.append(err == MemErr::None ? QString::number(i32) : "N/A");
+    // i16, u16
+    bool ok16 = ok[0] && ok[1];
+    values.append(ok16 ? QString::number(int16_t(u16)) : "N/A");
+    values.append(ok16 ? QString::number(u16) : "N/A");
 
-    auto u32 = m_memory.load<uint32_t>(addr, err);
-    values.append(err == MemErr::None ? QString::number(u32) : "N/A");
+    // i32, u32
+    bool ok32 = ok[0] && ok[1] && ok[2] && ok[3];
+    values.append(ok32 ? QString::number(int32_t(u32)) : "N/A");
+    values.append(ok32 ? QString::number(u32) : "N/A");
 
-    auto i64 = m_memory.load<int64_t>(addr, err);
-    values.append(err == MemErr::None ? QString::number(i64) : "N/A");
-
-    auto u64 = m_memory.load<uint64_t>(addr, err);
-    values.append(err == MemErr::None ? QString::number(u64) : "N/A");
+    // i64, u64
+    bool ok64 = ok[0] && ok[1] && ok[2] && ok[3] && ok[4] && ok[5] && ok[6] && ok[7];
+    values.append(ok64 ? QString::number(int64_t(u64)) : "N/A");
+    values.append(ok64 ? QString::number(u64) : "N/A");
 
     emit dataTypesLoaded(values);
 }

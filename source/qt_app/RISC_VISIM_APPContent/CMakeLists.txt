@@ -13,7 +13,7 @@ qt6_add_qml_module(RISC_VISIM_APPContent
         "RegisterPanel.qml"
         "RegisterRow.qml"
         "RegisterTableHeader.qml"
-        "Screen01.ui.qml"
+        "Screen01.qml"
         "SettingsDialog.qml"
         "TextEditor.qml"
         "Toolbar.qml"

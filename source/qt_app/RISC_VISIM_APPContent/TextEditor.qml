@@ -22,6 +22,13 @@ Rectangle {
         : 20
 
     property var breakpointLines: ({})
+    property int _lastLength: 0
+
+    signal edited()
+
+    function resetLengthTracking() {
+        _lastLength = codeEditor.text.length
+    }
 
     RowLayout {
         anchors.fill: parent
@@ -101,9 +108,11 @@ Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
             clip: true
-            interactive: false
-            contentWidth: codeEditor.contentWidth
+            interactive: true
+            contentWidth: Math.max(codeEditor.contentWidth + 20, width)
             contentHeight: Math.max(codeEditor.contentHeight, height)
+            boundsBehavior: Flickable.StopAtBounds
+            flickableDirection: Flickable.AutoFlickIfNeeded
 
             ScrollBar.vertical: ScrollBar {
                 policy: ScrollBar.AsNeeded
@@ -127,7 +136,7 @@ Rectangle {
 
             TextEdit {
                 id: codeEditor
-                width: editorFlickable.width
+                width: Math.max(contentWidth + 20, editorFlickable.width)
                 height: Math.max(contentHeight, editorFlickable.height)
                 readOnly: backend.editorLocked
                 textFormat: TextEdit.PlainText
@@ -136,6 +145,49 @@ Rectangle {
                 leftPadding: 10
                 selectByMouse: true
                 wrapMode: TextEdit.NoWrap
+
+                Keys.onPressed: (event) => {
+                    if (readOnly) return
+                    // Detect text-modifying keys
+                    if (event.text.length > 0 ||
+                        event.key === Qt.Key_Backspace ||
+                        event.key === Qt.Key_Delete ||
+                        event.key === Qt.Key_Return ||
+                        event.key === Qt.Key_Enter ||
+                        event.key === Qt.Key_Tab ||
+                        (event.modifiers & Qt.ControlModifier && (event.key === Qt.Key_V || event.key === Qt.Key_X))) {
+                        root.edited()
+                    }
+                }
+
+                onTextChanged: {
+                    // Detect length changes (e.g., context menu paste)
+                    if (text.length !== root._lastLength) {
+                        root._lastLength = text.length
+                        root.edited()
+                    }
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.IBeamCursor
+                    acceptedButtons: Qt.NoButton
+                    onWheel: (wheel) => {
+                        if (wheel.modifiers & Qt.ShiftModifier) {
+                            // Horizontal scroll with Shift+wheel
+                            let delta = wheel.angleDelta.y / 3
+                            editorFlickable.contentX = Math.max(0,
+                                Math.min(editorFlickable.contentWidth - editorFlickable.width,
+                                    editorFlickable.contentX - delta))
+                        } else {
+                            // Vertical scroll
+                            let delta = wheel.angleDelta.y / 3
+                            editorFlickable.contentY = Math.max(0,
+                                Math.min(editorFlickable.contentHeight - editorFlickable.height,
+                                    editorFlickable.contentY - delta))
+                        }
+                    }
+                }
 
                 onCursorRectangleChanged: {
                     let cr = cursorRectangle

@@ -30,10 +30,9 @@ inline std::string to_lowercase(std::string_view str) {
 // Use like this:
 // MY_TEMPLATE_INSTANTIATION_MACRO(type) { template ... }
 // FOR_EACH_INT(MY_TEMPLATE_INSTANTIATION_MACRO)
-#define ALL_INT_TYPES \
-uint8_t, uint16_t, uint32_t, uint64_t, int8_t, int16_t, int32_t, int64_t
+
 
 #define FOR_EACH_INT(MACRO) \
 MACRO(uint8_t) MACRO(uint16_t) MACRO(uint32_t) MACRO(uint64_t) \
-MACRO(int8_t) MACRO(int16_t) MACRO(int32_t) MACRO(int64_t)
+MACRO(int8_t) MACRO(int16_t) MACRO(int32_t) MACRO(int64_t) MACRO(char)
 

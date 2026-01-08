@@ -25,13 +25,19 @@ Dialog {
     // Exposed settings values (bind to page properties)
     property alias editorFontSize: editorPage.fontSize
     property alias editorHighlightColor: editorPage.highlightColor
-    property alias stackSizeKB: memoryPage.stackSizeKB
 
     signal settingsApplied()
 
     function applySettings() {
+        settingsManager.apply()
         settingsApplied()
     }
+
+    function cancelSettings() {
+        settingsManager.cancel()
+    }
+
+    //onOpened: settingsManager.loadFromVM()
 
     background: Rectangle {
         color: root.cBack
@@ -136,9 +142,9 @@ Dialog {
 
             Repeater {
                 model: [
-                    { text: "Cancel", highlighted: false, action: function() { root.reject() } },
+                    { text: "Cancel", highlighted: false, action: function() { root.cancelSettings(); root.reject() } },
                     { text: "Apply",  highlighted: false, action: function() { root.applySettings() } },
-                    { text: "OK",     highlighted: true,  action: function() { root.accept() } }
+                    { text: "OK",     highlighted: true,  action: function() { root.applySettings(); root.accept() } }
                 ]
                 delegate: Button {
                     id: footerBtn
@@ -167,5 +173,5 @@ Dialog {
     }
 
     // Tab configuration - add new tabs here
-    readonly property var tabModel: ["Editor", "Memory", "System"]
+    readonly property var tabModel: ["Text Editor", "Memory", "System"]
 }

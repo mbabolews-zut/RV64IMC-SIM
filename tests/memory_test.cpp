@@ -6,7 +6,7 @@ TEST_CASE("Memory descending stack (default)", "[memory][stack][descending]") {
     Memory::Layout layout;
     layout.stack_base = 0x7FF00000;  // Base (bottom) of stack
     layout.stack_size = 0x100000; // 1 MiB
-    rv64::VM vm{layout};
+    rv64::VM vm{{.m_mem_layout = layout}};
     Memory &mem = vm.m_memory;
     MemErr err = MemErr::None;
 
@@ -94,7 +94,7 @@ TEST_CASE("Memory stack at different address", "[memory][stack]") {
     Memory::Layout layout;
     layout.stack_base = 0x10000000;
     layout.stack_size = 0x100000; // 1 MiB
-    rv64::VM vm{layout};
+    rv64::VM vm{{.m_mem_layout = layout}};
     Memory &mem = vm.m_memory;
     MemErr err = MemErr::None;
 
@@ -282,7 +282,7 @@ TEST_CASE("Memory string operations", "[memory][string]") {
     // Use larger initial heap for string tests
     Memory::Layout layout;
     layout.initial_heap_size = 8192;  // Enough for 4096 byte test
-    rv64::VM vm{layout};
+    rv64::VM vm{{.m_mem_layout = layout}};
     Memory &mem = vm.m_memory;
     MemErr err = MemErr::None;
     const auto &vm_layout = vm.get_memory_layout();
@@ -364,7 +364,7 @@ TEST_CASE("Memory endianness", "[memory][endianness]") {
     SECTION("Little endian (default)") {
         Memory::Layout layout;
         layout.endianness = std::endian::little;
-        rv64::VM vm{layout};
+        rv64::VM vm{{.m_mem_layout = layout}};
         Memory &mem = vm.m_memory;
         MemErr err = MemErr::None;
         const auto &vm_layout = vm.get_memory_layout();
@@ -386,7 +386,7 @@ TEST_CASE("Memory endianness", "[memory][endianness]") {
     SECTION("Big endian") {
         Memory::Layout layout;
         layout.endianness = std::endian::big;
-        rv64::VM vm{layout};
+        rv64::VM vm{{.m_mem_layout = layout}};
         Memory &mem = vm.m_memory;
         MemErr err = MemErr::None;
         const auto &vm_layout = vm.get_memory_layout();
@@ -408,7 +408,7 @@ TEST_CASE("Memory endianness", "[memory][endianness]") {
     SECTION("64-bit value byte order") {
         Memory::Layout layout;
         layout.endianness = std::endian::big;
-        rv64::VM vm{layout};
+        rv64::VM vm{{.m_mem_layout = layout}};
         Memory &mem = vm.m_memory;
         MemErr err = MemErr::None;
         const auto &vm_layout = vm.get_memory_layout();
@@ -432,12 +432,12 @@ TEST_CASE("Memory endianness", "[memory][endianness]") {
     SECTION("16-bit value byte order") {
         Memory::Layout layout_le;
         layout_le.endianness = std::endian::little;
-        rv64::VM vm_le{layout_le};
+        rv64::VM vm_le{{.m_mem_layout = layout_le}};
         Memory &mem_le = vm_le.m_memory;
 
         Memory::Layout layout_be;
         layout_be.endianness = std::endian::big;
-        rv64::VM vm_be{layout_be};
+        rv64::VM vm_be{{.m_mem_layout = layout_be}};
         Memory &mem_be = vm_be.m_memory;
 
         MemErr err = MemErr::None;

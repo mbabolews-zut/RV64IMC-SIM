@@ -11,6 +11,14 @@ namespace rv64 {
         return m_pc;
     }
 
+    GPIntReg &Cpu::reg(std::string_view name) noexcept {
+        return reg(Reg(name));
+    }
+
+    const GPIntReg &Cpu::reg(std::string_view name) const noexcept {
+        return reg(Reg(name));
+    }
+
     void Cpu::set_pc(uint64_t new_pc) {
         m_pc = new_pc & ~UINT64_C(1); // ensure LSB is 0
     }
@@ -28,7 +36,7 @@ namespace rv64 {
             std::cout << std::format("{}[{:4} {:>5} = 0x{:016X} (i64:{:<20}\033[0m",
                                      reg.val() != m_int_regs_prev_vals[i] ? "\033[0;31m" : "", // red if changed
                                      reg.get_name() + "]",
-                                     reg.get_sym_name(),
+                                     reg.get_abi_name(),
                                      reg.val(),
                                      std::to_string(reg.sval()) + ')');
             std::cout << (i % 2 == 0 ? " " : "\n");
@@ -96,7 +104,7 @@ namespace rv64 {
     }
 
     void Cpu::reset(bool clear_breakpoints) {
-        for (auto &regis : m_int_regs)
+        for (auto &regis: m_int_regs)
             regis = 0;
 
         m_interpreter = Interpreter(m_vm);

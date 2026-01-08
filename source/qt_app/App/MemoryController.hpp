@@ -15,14 +15,15 @@ class MemoryController : public QObject {
     Q_PROPERTY(bool isLittleEndian READ isLittleEndian NOTIFY layoutChanged)
 
 public:
-    explicit MemoryController(Memory &memory, const Memory::Layout &layout, QObject *parent = nullptr);
+    explicit MemoryController(Memory &memory, QObject *parent = nullptr);
 
-    QString dataBaseAddress() const { return formatHex(m_layout.data_base); }
-    QString stackBaseAddress() const { return formatHex(m_layout.stack_base); }
+    QString dataBaseAddress() const { return formatHex(layout().data_base); }
+    QString stackBaseAddress() const { return formatHex(layout().stack_base); }
     int dataRowCount() const;
-    int stackRowCount() const { return int(m_layout.stack_size / 16); }
+    int stackRowCount() const { return int(layout().stack_size / 16); }
     int revision() const { return m_revision; }
-    bool isLittleEndian() const { return m_layout.endianness == std::endian::little; }
+    bool isLittleEndian() const { return layout().endianness == std::endian::little; }
+
 
     // Address helper - returns hex string for (base + offset)
     Q_INVOKABLE QString addressAt(const QString &baseHex, int offset) const;
@@ -40,6 +41,7 @@ public:
     }
 
     void notifyContentChanged();
+    void notifyLayoutChanged();
     void setModificationAllowed(bool allowed) { m_modificationAllowed = allowed; }
 
 signals:
@@ -48,8 +50,10 @@ signals:
     void dataTypesLoaded(QVariantList values);
 
 private:
+    const Memory::Layout& layout() const { return m_memory.get_layout(); }
+
+private:
     Memory &m_memory;
-    Memory::Layout m_layout;
     int m_revision = 0;
     bool m_modificationAllowed = false;
 };

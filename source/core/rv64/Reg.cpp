@@ -26,7 +26,7 @@ namespace rv64 {
         return std::format("x{}", m_idx);
     }
 
-    std::string Reg::get_sym_name() const {
+    std::string Reg::get_abi_name() const {
         switch (m_idx) {
             case 0: return "zero";
             case 1: return "ra";

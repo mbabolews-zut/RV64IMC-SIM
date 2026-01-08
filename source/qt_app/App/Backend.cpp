@@ -1,10 +1,12 @@
 #include "Backend.hpp"
 #include <QtConcurrent/QtConcurrentRun>
+#include <QFileInfo>
+#include <QTextStream>
 
 Backend::Backend(QObject *parent)
     : QObject(parent)
     , m_registerModel(this)
-    , m_memoryController(m_vm.m_memory, m_vm.get_memory_layout(), this) {
+    , m_memoryController(m_vm.m_memory, this) {
 
     connect(&m_registerModel, &RegisterModel::registerModified,
             this, [this](int index, uint64_t value) {
@@ -23,10 +25,11 @@ void Backend::build(const QString &sourceCode) {
     setAppState(AppState::Building);
     clearOutput();
     m_vm.reset();
+    m_vm.set_config(m_settingsManager.createVMConfig());
 
     QtConcurrent::run([this, str = sourceCode.toStdString()] {
         asm_parsing::ParsedInstVec parsed{};
-        auto result = asm_parsing::parse_and_resolve(str, parsed, m_vm.m_cpu.get_pc());
+        auto result = asm_parsing::parse_and_resolve(str, parsed, 0);
         return std::make_pair(result, std::move(parsed));
     }).then(this, [this](std::pair<int, asm_parsing::ParsedInstVec> result) {
         auto &[code, insts] = result;
@@ -35,12 +38,19 @@ void Backend::build(const QString &sourceCode) {
             setAppState(AppState::Idle);
             return;
         }
-        m_vm.load_program(insts);
+        try {
+            m_vm.load_program(insts);
+        } catch (const std::exception &err) {
+            print(QString("Initialization Error: ") + err.what(), MsgType::Error);
+            setAppState(AppState::Idle);
+            return;
+        }
         print("Build successful\n", MsgType::Success);
         m_currentLine = 0;
         setAppState(AppState::Ready);
         m_registerModel.updateFromCpu(m_vm.m_cpu);
         m_memoryController.notifyContentChanged();
+        m_memoryController.notifyLayoutChanged();
     });
 }
 
@@ -178,4 +188,93 @@ void Backend::appendOutput(const QString &text) {
 
 void Backend::appendError(const QString &text) {
     print(text, MsgType::Error);
+}
+
+// File operations
+
+QString Backend::windowTitle() const {
+    QString name = m_currentFile.isEmpty() ? "[Untitled]" : QFileInfo(m_currentFile).fileName();
+    if (m_fileModified)
+        name += "*";
+    return name + " - RISC-Visim";
+}
+
+void Backend::newFile() {
+    m_currentFile.clear();
+    m_fileModified = false;
+
+    emit currentFileChanged();
+    emit fileModifiedChanged();
+    emit windowTitleChanged();
+    emit fileCleared();
+}
+
+QString Backend::openFile(const QUrl &fileUrl) {
+    QString filePath = fileUrl.toLocalFile();
+    QFile file(filePath);
+
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+        return "Failed to open file: " + file.errorString();
+
+    QTextStream in(&file);
+    QString content = in.readAll();
+    file.close();
+
+    m_currentFile = filePath;
+    m_fileModified = false;
+
+    emit currentFileChanged();
+    emit fileModifiedChanged();
+    emit windowTitleChanged();
+    emit fileLoaded(content);
+
+    return {};
+}
+
+QString Backend::saveFile(const QString &content) {
+    if (m_currentFile.isEmpty())
+        return "No file path set";
+
+    QFile file(m_currentFile);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+        return "Failed to save file: " + file.errorString();
+
+    QTextStream out(&file);
+    out << content;
+    file.close();
+
+    m_fileModified = false;
+    emit fileModifiedChanged();
+    emit windowTitleChanged();
+
+    return {};
+}
+
+QString Backend::saveFileAs(const QUrl &fileUrl, const QString &content) {
+    QString filePath = fileUrl.toLocalFile();
+    QFile file(filePath);
+
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+        return "Failed to save file: " + file.errorString();
+
+    QTextStream out(&file);
+    out << content;
+    file.close();
+
+    m_currentFile = filePath;
+    m_fileModified = false;
+
+    emit currentFileChanged();
+    emit fileModifiedChanged();
+    emit windowTitleChanged();
+
+    return {};
+}
+
+void Backend::setFileModified(bool modified) {
+    if (m_fileModified != modified) {
+        m_fileModified = modified;
+        emit fileModifiedChanged();
+        emit windowTitleChanged();
+    }
 }

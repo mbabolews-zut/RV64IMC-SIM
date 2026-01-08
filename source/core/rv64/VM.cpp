@@ -4,13 +4,13 @@
 #include <ui.hpp>
 
 namespace rv64 {
-    VM::VM(const Memory::Layout &layout)
-        : m_memory(layout) {
+    VM::VM(const VMConfig &config) : m_config(config), m_memory(config.m_mem_layout){
         m_state = VMState::Initializing;
+        m_config = config;
     }
 
     void VM::load_program(const asm_parsing::ParsedInstVec &instructions) {
-        auto sp_pos = config.get_sp_position();
+        auto sp_pos = m_config.m_sp_pos;
         m_memory.load_program(instructions);
         m_cpu.set_pc(m_memory.get_layout().data_base);
         m_cpu.reg(2) = sp_pos == SpPos::Zero
@@ -60,8 +60,17 @@ namespace rv64 {
 
     void VM::reset() {
         m_state = VMState::Initializing;
-        m_memory = Memory(m_memory.get_layout());
+        m_memory = Memory(m_config.m_mem_layout);
         m_cpu.reset();
+    }
+
+    void VM::set_config(const VMConfig &config) {
+        m_config = config;
+        reset();
+    }
+
+    const VMConfig & VM::get_config() const noexcept {
+        return m_config;
     }
 
     bool VM::toggle_breakpoint(size_t line) {
@@ -91,12 +100,4 @@ namespace rv64 {
     }
 
     size_t VM::get_current_line() const noexcept { return m_cpu.m_interpreter.get_current_line(); }
-
-    void VM::Config::set_sp_position(SpPos pos) {
-        m_sp_pos = pos;
-    }
-
-    SpPos VM::Config::get_sp_position() const {
-        return m_sp_pos;
-    }
 } // rv64

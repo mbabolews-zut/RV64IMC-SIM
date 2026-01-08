@@ -3,7 +3,7 @@ addi x6, x0, 5  # x6 = 5
 addi x7, x0, 0  ; x7 = 0
 
 addi x8, x0, 1
-beq  x5, x6, 8
+beq  x5, x6, skip
 addi x7, x7, 1
 skip:
 mul  x7, x7, x8
