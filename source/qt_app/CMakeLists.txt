@@ -50,7 +50,9 @@ set(QML_IMPORT_PATH ${QT_QML_OUTPUT_DIRECTORY}
 # Find Qt6 - let CMake search standard paths
 find_package(Qt6 6.2 REQUIRED COMPONENTS Core Gui Widgets Qml Quick Concurrent)
 
-qt_standard_project_setup()
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTORCC ON)
+set(CMAKE_AUTOUIC ON)
 
 qt_add_executable(${CMAKE_PROJECT_NAME})
 set_target_properties(${CMAKE_PROJECT_NAME} PROPERTIES OUTPUT_NAME "RISC_VISIM")
