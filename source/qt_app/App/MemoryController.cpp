@@ -16,7 +16,7 @@ void MemoryController::notifyLayoutChanged() {
     emit layoutChanged();
 }
 
-QString MemoryController::addressAt(const QString &baseHex, int offset) const {
+QString MemoryController::addressAt(const QString &baseHex, quint64 offset) const {
     uint64_t base = parseHex(baseHex);
     return formatHex(base + offset);
 }

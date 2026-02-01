@@ -13,6 +13,7 @@ class MemoryController : public QObject {
     Q_PROPERTY(int stackRowCount READ stackRowCount NOTIFY contentChanged)
     Q_PROPERTY(int revision READ revision NOTIFY contentChanged)
     Q_PROPERTY(bool isLittleEndian READ isLittleEndian NOTIFY layoutChanged)
+    Q_PROPERTY(bool stackSpAtTop READ stackSpAtTop NOTIFY layoutChanged)
 
 public:
     explicit MemoryController(Memory &memory, QObject *parent = nullptr);
@@ -23,10 +24,11 @@ public:
     int stackRowCount() const { return int(layout().stack_size / 16); }
     int revision() const { return m_revision; }
     bool isLittleEndian() const { return layout().endianness == std::endian::little; }
+    bool stackSpAtTop() const { return m_stackSpAtTop; }
 
 
     // Address helper - returns hex string for (base + offset)
-    Q_INVOKABLE QString addressAt(const QString &baseHex, int offset) const;
+    Q_INVOKABLE QString addressAt(const QString &baseHex, quint64 offset) const;
 
     Q_INVOKABLE int getByteAt(const QString &addrHex) const;
     Q_INVOKABLE bool modifyByte(const QString &addrHex, int value);
@@ -43,6 +45,7 @@ public:
     void notifyContentChanged();
     void notifyLayoutChanged();
     void setModificationAllowed(bool allowed) { m_modificationAllowed = allowed; }
+    void setStackSpAtTop(bool atTop) { m_stackSpAtTop = atTop; }
 
 signals:
     void layoutChanged();
@@ -56,4 +59,5 @@ private:
     Memory &m_memory;
     int m_revision = 0;
     bool m_modificationAllowed = false;
+    bool m_stackSpAtTop = true;
 };

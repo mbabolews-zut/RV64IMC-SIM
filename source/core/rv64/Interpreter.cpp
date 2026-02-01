@@ -1,6 +1,7 @@
 #include "Interpreter.hpp"
 
 #include <any>
+#include <random>
 #include <cassert>
 #include <format>
 #include <rv64/Cpu.hpp>
@@ -190,8 +191,9 @@ namespace rv64 {
     }
 
     void Interpreter::ecall() {
-        auto &a0 = m_vm.m_cpu.reg(10);
-        const auto &a1 = m_vm.m_cpu.reg(11);
+        auto &a0 = m_vm.m_cpu.reg("a0");
+        const auto &a1 = m_vm.m_cpu.reg("a1");
+        const auto &a2 = m_vm.m_cpu.reg("a2");
         MemErr err{};
 
         switch (a0.sval()) {
@@ -210,6 +212,12 @@ namespace rv64 {
             case 11:
                 ui::print_output(std::string(1, static_cast<char>(a1.val() & 0xFF)));
                 return;
+            case 100: {
+                static std::random_device rd;
+                std::mt19937 rng(rd());
+                a0 = std::uniform_int_distribution(a1.sval(), a2.sval())(rng);
+                return;
+            }
             case 17:
                 m_vm.terminate(static_cast<int>(a1.sval()));
                 return;

@@ -30,6 +30,8 @@ Rectangle {
                     textFormat: TextEdit.RichText
                     font.family: "monospace"
                     font.pixelSize: 14
+                    color: "#000000"
+                    placeholderTextColor: "#808080"
                     placeholderText: "Output will appear here..."
                     text: backend.output
                 }
@@ -98,6 +100,7 @@ Rectangle {
                     revision: memoryController.revision
                     selectedAddress: root.selectedAddress
                     canEdit: root.canEdit
+                    alignToBottom: memoryController.stackSpAtTop
 
                     onAddressSelected: addr => {
                         root.selectedAddress = addr

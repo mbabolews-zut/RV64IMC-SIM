@@ -19,15 +19,17 @@ bool Backend::isRunLocked() const {
 }
 
 void Backend::build(const QString &sourceCode) {
-    if (m_appState != AppState::Idle)
-        return;
+if (m_appState != AppState::Idle)
+    return;
 
-    setAppState(AppState::Building);
-    clearOutput();
-    m_vm.reset();
-    m_vm.set_config(m_settingsManager.createVMConfig());
+setAppState(AppState::Building);
+clearOutput();
+m_vm.reset();
+auto config = m_settingsManager.createVMConfig();
+m_vm.set_config(config);
+m_memoryController.setStackSpAtTop(config.m_sp_pos == rv64::SpPos::StackTop);
 
-    QtConcurrent::run([this, str = sourceCode.toStdString()] {
+QtConcurrent::run([this, str = sourceCode.toStdString()] {
         asm_parsing::ParsedInstVec parsed{};
         auto result = asm_parsing::parse_and_resolve(str, parsed, 0);
         return std::make_pair(result, std::move(parsed));
@@ -64,6 +66,7 @@ void Backend::step() {
     m_currentLine = int64_t(m_vm.get_current_line()) - 1;
     handleVmState();
     m_registerModel.updateFromCpu(m_vm.m_cpu);
+    m_memoryController.notifyContentChanged();
 }
 
 void Backend::run() {
@@ -88,6 +91,7 @@ void Backend::run() {
         m_currentLine = int64_t(m_vm.get_current_line()) - 1;
         handleVmState();
         m_registerModel.updateFromCpu(m_vm.m_cpu);
+        m_memoryController.notifyContentChanged();
     });
 }
 

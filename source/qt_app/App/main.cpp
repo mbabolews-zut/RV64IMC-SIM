@@ -12,6 +12,10 @@
 
 int main(int argc, char *argv[])
 {
+#ifdef _WIN32
+    qputenv("QT_SCALE_FACTOR", "1.25");
+#endif
+
     set_qt_environment();
     QApplication app(argc, argv);
 

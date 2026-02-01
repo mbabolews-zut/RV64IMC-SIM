@@ -18,6 +18,18 @@ Rectangle {
     property string asciiCursorAddr: ""
     property bool canEdit: false
     property bool isDragging: false
+    property bool alignToBottom: false
+
+    // Clear local selection range when selectedAddress changes to an address
+    // that wasn't set by this grid (i.e., selection happened in another grid)
+    onSelectedAddressChanged: {
+        // If the new selectedAddress doesn't match our local selection, clear it
+        // This happens when another MemoryGrid gets the selection
+        if (selectionStart !== "" && selectedAddress !== selectionStart) {
+            selectionStart = ""
+            selectionEnd = ""
+        }
+    }
 
     // Layout constants
     readonly property int addrWidth: 130
@@ -68,14 +80,20 @@ Rectangle {
 
     // Returns {addr, isAscii} or null if not on a cell
     function cellAtPosition(x, y) {
-        let rowIndex = Math.floor((y + listView.contentY) / 22)
+        // Use ListView's indexAt for reliable row detection
+        let contentY = y + listView.contentY
+        let rowIndex = listView.indexAt(0, contentY)
         if (rowIndex < 0 || rowIndex >= rowCount) return null
+
+        // Calculate row address first, then add column offset (matches delegate pattern)
+        // This avoids JavaScript precision issues with large offsets
+        let rowAddr = memoryController.addressAt(baseAddress, rowIndex * 16)
 
         // Check hex area
         if (x >= hexAreaStart && x < hexAreaStart + hexAreaWidth) {
             let colIndex = Math.floor((x - hexAreaStart) / hexCellWidth)
             if (colIndex >= 0 && colIndex < 16) {
-                return { addr: memoryController.addressAt(baseAddress, rowIndex * 16 + colIndex), isAscii: false }
+                return { addr: memoryController.addressAt(rowAddr, colIndex), isAscii: false }
             }
         }
 
@@ -83,7 +101,7 @@ Rectangle {
         if (x >= asciiAreaStart && x < asciiAreaStart + 16 * asciiCellWidth) {
             let colIndex = Math.floor((x - asciiAreaStart) / asciiCellWidth)
             if (colIndex >= 0 && colIndex < 16) {
-                return { addr: memoryController.addressAt(baseAddress, rowIndex * 16 + colIndex), isAscii: true }
+                return { addr: memoryController.addressAt(rowAddr, colIndex), isAscii: true }
             }
         }
 
@@ -218,7 +236,8 @@ Rectangle {
                     color: "#990000"
                     text: "Address"
                     font.bold: true
-                    font.family: "Courier New"
+                    font.family: "monospace"
+                    font.pixelSize: 14
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                 }
@@ -228,10 +247,11 @@ Rectangle {
                     Text {
                         width: root.hexCellWidth
                         height: 24
+                        font.pixelSize: 15
                         color: "#990000"
                         text: index.toString(16).toUpperCase().padStart(2, '0')
                         font.bold: true
-                        font.family: "Courier New"
+                        font.family: "monospace"
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                     }
@@ -245,7 +265,8 @@ Rectangle {
                     color: "#990000"
                     text: "ASCII"
                     font.bold: true
-                    font.family: "Courier New"
+                    font.family: "monospace"
+                    font.pixelSize: 14
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                 }
@@ -263,6 +284,19 @@ Rectangle {
                 cacheBuffer: 100
                 model: root.rowCount || 256
                 interactive: !root.isDragging
+
+                Component.onCompleted: {
+                    if (root.alignToBottom)
+                        positionViewAtEnd()
+                }
+                onCountChanged: {
+                    if (root.alignToBottom)
+                        positionViewAtEnd()
+                }
+                onContentHeightChanged: {
+                    if (root.alignToBottom && contentY === 0 && contentHeight > height)
+                        positionViewAtEnd()
+                }
 
                 delegate: Rectangle {
                     id: rowDelegate
@@ -284,7 +318,7 @@ Rectangle {
                             color: "#990000"
                             text: rowDelegate.rowAddr
                             font.family: "Courier New"
-                            font.pointSize: 10
+                            font.pixelSize: 14
                             horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter
                         }
@@ -316,7 +350,7 @@ Rectangle {
                                         return val >= 0 ? val.toString(16).toUpperCase().padStart(2, '0') : "??"
                                     }
                                     font.family: "monospace"
-                                    font.pointSize: 13
+                                    font.pixelSize: 15
                                 }
 
                                 TextInput {
@@ -326,7 +360,7 @@ Rectangle {
                                     visible: hexCell.isEditing
                                     horizontalAlignment: Text.AlignHCenter
                                     font.family: "monospace"
-                                    font.pointSize: 13
+                                    font.pixelSize: 15
                                     maximumLength: 2
                                     validator: RegularExpressionValidator { regularExpression: /[0-9A-Fa-f]{0,2}/ }
                                     selectByMouse: true
@@ -381,7 +415,7 @@ Rectangle {
                                         return root.byteToAscii(val)
                                     }
                                     font.family: "monospace"
-                                    font.pointSize: 13
+                                    font.pixelSize: 15
                                 }
                             }
                         }
@@ -402,10 +436,9 @@ Rectangle {
                     let result = root.cellAtPosition(mouse.x, mouse.y)
                     if (result) {
                         root.isDragging = true
-                        root.selectedAddress = result.addr
                         root.selectionStart = result.addr
                         root.selectionEnd = result.addr
-                        root.addressSelected(result.addr)
+                        root.addressSelected(result.addr)  // Let OutputPanel update selectedAddress
 
                         if (result.isAscii && root.canEdit) {
                             root.startEdit(result.addr, true)
